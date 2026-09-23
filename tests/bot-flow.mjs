@@ -53,6 +53,16 @@ l = await log();
 check('/tomorrow', l.some((c) => /MO-901/.test(c.data.text || '')), texts(l));
 console.log('\n' + l[0]?.data.text + '\n');
 
+l = await log();
+const tabs = l[0]?.data.reply_markup?.inline_keyboard;
+check('day message has 6 day tabs', tabs && tabs[0].length === 6 && tabs[0][0].callback_data.startsWith('day:'), tabs);
+await reset(); await post(cb('day:2:0'));
+l = await log();
+check('tapping a day tab edits the message to that day', l.some((c) => c.method === 'editMessageText' && /Среда/.test(c.data.text) && /• Ср •/.test(JSON.stringify(c.data.reply_markup))), texts(l));
+await reset(); await post(cb('day:0:1'));
+l = await log();
+check('next-week tab works', l.some((c) => c.method === 'editMessageText' && /Понедельник/.test(c.data.text)), texts(l));
+
 await reset(); await post(msg('bha 80'));
 l = await log();
 check('free text search "bha 80" → buttons', l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => /BHA-80/.test(b.text))), texts(l));

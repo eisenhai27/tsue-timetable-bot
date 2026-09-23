@@ -141,7 +141,10 @@ mark{background:var(--bolt);color:#10233F;border-radius:4px;padding:0 1px}
 .slotbar .pill{flex:none}
 .bld h4{margin:14px 2px 8px;font-size:12px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.06em}
 .rooms{display:flex;flex-wrap:wrap;gap:6px}
-.room{background:var(--good-bg);color:var(--good);border-radius:10px;padding:7px 11px;font-weight:800;font-size:13px}
+.room{display:flex;flex-direction:column;align-items:flex-start;background:var(--good-bg);color:var(--good);border-radius:12px;padding:7px 11px;font-weight:800;font-size:13px;line-height:1.25}
+.room small{font-size:11px;font-weight:700;opacity:.75}
+.pill.now{color:var(--navy)} .pill.now.on{background:var(--bolt);color:#3B2A00}
+html.dark .pill.now{color:var(--bolt)} html.dark .pill.now.on{color:#3B2A00}
 
 /* ---- bottom nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
@@ -192,15 +195,15 @@ if (isDark) document.documentElement.classList.add('dark');
 const dur = (m, h, mi) => m >= 60 ? `${Math.floor(m / 60)} ${h}${m % 60 ? ' ' + (m % 60) + ' ' + mi : ''}` : `${m} ${mi}`;
 const I = {
   uz: { days:['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'], dShort:['Du','Se','Ch','Pa','Ju','Sh','Ya'],
-    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`, lessonsN:(n)=>`${n} ta dars`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling", weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'A hafta', weekB:'B hafta',
+    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`, lessonsN:(n)=>`${n} ta dars`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling", weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi', tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'A hafta', weekB:'B hafta',
     now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", sunday:'Yakshanba — dam olish kuni 😌', searchPh:'Guruh, o\'qituvchi yoki xona…',
     all:'Hammasi', groups:'Guruhlar', teachers:"O'qituvchilar", rooms:'Xonalar', recent:"So'nggi", favs:'Sevimlilar', browse:"Fakultet bo'yicha",
     pick:'Guruhingizni tanlang', pickSub:'Qidiruvga guruh nomini yozing, masalan 901', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
     changedAt:(d)=>`${d} da yangilandi`, show:'Batafsil', newTT:"Yangi jadval e'lon qilindi", lecture:"Ma'ruza", seminar:'Seminar', lab:'Laboratoriya', practice:'Amaliy',
-    free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-juftlik`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…', teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar',
+    free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…', teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar',
     time:'Vaqt', week:'Hafta', open:'Ochish', course:(n)=>n?`${n}-kurs`:'Boshqa', validity:'Amal qiladi', lang:'Til', breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi', inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${m} daq qoldi` },
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`, lessonsN:(n)=>`${n} пар(ы)`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте', weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Неделя A', weekB:'Неделя B',
+    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`, lessonsN:(n)=>`${n} пар(ы)`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте', weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все', tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Неделя A', weekB:'Неделя B',
     now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', sunday:'Воскресенье — выходной 😌', searchPh:'Группа, преподаватель или аудитория…',
     all:'Все', groups:'Группы', teachers:'Преподаватели', rooms:'Аудитории', recent:'Недавние', favs:'Избранное', browse:'По факультетам',
     pick:'Выберите группу', pickSub:'Введите название группы, например 901', nothing:'Ничего не найдено', changed:'Расписание изменилось',
@@ -208,7 +211,7 @@ const I = {
     free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} свободных`, filterRoom:'Номер аудитории…', teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы',
     time:'Время', week:'Неделя', open:'Открыть', course:(n)=>n?`${n} курс`:'Другое', validity:'Действует', lang:'Язык', breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое', inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${m} мин` },
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`, lessonsN:(n)=>`${n} classes`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy', weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today', pairShort:'per.', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Week A', weekB:'Week B',
+    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`, lessonsN:(n)=>`${n} classes`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy', weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All', tillEnd:'rest of the day', pairShort:'per.', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Week A', weekB:'Week B',
     now:'Now', next:'Next', noLessons:'No classes this day', sunday:'Sunday — day off 😌', searchPh:'Group, teacher or room…',
     all:'All', groups:'Groups', teachers:'Teachers', rooms:'Rooms', recent:'Recent', favs:'Favorites', browse:'By faculty',
     pick:'Pick your group', pickSub:'Type your group name, e.g. 901', nothing:'Nothing found', changed:'Timetable changed',
@@ -664,46 +667,73 @@ function drawResults() {
 }
 
 // ---- free rooms tab
+/** Current (or next) pair: {day, p, mode:'now'|'next'} — used by the "⚡ Hozir" button */
+function currentSlot() {
+  const now = nowT();
+  const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const d = wd(now);
+  const P = INDEX.periods;
+  if (d === 6) return { day: 0, p: P[0].p, mode: 'next' };
+  const cur = P.find(x => nm >= mins(x.start) && nm < mins(x.end));
+  if (cur) return { day: d, p: cur.p, mode: 'now' };
+  const nxt = P.find(x => nm < mins(x.start));
+  if (nxt) return { day: d, p: nxt.p, mode: 'next' };
+  return { day: d === 5 ? 0 : d + 1, p: P[0].p, mode: 'next' };
+}
+
 async function renderFree() {
   app.innerHTML = `<div class="wrap"><div class="spin"></div></div>`;
   const [busy] = await Promise.all([load('busy.json'), ensurePeople()]);
   const now = nowT();
-  const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
-  if (S.freeDay == null) {
-    S.freeDay = wd(now) === 6 ? 0 : wd(now);
-    // current pair, or the next one
-    let p = INDEX.periods.find(x => nm < mins(x.end));
-    if (!p || wd(now) === 6) { p = INDEX.periods[0]; if (wd(now) !== 6 && nm >= mins(INDEX.periods[INDEX.periods.length - 1].end)) S.freeDay = (S.freeDay + 1) % 6; }
-    S.freeP = p.p;
-  }
+  const cs = currentSlot();
+  if (S.freeDay == null) { S.freeDay = cs.day; S.freeP = cs.p; }
+  if (S.freeBld === undefined) S.freeBld = store.get('fbld', 'all');
+  const isNow = S.freeDay === cs.day && S.freeP === cs.p;
   const mon = monday(wd(now) === 6 ? addD(now, 1) : now);
-  const par = parity(INDEX.weekA, mon);
-  const slot = `${S.freeDay}.${S.freeP}`;
+  const par = parity(INDEX.weekA, addD(mon, S.freeDay));
+  const isBusy = (b, day, p) => { const k = `${day}.${p}`; return b.includes(k) || (par ? b.includes(k + par) : (b.includes(k + 'A') || b.includes(k + 'B'))); };
+  const lastP = INDEX.periods[INDEX.periods.length - 1].p;
   const free = [];
   for (const [id, name] of PEOPLE.rooms) {
-    const b = busy.rooms[id] || [];
-    const taken = b.includes(slot) || (par ? b.includes(slot + par) : (b.includes(slot + 'A') || b.includes(slot + 'B')));
     // only real campus rooms ("8-403-66", "4/1-…"); skip hotels, companies, online etc.
-    if (!taken && /^\d/.test(name) && !/online|onlayn|masofa|zoom/i.test(name)) free.push(name);
+    if (!/^\d/.test(name) || /online|onlayn|masofa|zoom/i.test(name)) continue;
+    const b = busy.rooms[id] || [];
+    if (isBusy(b, S.freeDay, S.freeP)) continue;
+    // how long does it stay free? → "15:50 gacha"
+    let q = S.freeP;
+    while (q < lastP && !isBusy(b, S.freeDay, q + 1)) q++;
+    const bld = (/^([^-/\s]+)/.exec(name) || [, '?'])[1];
+    free.push({ name, bld, until: q >= lastP ? null : INDEX.periods.find(x => x.p === q).end, len: q - S.freeP });
   }
+  // buildings sorted numerically, with counts
+  const bCount = {};
+  for (const r of free) bCount[r.bld] = (bCount[r.bld] || 0) + 1;
+  const blds = Object.keys(bCount).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  if (S.freeBld !== 'all' && !bCount[S.freeBld]) S.freeBld = 'all';
   const fq = norm(S.freeQ);
-  const shown = free.filter(n => !fq || norm(n).includes(fq));
-  // group by building: text before the first "-" or "/"
+  const shown = free.filter(r => (S.freeBld === 'all' || r.bld === S.freeBld) && (!fq || norm(r.name).includes(fq)));
   const groups = {};
-  for (const n of shown) { const b = (/^([^-/\s]+)/.exec(n) || [, '?'])[1]; (groups[b] ||= []).push(n); }
+  for (const r of shown) (groups[r.bld] ||= []).push(r);
+  // inside a building: longest-free first, then by room number
+  for (const k in groups) groups[k].sort((a, b) => b.len - a.len || a.name.localeCompare(b.name, undefined, { numeric: true }));
   const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const per = INDEX.periods.find(x => x.p === S.freeP);
+  const bName = (k) => /^\d+$/.test(k) ? L.bld(k) : k;
+  const head = isNow ? (cs.mode === 'now' ? L.freeNowT : L.freeNextT) : L.free;
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
-      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(L.free)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)}</div></div></div>
-      <div class="summary"><span class="bolt">🟢</span><span>${esc(L.freeCount(free.length))}</span></div></div><div class="top">
-      <div class="slotbar">${[0, 1, 2, 3, 4, 5].map(d => `<button class="pill ${d === S.freeDay ? 'on' : ''}" data-fd="${d}">${esc(L.dShort[d])}</button>`).join('')}</div>
-      <div class="slotbar">${INDEX.periods.map(p => `<button class="pill ${p.p === S.freeP ? 'on' : ''}" data-fp="${p.p}">${p.p} · ${esc(p.start)}</button>`).join('')}</div>
-      <label class="search">🔎<input id="fq" type="search" placeholder="${esc(L.filterRoom)}" value="${esc(S.freeQ)}"></label>
-    </div>
-    ${keys.map(k => `<div class="bld"><h4>${esc(/^\d+$/.test(k) ? L.bld(k) : k)} · ${groups[k].length}</h4><div class="rooms">${groups[k].map(n => `<button class="room" data-room="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`).join('') || `<div class="empty">${esc(L.nothing)}</div>`}
+      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(head)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)}</div></div></div>
+      <div class="summary"><span class="bolt">🟢</span><span>${esc(L.freeCount(free.length))}</span></div></div>
+    <div class="slotbar"><button class="pill now ${isNow ? 'on' : ''}" id="fNow">⚡ ${esc(L.nowBtn)}</button>${[0, 1, 2, 3, 4, 5].map(d => `<button class="pill ${d === S.freeDay && !isNow ? 'on' : ''}" data-fd="${d}">${esc(L.dShort[d])}</button>`).join('')}</div>
+    <div class="slotbar">${INDEX.periods.map(p => `<button class="pill ${p.p === S.freeP && !isNow ? 'on' : ''}" data-fp="${p.p}">${p.p} · ${esc(p.start)}</button>`).join('')}</div>
+    <div class="slotbar"><button class="pill ${S.freeBld === 'all' ? 'on' : ''}" data-fb="all">🏢 ${esc(L.allB)}</button>${blds.map(k => `<button class="pill ${S.freeBld === k ? 'on' : ''}" data-fb="${esc(k)}">${esc(bName(k))} <span class="muted">${bCount[k]}</span></button>`).join('')}</div>
+    <label class="search">🔎<input id="fq" type="search" placeholder="${esc(L.filterRoom)}" value="${esc(S.freeQ)}"></label>
+    ${keys.map(k => `<div class="bld"><h4>${esc(bName(k))} · ${groups[k].length}</h4><div class="rooms">${groups[k].map(r => `<button class="room" data-room="${esc(r.name)}">${esc(r.name)}<small>${esc(r.until ? L.until(r.until) : L.tillEnd)}</small></button>`).join('')}</div></div>`).join('') || `<div class="empty">${esc(L.nothing)}</div>`}
+    ${footHtml('')}
   </div>`;
+  $('#fNow').onclick = () => { haptic(); const c = currentSlot(); S.freeDay = c.day; S.freeP = c.p; renderFree(); };
   app.querySelectorAll('[data-fd]').forEach(b => b.onclick = () => { haptic(); S.freeDay = Number(b.dataset.fd); renderFree(); });
   app.querySelectorAll('[data-fp]').forEach(b => b.onclick = () => { haptic(); S.freeP = Number(b.dataset.fp); renderFree(); });
+  app.querySelectorAll('[data-fb]').forEach(b => b.onclick = () => { haptic(); S.freeBld = b.dataset.fb; store.set('fbld', S.freeBld); renderFree(); });
   app.querySelectorAll('[data-room]').forEach(b => b.onclick = () => { const e = idOfName['r:' + b.dataset.room]; if (e) openEntity(e); });
   const fqi = $('#fq');
   fqi.oninput = () => { S.freeQ = fqi.value; const pos = fqi.selectionStart; renderFree().then(() => { const n = $('#fq'); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} }); };
@@ -730,6 +760,7 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
       setTimeout(res, 800);
     });
   }
+  if (hash.get('tab') === 'free') S.tab = 'free';
   const gid = hash.get('g') || hash.get('t') || hash.get('r');
   if (gid) {
     try {

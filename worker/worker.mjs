@@ -207,7 +207,10 @@ function mainKeyboard(env, lang, groupId) {
     [{ text: L.btnToday }, { text: L.btnTomorrow }],
     [{ text: L.btnWeek }, { text: L.btnSettings }],
   ];
-  if (siteUrl(env)) rows.push([{ text: L.btnApp, web_app: { url: appUrl(env, groupId, lang) } }]);
+  if (siteUrl(env)) rows.push([
+    { text: L.btnApp, web_app: { url: appUrl(env, groupId, lang) } },
+    { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&l=${lang}` } },
+  ]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 
@@ -353,7 +356,38 @@ async function sendSchedule(env, chatId, row, what) {
     return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra); // fallback: text
   }
   const date = what === 'tomorrow' ? addDays(now, 1) : now;
-  return send(env, chatId, fmtDay(group, index, date, row.lang, now), extra);
+  return send(env, chatId, fmtDay(group, index, date, row.lang, now), { reply_markup: dayKeyboard(row.lang, date, now, kb) });
+}
+
+/**
+ * Inline day tabs under a day message: [Du][Se][Ch][Pa][Ju][Sh] + [◀ week] [week ▶].
+ * Tapping edits the same message, so the chat doesn't fill up with timetables.
+ */
+function dayKeyboard(lang, date, now, extraKb) {
+  const L = tr(lang);
+  const baseMon = mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
+  const off = Math.round((mondayOf(date) - baseMon) / (7 * 86400000));
+  const sel = weekday(date);
+  const days = [0, 1, 2, 3, 4, 5].map((d) => ({ text: d === sel ? `• ${L.daysShort[d]} •` : L.daysShort[d], callback_data: `day:${d}:${off}` }));
+  const nav = [];
+  if (off > 0) nav.push({ text: `◀ ${L.thisWeekShort}`, callback_data: `day:${sel}:${off - 1}` });
+  if (off < 1) nav.push({ text: `${L.nextWeekShort} ▶`, callback_data: `day:0:${off + 1}` });
+  nav.push({ text: L.btnWeek, callback_data: `wk:${off}` });
+  const rows = [days.slice(0, 6), nav];
+  if (extraKb?.inline_keyboard) rows.push(...extraKb.inline_keyboard);
+  return { inline_keyboard: rows };
+}
+
+async function onDayTab(env, row, msg, d, off) {
+  const [index, group] = await Promise.all([getIndex(env), getGroup(env, row.group_id)]);
+  if (!group) return;
+  const now = tashkentNow();
+  const baseMon = mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
+  const date = addDays(baseMon, Math.max(0, Math.min(1, off)) * 7 + Math.max(0, Math.min(5, d)));
+  return tg(env, 'editMessageText', {
+    chat_id: msg.chat.id, message_id: msg.message_id, text: fmtDay(group, index, date, row.lang, now), parse_mode: 'HTML',
+    disable_web_page_preview: true, reply_markup: dayKeyboard(row.lang, date, now, await appButton(env, row)),
+  });
 }
 
 let botName = null;
@@ -518,6 +552,8 @@ async function onCallback(env, cb) {
     if (!isGroupChat) await send(env, chatId, '👌', { reply_markup: mainKeyboard(env, newLang, row.group_id) });
     return;
   }
+  if (kind === 'day') { if (!row.group_id) return; return onDayTab(env, row, msg, Number(parts[1]), Number(parts[2])); }
+  if (kind === 'wk') { if (!row.group_id) return; return sendSchedule(env, chatId, row, 'week'); }
   if (kind === 'F') return showFaculties(env, chatId, parts[1], lang, msg.message_id);
   if (kind === 'f') return showCourses(env, chatId, parts[1], lang, Number(parts[2]), msg.message_id);
   if (kind === 'c') return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[4]), msg.message_id);
