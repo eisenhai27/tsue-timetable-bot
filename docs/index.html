@@ -167,7 +167,7 @@ html.dark .nav button.on{color:#fff}
 .sheet .kv button{color:var(--link);text-align:left;font-weight:700}
 .sheet img{width:100%;border-radius:14px;display:block}
 .foot{margin:22px 2px 8px;font-size:12px;color:var(--hint);text-align:center;font-weight:600;line-height:1.6}
-.foot b{color:var(--navy)} html.dark .foot b{color:#A9C8F2}
+.foot b{color:var(--navy)} .foot a.author{color:var(--link);font-weight:800;text-decoration:none} html.dark .foot b{color:#A9C8F2}
 .sig{display:inline-flex;align-items:center;gap:6px}
 .spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:s .8s linear infinite;margin:40px auto}
 @keyframes s{to{transform:rotate(360deg)}}
@@ -571,7 +571,7 @@ function heroHtml(v, sub, extra, compact) {
     ${v ? `<button class="star ${fav ? 'on' : ''}" id="favBtn" aria-label="favorite">${fav ? '★' : '☆'}</button>` : ''}</div>${extra || ''}</div>`;
 }
 function footHtml(label) {
-  return `<div class="foot">${label ? esc(L.validity) + ': ' + esc(label) + '<br>' : ''}<span class="sig">⚡ <b>TDIU Jadval</b> · @tdiujadval_bot</span><br>${esc(L.madeBy)} @Eisenhai</div>`;
+  return `<div class="foot">${label ? esc(L.validity) + ': ' + esc(label) + '<br>' : ''}<span class="sig">⚡ <b>TDIU Jadval</b> · @tdiujadval_bot</span><br>${esc(L.madeBy)} <a class="author" href="https://t.me/Eisenhai" target="_blank" rel="noopener">@Eisenhai</a></div>`;
 }
 function bindTitle() {
   const go = () => { haptic(); S.stack.push({ tab: S.tab, view: S.view }); S.tab = 'search'; render(); };
@@ -738,6 +738,13 @@ async function renderFree() {
   const fqi = $('#fq');
   fqi.oninput = () => { S.freeQ = fqi.value; const pos = fqi.selectionStart; renderFree().then(() => { const n = $('#fq'); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} }); };
 }
+
+// Author link: inside Telegram open the profile natively instead of a browser page
+document.addEventListener('click', (e) => {
+  const a = e.target.closest && e.target.closest('a.author');
+  if (!a) return;
+  if (inTg && tg.openTelegramLink) { e.preventDefault(); haptic(); tg.openTelegramLink(a.href); }
+});
 
 // ---------------------------------------------------------------- start
 if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch {} }
