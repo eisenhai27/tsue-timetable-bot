@@ -170,6 +170,7 @@ var DAY_MS = 864e5;
 function tashkentNow(ms = Date.now()) {
   return new Date(ms + TZ_MS);
 }
+var ymd = (d) => d.toISOString().slice(0, 10);
 var addDays = (d, n) => new Date(d.getTime() + n * DAY_MS);
 var weekday = (d) => (d.getUTCDay() + 6) % 7;
 var mondayOf = (d) => {
@@ -189,49 +190,178 @@ function fmtDate(d, lang) {
   return lang === "en" ? `${m} ${day}` : lang === "ru" ? `${day} ${m}` : `${day}-${m}`;
 }
 var dm = (d) => `${String(d.getUTCDate()).padStart(2, "0")}.${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+var W = {
+  uz: {
+    lecture: "Ma'ruza",
+    seminar: "Seminar",
+    lab: "Laboratoriya",
+    practice: "Amaliy",
+    bld: (b) => `${b}-bino`,
+    room: (r) => `${r}-xona`,
+    count: (n) => `${n} ta dars`,
+    pair: (n) => `${n}-para`,
+    now: "🟢 Hozir",
+    next: "⏭ Keyingi",
+    brk: (m) => `☕ ${m} daqiqa tanaffus`,
+    finish: (t) => `🏁 Darslar ${t} da tugaydi`,
+    moved: "🔁 Vaqti o‘zgardi",
+    roomCh: "🚪 Xona o‘zgardi",
+    teachCh: "👤 O‘qituvchi o‘zgardi",
+    removed: "❌ Bekor qilindi",
+    added: "➕ Yangi dars",
+    wkCap: (g, r, n) => `🗓 <b>${g}</b> — haftalik jadval
+${r} · ${n} ta dars`,
+    lessonsWeek: "Haftalik jadval",
+    freeWeek: "Bu hafta dars yo'q 🎉",
+    seeApp: "📱 Batafsil — ilovada"
+  },
+  ru: {
+    lecture: "Лекция",
+    seminar: "Семинар",
+    lab: "Лабораторная",
+    practice: "Практика",
+    bld: (b) => `корпус ${b}`,
+    room: (r) => `ауд. ${r}`,
+    count: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "пара" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "пары" : "пар"}`,
+    pair: (n) => `${n} пара`,
+    now: "🟢 Сейчас",
+    next: "⏭ Следующая",
+    brk: (m) => `☕ перерыв ${m} мин`,
+    finish: (t) => `🏁 Пары закончатся в ${t}`,
+    moved: "🔁 Изменилось время",
+    roomCh: "🚪 Изменилась аудитория",
+    teachCh: "👤 Изменился преподаватель",
+    removed: "❌ Отменено",
+    added: "➕ Новая пара",
+    wkCap: (g, r, n) => `🗓 <b>${g}</b> — расписание на неделю
+${r} · ${n} пар`,
+    lessonsWeek: "Расписание на неделю",
+    freeWeek: "На этой неделе пар нет 🎉",
+    seeApp: "📱 Подробнее — в приложении"
+  },
+  en: {
+    lecture: "Lecture",
+    seminar: "Seminar",
+    lab: "Lab",
+    practice: "Practice",
+    bld: (b) => `Building ${b}`,
+    room: (r) => `Room ${r}`,
+    count: (n) => `${n} class${n === 1 ? "" : "es"}`,
+    pair: (n) => `Period ${n}`,
+    now: "🟢 Now",
+    next: "⏭ Next",
+    brk: (m) => `☕ ${m} min break`,
+    finish: (t) => `🏁 Classes end at ${t}`,
+    moved: "🔁 Time changed",
+    roomCh: "🚪 Room changed",
+    teachCh: "👤 Teacher changed",
+    removed: "❌ Cancelled",
+    added: "➕ New class",
+    wkCap: (g, r, n) => `🗓 <b>${g}</b> — weekly timetable
+${r} · ${n} classes`,
+    lessonsWeek: "Weekly timetable",
+    freeWeek: "No classes this week 🎉",
+    seeApp: "📱 More in the app"
+  }
+};
+var words = (lang) => W[lang] || W.uz;
+function parseSubject(s) {
+  const m = /^(.*?)\s*\(([^()]+)\)\s*$/.exec(String(s || "").trim());
+  if (!m) return { name: String(s || "").trim(), type: null };
+  const t = m[2].toLowerCase().replace(/[^a-zа-я]/g, "");
+  let type = null;
+  if (/^(ma|maruza|lek|лек|lec)/.test(t)) type = "lecture";
+  else if (/^(sem|сем)/.test(t)) type = "seminar";
+  else if (/^(lab|лаб)/.test(t)) type = "lab";
+  else if (/^(amal|пр|prac)/.test(t)) type = "practice";
+  return type ? { name: m[1].trim(), type } : { name: String(s).trim(), type: null };
+}
+var typeLabel = (type, lang) => type ? words(lang)[type] : "";
+function roomLabel(r, lang) {
+  const w = words(lang);
+  return String(r || "").split(", ").filter(Boolean).map((one) => {
+    const m = /^(\d{1,2})\s*[-/]+\s*(\d{2,4}[A-Za-zА-Яа-я]?)(?:\s*-\s*\d+)?$/.exec(one.trim());
+    return m ? `${w.bld(m[1])}, ${w.room(m[2])}` : one;
+  }).join(" / ");
+}
 function lessonsForDay(group, dayIdx, parity) {
   return (group?.lessons || []).filter((l) => l.d === dayIdx && (!parity || !l.w || l.w === parity));
 }
-function periodTime(periods, l) {
+function times(periods, l) {
   const a = periods.find((p) => p.p === l.p);
   const b = periods.find((p) => p.p === l.p + (l.n || 1) - 1) || a;
-  return a ? `${a.start}–${b.end}` : `${l.p}`;
+  return { a: a ? a.start : "", b: b ? b.end : "" };
 }
-var NUM = ["0️⃣", "1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"];
+var mins = (t) => {
+  const [h, m] = String(t).split(":").map(Number);
+  return h * 60 + m;
+};
 function weekTag(l, lang, parity) {
   if (!l.w || parity) return "";
   return ` · <i>${l.w === "A" ? tr(lang).weekA : tr(lang).weekB}</i>`;
 }
-function fmtLesson(l, periods, lang, parity) {
-  const lines = [`${NUM[l.p] || l.p} <b>${periodTime(periods, l)}</b>${weekTag(l, lang, parity)}`];
-  lines.push(`📘 ${esc(l.s)}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`);
-  const extra = [];
-  if (l.r) extra.push(`🚪 ${esc(l.r)}`);
-  if (l.t) extra.push(`👤 ${esc(l.t)}`);
-  if (extra.length) lines.push(extra.join("  "));
+function fmtLesson(l, periods, lang, parity, state) {
+  const w = words(lang);
+  const t = times(periods, l);
+  const sub = parseSubject(l.s);
+  const head = `${state ? state + "\n" : ""}<b>${t.a} – ${t.b}</b>  ·  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
+  const lines = [head, `📘 <b>${esc(sub.name)}</b>${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`];
+  if (l.r) lines.push(`📍 ${esc(roomLabel(l.r, lang))}`);
+  if (l.t) lines.push(`👤 ${esc(l.t)}`);
   return lines.join("\n");
 }
 function fmtLessonShort(l, periods, lang, parity) {
-  const a = periods.find((p) => p.p === l.p);
-  const time = a ? a.start : `${l.p}`;
-  let s = `<b>${time}</b> ${esc(l.s)}`;
-  if (l.g) s += ` <i>(${esc(l.g)})</i>`;
-  if (l.r) s += ` · 🚪${esc(l.r)}`;
+  const t = times(periods, l);
+  const sub = parseSubject(l.s);
+  let s = `<b>${t.a}</b> ${esc(sub.name)}`;
+  if (sub.type) s += ` <i>(${typeLabel(sub.type, lang).toLowerCase()})</i>`;
+  if (l.g) s += ` <i>[${esc(l.g)}]</i>`;
+  if (l.r) s += ` · 📍${esc(l.r)}`;
   if (l.w && !parity) s += ` · <i>${l.w}</i>`;
   return s;
 }
-function fmtDay(group, index, date, lang) {
+function fmtDay(group, index, date, lang, nowDate) {
   const L = tr(lang);
+  const w = words(lang);
   const d = weekday(date);
   const parity = weekParity(index.weekA, date);
-  const head = `📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b> — ${esc(group.name)}` + (parity ? ` · ${parity === "A" ? L.weekA : L.weekB}` : "");
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
+  const head = [
+    `📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === "A" ? L.weekA : L.weekB}` : ""),
+    `👥 ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}` : ""}`
+  ].join("\n");
   if (!ls.length) return `${head}
 
 ${L.noLessons}`;
-  return `${head}
+  const sameDay = nowDate && ymd(nowDate) === ymd(date);
+  const nowM = sameDay ? nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes() : -1;
+  let nextMarked = false;
+  const blocks = [];
+  let prevEnd = null;
+  for (const l of ls) {
+    const t = times(index.periods, l);
+    if (prevEnd != null) {
+      const gap = mins(t.a) - prevEnd;
+      if (gap >= 30) blocks.push(w.brk(gap));
+    }
+    prevEnd = Math.max(prevEnd ?? 0, mins(t.b));
+    let state = "";
+    if (sameDay) {
+      if (nowM >= mins(t.a) && nowM < mins(t.b)) state = w.now;
+      else if (nowM < mins(t.a) && !nextMarked) {
+        state = w.next;
+        nextMarked = true;
+      }
+    }
+    blocks.push(fmtLesson(l, index.periods, lang, parity, state));
+  }
+  const last = times(index.periods, ls[ls.length - 1]).b;
+  return clip(`${head}
+━━━━━━━━━━━━━━
 
-${ls.map((l) => fmtLesson(l, index.periods, lang, parity)).join("\n\n")}`;
+${blocks.join("\n\n")}
+
+${w.finish(last)}`);
 }
 function fmtWeek(group, index, monday, lang) {
   const L = tr(lang);
@@ -244,8 +374,16 @@ function fmtWeek(group, index, monday, lang) {
     parts.push(`<b>${L.days[d]}</b>
 ${ls.map((l) => fmtLessonShort(l, index.periods, lang, parity)).join("\n")}`);
   }
-  if (parts.length === 1) parts.push(L.noLessons);
+  if (parts.length === 1) parts.push(words(lang).freeWeek);
   return clip(parts.join("\n\n"));
+}
+function fmtWeekCaption(group, index, monday, lang) {
+  const w = words(lang);
+  const L = tr(lang);
+  const parity = weekParity(index.weekA, monday);
+  const n = [0, 1, 2, 3, 4, 5].reduce((s, d) => s + lessonsForDay(group, d, parity).length, 0);
+  const range = `${fmtDate(monday, lang)} – ${fmtDate(addDays(monday, 5), lang)}` + (parity ? ` · ${parity === "A" ? L.weekA : L.weekB}` : "");
+  return w.wkCap(esc(group.name), range, n);
 }
 function clip(s) {
   if (s.length <= 4e3) return s;
@@ -541,18 +679,26 @@ async function sendSchedule(env, chatId, row, what) {
   }
   if (!group) return send(env, chatId, row.kind === "private" ? L.noGroup : L.noGroupChat);
   const now = tashkentNow();
-  let text;
+  const extra = {};
+  const kb = await appButton(env, row);
+  if (kb) extra.reply_markup = kb;
   if (what === "week") {
     const monday = mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
-    text = fmtWeek(group, index, monday, row.lang);
-  } else {
-    text = fmtDay(group, index, what === "tomorrow" ? addDays(now, 1) : now, row.lang);
+    const photo = `${siteUrl(env)}/img/g/${group.id}.png?v=${group.v || index.tt?.num || ""}`;
+    const r = await tg(env, "sendPhoto", { chat_id: chatId, photo, caption: fmtWeekCaption(group, index, monday, row.lang), parse_mode: "HTML", ...extra });
+    if (r.ok) return r;
+    return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra);
   }
-  const extra = {};
-  if (row.kind === "private" && siteUrl(env)) {
-    extra.reply_markup = { inline_keyboard: [[{ text: L.btnOpenInApp, web_app: { url: appUrl(env, row.group_id, row.lang) } }]] };
-  }
-  return send(env, chatId, text, extra);
+  const date = what === "tomorrow" ? addDays(now, 1) : now;
+  return send(env, chatId, fmtDay(group, index, date, row.lang, now), extra);
+}
+var botName = null;
+async function appButton(env, row) {
+  const L = tr(row.lang);
+  if (!siteUrl(env)) return null;
+  if (row.kind === "private") return { inline_keyboard: [[{ text: L.btnOpenInApp, web_app: { url: appUrl(env, row.group_id, row.lang) } }]] };
+  if (!botName) botName = (await tg(env, "getMe", {})).result?.username || null;
+  return botName ? { inline_keyboard: [[{ text: L.btnOpenInApp, url: `https://t.me/${botName}?start=g_${row.group_id}` }]] } : null;
 }
 async function askLanguage(env, chatId, next, messageId) {
   const kb = { inline_keyboard: LANGS.map((l) => [{ text: T[l].langName, callback_data: `lang:${l}:${next}` }]) };
@@ -650,7 +796,7 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
   const updated = { ...row, group_id: groupId, group_name: name };
   if (isPrivate) {
     const [index, group] = await Promise.all([getIndex(env), getGroup(env, groupId)]);
-    if (group) await send(env, chat.id, fmtDay(group, index, tashkentNow(), lang), { reply_markup: mainKeyboard(env, lang, groupId) });
+    if (group) await send(env, chat.id, fmtDay(group, index, tashkentNow(), lang, tashkentNow()), { reply_markup: mainKeyboard(env, lang, groupId) });
   } else {
     await sendSchedule(env, chat.id, updated, "week");
   }

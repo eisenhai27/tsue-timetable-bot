@@ -9,7 +9,7 @@
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
-  fmtDay, fmtWeek,
+  fmtDay, fmtWeek, fmtWeekCaption,
 } from '../src/shared.mjs';
 
 const PAGE = 30; // groups per page in the picker
@@ -340,19 +340,30 @@ async function sendSchedule(env, chatId, row, what) {
   }
   if (!group) return send(env, chatId, row.kind === 'private' ? L.noGroup : L.noGroupChat);
   const now = tashkentNow();
-  let text;
+  const extra = {};
+  const kb = await appButton(env, row);
+  if (kb) extra.reply_markup = kb;
   if (what === 'week') {
     // On Sunday show the coming week
     const monday = mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
-    text = fmtWeek(group, index, monday, row.lang);
-  } else {
-    text = fmtDay(group, index, what === 'tomorrow' ? addDays(now, 1) : now, row.lang);
+    // The weekly picture (drawn by the GitHub Action) — easier to read than text, like the EduPage grid
+    const photo = `${siteUrl(env)}/img/g/${group.id}.png?v=${group.v || index.tt?.num || ''}`;
+    const r = await tg(env, 'sendPhoto', { chat_id: chatId, photo, caption: fmtWeekCaption(group, index, monday, row.lang), parse_mode: 'HTML', ...extra });
+    if (r.ok) return r;
+    return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra); // fallback: text
   }
-  const extra = {};
-  if (row.kind === 'private' && siteUrl(env)) {
-    extra.reply_markup = { inline_keyboard: [[{ text: L.btnOpenInApp, web_app: { url: appUrl(env, row.group_id, row.lang) } }]] };
-  }
-  return send(env, chatId, text, extra);
+  const date = what === 'tomorrow' ? addDays(now, 1) : now;
+  return send(env, chatId, fmtDay(group, index, date, row.lang, now), extra);
+}
+
+let botName = null;
+async function appButton(env, row) {
+  const L = tr(row.lang);
+  if (!siteUrl(env)) return null;
+  if (row.kind === 'private') return { inline_keyboard: [[{ text: L.btnOpenInApp, web_app: { url: appUrl(env, row.group_id, row.lang) } }]] };
+  // web_app buttons are not allowed in groups → deep link into a private chat with the bot
+  if (!botName) botName = (await tg(env, 'getMe', {})).result?.username || null;
+  return botName ? { inline_keyboard: [[{ text: L.btnOpenInApp, url: `https://t.me/${botName}?start=g_${row.group_id}` }]] } : null;
 }
 
 // ---------------------------------------------------------------- pickers
@@ -449,7 +460,7 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
   if (isPrivate) {
     // Show today's classes right away, together with the main buttons
     const [index, group] = await Promise.all([getIndex(env), getGroup(env, groupId)]);
-    if (group) await send(env, chat.id, fmtDay(group, index, tashkentNow(), lang), { reply_markup: mainKeyboard(env, lang, groupId) });
+    if (group) await send(env, chat.id, fmtDay(group, index, tashkentNow(), lang, tashkentNow()), { reply_markup: mainKeyboard(env, lang, groupId) });
   } else {
     await sendSchedule(env, chat.id, updated, 'week');
   }

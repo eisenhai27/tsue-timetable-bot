@@ -6,7 +6,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { buildAll, diffLessons, pickTimetable } from '../src/build.mjs';
+import { buildAll, diffLessons, pickTimetable, groupId } from '../src/build.mjs';
 import { tashkentNow, addDays, ymd } from '../src/shared.mjs';
 
 const BASE = process.env.EDUPAGE_URL || 'https://tsue.edupage.org';
@@ -110,7 +110,9 @@ async function main() {
     // keep ~2 weeks of history only
     const cutoff = Date.now() - 14 * 86400000;
     history = history.filter((c) => Date.parse(c.at) > cutoff);
-    if (await writeIfChanged(file, { ...g, changes: history })) written++;
+    // v = version of the lessons; changes the weekly picture URL so Telegram doesn't show a cached old one
+    const v = groupId(JSON.stringify(g.lessons) + g.tt.num);
+    if (await writeIfChanged(file, { ...g, v, changes: history })) written++;
   }
   for (const [id, t] of Object.entries(built.teachers)) if (await writeIfChanged(path.join(DATA, 't', `${id}.json`), t)) written++;
   for (const [id, r] of Object.entries(built.rooms)) if (await writeIfChanged(path.join(DATA, 'r', `${id}.json`), r)) written++;

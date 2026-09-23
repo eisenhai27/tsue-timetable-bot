@@ -195,55 +195,125 @@ export function fmtDate(d, lang) {
 const dm = (d) => `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
 
 // ---------- Lessons ----------
+// Extra words used by the message formatters
+const W = {
+  uz: { lecture: "Ma'ruza", seminar: 'Seminar', lab: 'Laboratoriya', practice: 'Amaliy', bld: (b) => `${b}-bino`, room: (r) => `${r}-xona`,
+    count: (n) => `${n} ta dars`, pair: (n) => `${n}-para`, now: '🟢 Hozir', next: '⏭ Keyingi', brk: (m) => `☕ ${m} daqiqa tanaffus`,
+    finish: (t) => `🏁 Darslar ${t} da tugaydi`, moved: '🔁 Vaqti o‘zgardi', roomCh: '🚪 Xona o‘zgardi', teachCh: '👤 O‘qituvchi o‘zgardi',
+    removed: '❌ Bekor qilindi', added: '➕ Yangi dars', wkCap: (g, r, n) => `🗓 <b>${g}</b> — haftalik jadval\n${r} · ${n} ta dars`,
+    lessonsWeek: 'Haftalik jadval', freeWeek: "Bu hafta dars yo'q 🎉", seeApp: '📱 Batafsil — ilovada' },
+  ru: { lecture: 'Лекция', seminar: 'Семинар', lab: 'Лабораторная', practice: 'Практика', bld: (b) => `корпус ${b}`, room: (r) => `ауд. ${r}`,
+    count: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'пара' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'пары' : 'пар'}`, pair: (n) => `${n} пара`,
+    now: '🟢 Сейчас', next: '⏭ Следующая', brk: (m) => `☕ перерыв ${m} мин`, finish: (t) => `🏁 Пары закончатся в ${t}`,
+    moved: '🔁 Изменилось время', roomCh: '🚪 Изменилась аудитория', teachCh: '👤 Изменился преподаватель', removed: '❌ Отменено', added: '➕ Новая пара',
+    wkCap: (g, r, n) => `🗓 <b>${g}</b> — расписание на неделю\n${r} · ${n} пар`, lessonsWeek: 'Расписание на неделю', freeWeek: 'На этой неделе пар нет 🎉', seeApp: '📱 Подробнее — в приложении' },
+  en: { lecture: 'Lecture', seminar: 'Seminar', lab: 'Lab', practice: 'Practice', bld: (b) => `Building ${b}`, room: (r) => `Room ${r}`,
+    count: (n) => `${n} class${n === 1 ? '' : 'es'}`, pair: (n) => `Period ${n}`, now: '🟢 Now', next: '⏭ Next', brk: (m) => `☕ ${m} min break`,
+    finish: (t) => `🏁 Classes end at ${t}`, moved: '🔁 Time changed', roomCh: '🚪 Room changed', teachCh: '👤 Teacher changed', removed: '❌ Cancelled',
+    added: '➕ New class', wkCap: (g, r, n) => `🗓 <b>${g}</b> — weekly timetable\n${r} · ${n} classes`, lessonsWeek: 'Weekly timetable', freeWeek: 'No classes this week 🎉', seeApp: '📱 More in the app' },
+};
+export const words = (lang) => W[lang] || W.uz;
+
+/** "Ekonometrika (Ma)" -> { name: "Ekonometrika", type: "lecture" } */
+export function parseSubject(s) {
+  const m = /^(.*?)\s*\(([^()]+)\)\s*$/.exec(String(s || '').trim());
+  if (!m) return { name: String(s || '').trim(), type: null };
+  const t = m[2].toLowerCase().replace(/[^a-zа-я]/g, '');
+  let type = null;
+  if (/^(ma|maruza|lek|лек|lec)/.test(t)) type = 'lecture';
+  else if (/^(sem|сем)/.test(t)) type = 'seminar';
+  else if (/^(lab|лаб)/.test(t)) type = 'lab';
+  else if (/^(amal|пр|prac)/.test(t)) type = 'practice';
+  return type ? { name: m[1].trim(), type } : { name: String(s).trim(), type: null };
+}
+export const typeLabel = (type, lang) => (type ? words(lang)[type] : '');
+
+/** "8-310-30" -> "8-bino, 310-xona". Falls back to the raw name when the pattern is unclear. */
+export function roomLabel(r, lang) {
+  const w = words(lang);
+  return String(r || '').split(', ').filter(Boolean).map((one) => {
+    const m = /^(\d{1,2})\s*[-/]+\s*(\d{2,4}[A-Za-zА-Яа-я]?)(?:\s*-\s*\d+)?$/.exec(one.trim());
+    return m ? `${w.bld(m[1])}, ${w.room(m[2])}` : one;
+  }).join(' / ');
+}
+
 export function lessonsForDay(group, dayIdx, parity) {
   return (group?.lessons || []).filter((l) => l.d === dayIdx && (!parity || !l.w || l.w === parity));
 }
 
-function periodTime(periods, l) {
+function times(periods, l) {
   const a = periods.find((p) => p.p === l.p);
   const b = periods.find((p) => p.p === l.p + (l.n || 1) - 1) || a;
-  return a ? `${a.start}–${b.end}` : `${l.p}`;
+  return { a: a ? a.start : '', b: b ? b.end : '' };
 }
-
-const NUM = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'];
+const mins = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
 
 function weekTag(l, lang, parity) {
   if (!l.w || parity) return '';
   return ` · <i>${l.w === 'A' ? tr(lang).weekA : tr(lang).weekB}</i>`;
 }
 
-export function fmtLesson(l, periods, lang, parity) {
-  const lines = [`${NUM[l.p] || l.p} <b>${periodTime(periods, l)}</b>${weekTag(l, lang, parity)}`];
-  lines.push(`📘 ${esc(l.s)}${l.g ? ` <i>(${esc(l.g)})</i>` : ''}`);
-  const extra = [];
-  if (l.r) extra.push(`🚪 ${esc(l.r)}`);
-  if (l.t) extra.push(`👤 ${esc(l.t)}`);
-  if (extra.length) lines.push(extra.join('  '));
+/** Full lesson block for "today / tomorrow" messages. */
+export function fmtLesson(l, periods, lang, parity, state) {
+  const w = words(lang);
+  const t = times(periods, l);
+  const sub = parseSubject(l.s);
+  const head = `${state ? state + '\n' : ''}<b>${t.a} – ${t.b}</b>  ·  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
+  const lines = [head, `📘 <b>${esc(sub.name)}</b>${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ''}${l.g ? ` <i>(${esc(l.g)})</i>` : ''}`];
+  if (l.r) lines.push(`📍 ${esc(roomLabel(l.r, lang))}`);
+  if (l.t) lines.push(`👤 ${esc(l.t)}`);
   return lines.join('\n');
 }
 
-/** One-line version used in weekly posts and change alerts. */
+/** One-line version used in weekly captions and change alerts. */
 export function fmtLessonShort(l, periods, lang, parity) {
-  const a = periods.find((p) => p.p === l.p);
-  const time = a ? a.start : `${l.p}`;
-  let s = `<b>${time}</b> ${esc(l.s)}`;
-  if (l.g) s += ` <i>(${esc(l.g)})</i>`;
-  if (l.r) s += ` · 🚪${esc(l.r)}`;
+  const t = times(periods, l);
+  const sub = parseSubject(l.s);
+  let s = `<b>${t.a}</b> ${esc(sub.name)}`;
+  if (sub.type) s += ` <i>(${typeLabel(sub.type, lang).toLowerCase()})</i>`;
+  if (l.g) s += ` <i>[${esc(l.g)}]</i>`;
+  if (l.r) s += ` · 📍${esc(l.r)}`;
   if (l.w && !parity) s += ` · <i>${l.w}</i>`;
   return s;
 }
 
-export function fmtDay(group, index, date, lang) {
+/**
+ * "Today" / "Tomorrow" message. When `nowDate` is the same day, the current and next
+ * lessons are marked and past ones are dimmed.
+ */
+export function fmtDay(group, index, date, lang, nowDate) {
   const L = tr(lang);
+  const w = words(lang);
   const d = weekday(date);
   const parity = weekParity(index.weekA, date);
-  const head = `📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b> — ${esc(group.name)}` +
-    (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : '');
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
+  const head = [`📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''),
+    `👥 ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}` : ''}`].join('\n');
   if (!ls.length) return `${head}\n\n${L.noLessons}`;
-  return `${head}\n\n${ls.map((l) => fmtLesson(l, index.periods, lang, parity)).join('\n\n')}`;
+  const sameDay = nowDate && ymd(nowDate) === ymd(date);
+  const nowM = sameDay ? nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes() : -1;
+  let nextMarked = false;
+  const blocks = [];
+  let prevEnd = null;
+  for (const l of ls) {
+    const t = times(index.periods, l);
+    if (prevEnd != null) {
+      const gap = mins(t.a) - prevEnd;
+      if (gap >= 30) blocks.push(w.brk(gap));
+    }
+    prevEnd = Math.max(prevEnd ?? 0, mins(t.b));
+    let state = '';
+    if (sameDay) {
+      if (nowM >= mins(t.a) && nowM < mins(t.b)) state = w.now;
+      else if (nowM < mins(t.a) && !nextMarked) { state = w.next; nextMarked = true; }
+    }
+    blocks.push(fmtLesson(l, index.periods, lang, parity, state));
+  }
+  const last = times(index.periods, ls[ls.length - 1]).b;
+  return clip(`${head}\n━━━━━━━━━━━━━━\n\n${blocks.join('\n\n')}\n\n${w.finish(last)}`);
 }
 
+/** Text version of the week (fallback when the picture can't be sent). */
 export function fmtWeek(group, index, monday, lang) {
   const L = tr(lang);
   const parity = weekParity(index.weekA, monday);
@@ -254,18 +324,57 @@ export function fmtWeek(group, index, monday, lang) {
     if (!ls.length) continue;
     parts.push(`<b>${L.days[d]}</b>\n${ls.map((l) => fmtLessonShort(l, index.periods, lang, parity)).join('\n')}`);
   }
-  if (parts.length === 1) parts.push(L.noLessons);
+  if (parts.length === 1) parts.push(words(lang).freeWeek);
   return clip(parts.join('\n\n'));
 }
 
-export function fmtChanges(group, index, dayDiffs, lang, isNewTT) {
+/** Short caption that goes under the weekly picture. */
+export function fmtWeekCaption(group, index, monday, lang) {
+  const w = words(lang);
   const L = tr(lang);
+  const parity = weekParity(index.weekA, monday);
+  const n = [0, 1, 2, 3, 4, 5].reduce((s, d) => s + lessonsForDay(group, d, parity).length, 0);
+  const range = `${fmtDate(monday, lang)} – ${fmtDate(addDays(monday, 5), lang)}` + (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : '');
+  return w.wkCap(esc(group.name), range, n);
+}
+
+/** Date of the next occurrence of weekday `d` (today counts). */
+function nextDateOf(d, from) {
+  const diff = (d - weekday(from) + 7) % 7;
+  return addDays(from, diff);
+}
+
+/**
+ * Change alert. Pairs removed/added lessons so students read
+ * "time changed 16:00 → 13:00" instead of two unrelated lines.
+ */
+export function fmtChanges(group, index, dayDiffs, lang, isNewTT, now = tashkentNow()) {
+  const L = tr(lang);
+  const w = words(lang);
+  const P = index.periods;
   const parts = [isNewTT ? L.newTTTitle(esc(group.name)) : L.changedTitle(esc(group.name))];
   for (const dd of dayDiffs) {
+    const removed = [...dd.removed];
+    const added = [...dd.added];
     const lines = [];
-    for (const l of dd.removed) lines.push(`➖ <s>${fmtLessonShort(l, index.periods, lang, null)}</s>`);
-    for (const l of dd.added) lines.push(`➕ ${fmtLessonShort(l, index.periods, lang, null)}`);
-    parts.push(`<b>${L.days[dd.d]}</b>\n${lines.join('\n')}`);
+    const sameSubj = (a, b) => parseSubject(a.s).name === parseSubject(b.s).name && (a.g || '') === (b.g || '') && (a.w || '') === (b.w || '');
+    for (let i = 0; i < removed.length; i++) {
+      const o = removed[i];
+      const j = added.findIndex((n) => sameSubj(o, n));
+      if (j < 0) continue;
+      const n = added[j];
+      const name = `<b>${esc(parseSubject(n.s).name)}</b>`;
+      if (o.p !== n.p || o.n !== n.n) lines.push(`${w.moved}: ${name}\n     ${times(P, o).a} → <b>${times(P, n).a}</b>${n.r ? ` · 📍${esc(n.r)}` : ''}`);
+      else if (o.r !== n.r) lines.push(`${w.roomCh}: ${name} (${times(P, n).a})\n     ${esc(o.r || '—')} → <b>${esc(n.r || '—')}</b>`);
+      else if (o.t !== n.t) lines.push(`${w.teachCh}: ${name} (${times(P, n).a})\n     ${esc(o.t || '—')} → <b>${esc(n.t || '—')}</b>`);
+      else lines.push(`${w.added}: ${fmtLessonShort(n, P, lang, null)}`);
+      removed.splice(i--, 1);
+      added.splice(j, 1);
+    }
+    for (const l of removed) lines.push(`${w.removed}: <s>${fmtLessonShort(l, P, lang, null)}</s>`);
+    for (const l of added) lines.push(`${w.added}: ${fmtLessonShort(l, P, lang, null)}`);
+    const date = nextDateOf(dd.d, now);
+    parts.push(`📅 <b>${L.days[dd.d]}, ${fmtDate(date, lang)}</b>\n${lines.join('\n')}`);
   }
   return clip(parts.join('\n\n'));
 }

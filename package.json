@@ -8,7 +8,8 @@
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "render": "node scripts/render.mjs"
   },
   "keywords": [],
   "author": "",
@@ -17,5 +18,8 @@
     "esbuild": "^0.25.12",
     "playwright": "^1.63.0",
     "wrangler": "^4.137.0"
+  },
+  "dependencies": {
+    "@resvg/resvg-js": "^2.6.2"
   }
 }

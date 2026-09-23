@@ -1,6 +1,6 @@
 // Simulates Telegram updates against a local Worker (wrangler dev) + mock Telegram.
 import crypto from 'node:crypto';
-const W = 'http://localhost:8787', M = 'http://localhost:8790';
+const W = process.env.W || 'http://localhost:8787', M = 'http://localhost:8790';
 const secret = crypto.createHash('sha256').update('tg:secretkey').digest('hex').slice(0, 48);
 let uid = 1;
 const post = (update) => fetch(W + '/tg', { method: 'POST', headers: { 'content-type': 'application/json', 'x-telegram-bot-api-secret-token': secret }, body: JSON.stringify({ update_id: uid++, ...update }) }).then((r) => r.status);
@@ -46,8 +46,7 @@ check("someone else's menu is refused", l.some((c) => c.method === 'answerCallba
 
 await reset(); await post(msg('🗓 Неделя'));
 l = await log();
-check('week button (RU) → weekly timetable', l.some((c) => /Расписание на неделю/.test(c.data.text || '')), texts(l));
-console.log('\n' + (l.find((c) => /Расписание на неделю/.test(c.data.text || ''))?.data.text || '') + '\n');
+check('week button (RU) → weekly picture with caption', l.some((c) => c.method === 'sendPhoto' && /\/img\/g\/.+\.png/.test(c.data.photo) && /расписание на неделю/.test(c.data.caption)), texts(l));
 
 await reset(); await post(msg('/tomorrow'));
 l = await log();
@@ -86,7 +85,7 @@ check('non-admin /setgroup refused', l.some((c) => /Faqat chat adminlari/.test(c
 await reset(); await post(msg('/setgroup', grp));
 await post(cb('g:111:1thm8e1', grp));
 l = await log();
-check('admin /setgroup → linked + weekly post', l.some((c) => /ulandi/.test(c.data.text || '')) && l.some((c) => /Haftalik jadval/.test(c.data.text || '')), texts(l));
+check('admin /setgroup → linked + weekly post', l.some((c) => /ulandi/.test(c.data.text || '')) && l.some((c) => c.method === 'sendPhoto' && /haftalik jadval/.test(c.data.caption || '')), texts(l));
 
 await reset(); await post(msg('/today', grp, { id: 444 }));
 l = await log();

@@ -12,7 +12,7 @@ on:
         default: false
   push:
     branches: [main]
-    paths: ['docs/**', '!docs/data/**']  # redeploy the Mini App when you edit it
+    paths: ['docs/**', '!docs/data/**', 'scripts/**', 'src/**', 'fonts/**']  # redeploy the Mini App / pictures when code changes
 
 permissions:
   contents: write
@@ -55,6 +55,12 @@ jobs:
             git commit -m "Timetable update $(date -u +'%Y-%m-%d %H:%M') UTC" -q
             git push -q
           fi
+
+      - name: Draw weekly timetable pictures
+        if: github.event_name == 'push' || steps.update.outputs.written != '0'
+        run: |
+          npm install --omit=dev --no-audit --no-fund
+          node scripts/render.mjs
 
       - name: Publish Mini App and data (GitHub Pages)
         if: github.event_name == 'push' || steps.update.outputs.written != '0'
