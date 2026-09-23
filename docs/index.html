@@ -76,6 +76,34 @@ html.dark .day.sel{background:var(--blue)}
 .day.sel .dn{color:#A9C8F2} .day.sel .dd{color:#fff}
 .day .dot{position:absolute;bottom:5px;left:50%;transform:translateX(-50%);width:14px;height:3px;border-radius:3px;background:var(--line)}
 .day.sel .dot{background:var(--bolt)}
+.calbtn{display:inline-flex;align-items:center;gap:6px}
+.calbtn .chev{display:inline-block;transition:transform .25s ease}
+.calbtn .chev.up{transform:rotate(180deg)}
+.cal{display:grid;grid-template-rows:0fr;opacity:0;transform:translateY(-6px) scale(.98);transform-origin:top right;transition:grid-template-rows .32s cubic-bezier(.2,.8,.2,1),opacity .25s ease,transform .32s cubic-bezier(.2,.8,.2,1),margin .32s;margin:0}
+.cal.open{grid-template-rows:1fr;opacity:1;transform:none;margin:0 0 12px}
+.cal-in{overflow:hidden;background:var(--card);border-radius:var(--r);box-shadow:var(--shadow)}
+.cal.open .cal-in{padding:12px}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-head b{font-weight:800;font-size:15px}
+.cal-nav{width:34px;height:34px;border-radius:10px;background:var(--bg);font-size:20px;font-weight:800;color:var(--navy)}
+html.dark .cal-nav{color:#fff}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center}
+.cal-grid i{font-style:normal;font-size:11px;font-weight:800;color:var(--hint);text-transform:uppercase;padding:4px 0}
+.cd{position:relative;height:38px;border-radius:11px;font-weight:700;font-size:14px}
+.cd.has::after{content:"";position:absolute;bottom:5px;left:50%;width:5px;height:5px;margin-left:-2.5px;border-radius:50%;background:var(--blue)}
+.cd.off{color:var(--hint);opacity:.45}
+.cd.today{color:var(--blue);box-shadow:inset 0 0 0 2px var(--soft)}
+.cd.sel{background:var(--navy);color:#fff}
+html.dark .cd.sel{background:var(--blue)}
+.cd.sel::after{background:var(--bolt)}
+.in-right{animation:inR .28s cubic-bezier(.2,.8,.2,1)}
+.in-left{animation:inL .28s cubic-bezier(.2,.8,.2,1)}
+.in-fade{animation:inF .28s ease}
+@keyframes inR{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
+@keyframes inL{from{opacity:0;transform:translateX(-28px)}to{opacity:1;transform:none}}
+@keyframes inF{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.day{transition:background .2s ease,transform .15s ease}
+.day:active{transform:scale(.94)}
 .day .chg{position:absolute;top:5px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
 
 /* ---- change banner */
@@ -195,7 +223,7 @@ if (isDark) document.documentElement.classList.add('dark');
 const dur = (m, h, mi) => m >= 60 ? `${Math.floor(m / 60)} ${h}${m % 60 ? ' ' + (m % 60) + ' ' + mi : ''}` : `${m} ${mi}`;
 const I = {
   uz: { days:['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'], dShort:['Du','Se','Ch','Pa','Ju','Sh','Ya'],
-    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`, lessonsN:(n)=>`${n} ta dars`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling", weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi', tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'A hafta', weekB:'B hafta',
+    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`, lessonsN:(n)=>`${n} ta dars`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling", weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun', months:['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'], goToday:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi', tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'A hafta', weekB:'B hafta',
     now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", sunday:'Yakshanba — dam olish kuni 😌', searchPh:'Guruh, o\'qituvchi yoki xona…',
     all:'Hammasi', groups:'Guruhlar', teachers:"O'qituvchilar", rooms:'Xonalar', recent:"So'nggi", favs:'Sevimlilar', browse:"Fakultet bo'yicha",
     pick:'Guruhingizni tanlang', pickSub:'Qidiruvga guruh nomini yozing, masalan 901', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
@@ -203,7 +231,7 @@ const I = {
     free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…', teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar',
     time:'Vaqt', week:'Hafta', open:'Ochish', course:(n)=>n?`${n}-kurs`:'Boshqa', validity:'Amal qiladi', lang:'Til', breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi', inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${m} daq qoldi` },
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`, lessonsN:(n)=>`${n} пар(ы)`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте', weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все', tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Неделя A', weekB:'Неделя B',
+    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`, lessonsN:(n)=>`${n} пар(ы)`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте', weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня', months:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'], goToday:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все', tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Неделя A', weekB:'Неделя B',
     now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', sunday:'Воскресенье — выходной 😌', searchPh:'Группа, преподаватель или аудитория…',
     all:'Все', groups:'Группы', teachers:'Преподаватели', rooms:'Аудитории', recent:'Недавние', favs:'Избранное', browse:'По факультетам',
     pick:'Выберите группу', pickSub:'Введите название группы, например 901', nothing:'Ничего не найдено', changed:'Расписание изменилось',
@@ -211,7 +239,7 @@ const I = {
     free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} свободных`, filterRoom:'Номер аудитории…', teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы',
     time:'Время', week:'Неделя', open:'Открыть', course:(n)=>n?`${n} курс`:'Другое', validity:'Действует', lang:'Язык', breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое', inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${m} мин` },
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`, lessonsN:(n)=>`${n} classes`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy', weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All', tillEnd:'rest of the day', pairShort:'per.', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Week A', weekB:'Week B',
+    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`, lessonsN:(n)=>`${n} classes`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy', weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today', months:['January','February','March','April','May','June','July','August','September','October','November','December'], goToday:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All', tillEnd:'rest of the day', pairShort:'per.', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Week A', weekB:'Week B',
     now:'Now', next:'Next', noLessons:'No classes this day', sunday:'Sunday — day off 😌', searchPh:'Group, teacher or room…',
     all:'All', groups:'Groups', teachers:'Teachers', rooms:'Rooms', recent:'Recent', favs:'Favorites', browse:'By faculty',
     pick:'Pick your group', pickSub:'Type your group name, e.g. 901', nothing:'Nothing found', changed:'Timetable changed',
@@ -498,16 +526,79 @@ async function renderTimetable() {
   app.innerHTML = `<div class="wrap">
     ${heroHtml(v, sub, S.weekOffset === 0 ? summary : '')}
     <div class="weekbar"><div class="lbl">${esc(L.days[S.day])}, ${dm(date)}<span class="muted small">${esc(parLbl)}</span></div>
-      <div style="display:flex;gap:6px"><button class="pill ${S.weekOffset === 0 ? 'on' : ''}" data-w="0">${esc(L.thisWeek)}</button><button class="pill ${S.weekOffset === 1 ? 'on' : ''}" data-w="1">${esc(L.nextWeek)}</button></div></div>
+      <div style="display:flex;gap:6px">${sameDay(date, now) ? '' : `<button class="pill" id="goToday">↺ ${esc(L.goToday)}</button>`}<button class="pill calbtn ${S.calOpen ? 'on' : ''}" id="calBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> ${esc(L.months[date.getUTCMonth()])} <span class="chev ${S.calOpen ? 'up' : ''}">▾</span></button></div></div>
+    <div class="cal ${S.calOpen ? 'open' : ''}" id="cal"><div class="cal-in" id="calIn"></div></div>
     <div class="days">${dayBtns}</div>
     ${banner}
-    <div class="list">${body}</div>
+    <div class="list ${S.anim || ''}" id="list">${body}</div>
     ${actions}
     ${footHtml((data.tt && data.tt.label) || '')}
   </div>`;
   bindTitle();
-  app.querySelectorAll('.day').forEach(b => b.onclick = () => { haptic(); S.day = Number(b.dataset.d); renderTimetable(); });
-  app.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { haptic(); S.weekOffset = Number(b.dataset.w); S.day = S.weekOffset === 0 ? null : 0; renderTimetable(); });
+  app.querySelectorAll('.day').forEach(b => b.onclick = () => { haptic(); const nd = Number(b.dataset.d); S.anim = nd > S.day ? 'in-right' : nd < S.day ? 'in-left' : ''; S.day = nd; renderTimetable(); });
+  S.anim = '';
+  // ---- calendar dropdown (animated), today button, swipe between days
+  const goDate = (dt, dir) => {
+    S.weekOffset = Math.round((monday(dt) - baseMon) / (7 * DAY));
+    S.day = Math.min(5, wd(dt));
+    S.anim = dir > 0 ? 'in-right' : dir < 0 ? 'in-left' : 'in-fade';
+    renderTimetable();
+  };
+  const todayBtn = $('#goToday');
+  if (todayBtn) todayBtn.onclick = () => { haptic(); S.calOpen = false; S.calMonth = null; goDate(wd(now) === 6 ? addD(now, 1) : now, date < now ? 1 : -1); };
+  const calIn = $('#calIn');
+  if (!S.calMonth) S.calMonth = { y: date.getUTCFullYear(), m: date.getUTCMonth() };
+  const drawCal = (slide) => {
+    const { y, m } = S.calMonth;
+    const first = new Date(Date.UTC(y, m, 1));
+    const daysIn = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+    const lead = wd(first);
+    const cells = [];
+    for (let i = 0; i < lead; i++) cells.push('<span></span>');
+    for (let dd = 1; dd <= daysIn; dd++) {
+      const dt = new Date(Date.UTC(y, m, dd));
+      const w = wd(dt);
+      const pr = parity(INDEX.weekA, dt);
+      const has = w < 6 && (data.lessons || []).some(l => l.d === w && (!pr || !l.w || l.w === pr));
+      const cls = [w === 6 ? 'off' : '', sameDay(dt, now) ? 'today' : '', sameDay(dt, date) ? 'sel' : '', has ? 'has' : ''].join(' ');
+      cells.push(`<button class="cd ${cls}" data-cd="${dd}" ${w === 6 ? 'disabled' : ''}>${dd}</button>`);
+    }
+    calIn.innerHTML = `<div class="cal-head"><button class="cal-nav" data-cm="-1" aria-label="prev">‹</button><b>${esc(L.months[m])} ${y}</b><button class="cal-nav" data-cm="1" aria-label="next">›</button></div>
+      <div class="cal-grid ${slide || ''}">${L.dShort.map(x => `<i>${esc(x)}</i>`).join('')}${cells.join('')}</div>`;
+    calIn.querySelectorAll('[data-cm]').forEach(b => b.onclick = () => {
+      haptic(); const k = Number(b.dataset.cm); let nm2 = S.calMonth.m + k, ny = S.calMonth.y;
+      if (nm2 < 0) { nm2 = 11; ny--; } if (nm2 > 11) { nm2 = 0; ny++; }
+      S.calMonth = { y: ny, m: nm2 }; drawCal(k > 0 ? 'in-right' : 'in-left');
+    });
+    calIn.querySelectorAll('[data-cd]').forEach(b => b.onclick = () => {
+      haptic('medium');
+      const dt = new Date(Date.UTC(S.calMonth.y, S.calMonth.m, Number(b.dataset.cd)));
+      S.calOpen = false; S.calMonth = null;
+      goDate(dt, dt > date ? 1 : dt < date ? -1 : 0);
+    });
+  };
+  drawCal('');
+  $('#calBtn').onclick = () => {
+    haptic();
+    S.calOpen = !S.calOpen;
+    if (S.calOpen) { S.calMonth = { y: date.getUTCFullYear(), m: date.getUTCMonth() }; drawCal(''); }
+    $('#cal').classList.toggle('open', S.calOpen);
+    $('#calBtn').classList.toggle('on', S.calOpen);
+    $('#calBtn .chev').classList.toggle('up', S.calOpen);
+  };
+  // swipe left/right on the lessons to move between days
+  const lst = $('#list');
+  let sx = null, sy = null;
+  lst.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
+  lst.addEventListener('touchend', (e) => {
+    if (sx == null) return;
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    sx = null;
+    if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    let dt = addD(date, dx < 0 ? 1 : -1);
+    if (wd(dt) === 6) dt = addD(dt, dx < 0 ? 1 : -1);
+    haptic(); goDate(dt, dx < 0 ? 1 : -1);
+  }, { passive: true });
   app.querySelectorAll('[data-open]').forEach(b => b.onclick = (ev) => {
     ev.stopPropagation();
     const [type, name] = [b.dataset.open[0], b.dataset.open.slice(2)];
