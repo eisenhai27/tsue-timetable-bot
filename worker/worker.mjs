@@ -181,6 +181,19 @@ async function onInternal(request, url, env) {
     if (stmts.length) await D.batch(stmts);
     return json({ ok: true, removed: (body.remove || []).length, migrated: (body.migrate || []).length });
   }
+  if (url.pathname === '/internal/edupage' && request.method === 'POST') {
+    // Relay for the GitHub Action: EduPage sometimes refuses GitHub's servers, so the Action
+    // can fetch the timetable through Cloudflare instead. The body is streamed through untouched.
+    const file = url.searchParams.get('file');
+    const func = url.searchParams.get('func');
+    if (!/^[a-z]+\.js$/.test(file || '') || !/^[A-Za-z]+$/.test(func || '')) return new Response('Bad request', { status: 400 });
+    const res = await fetch(`${env.EDUPAGE_URL || 'https://tsue.edupage.org'}/timetable/server/${file}?__func=${func}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json; charset=UTF-8', Referer: 'https://tsue.edupage.org/timetable/', 'User-Agent': 'Mozilla/5.0 (TDIU Jadval bot)' },
+      body: await request.text(),
+    });
+    return new Response(res.body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
+  }
   if (url.pathname === '/internal/stats') {
     const r = await D.prepare(`SELECT kind, COUNT(*) AS n, SUM(group_id IS NOT NULL) AS with_group FROM chats GROUP BY kind`).all();
     return json({ stats: r.results });

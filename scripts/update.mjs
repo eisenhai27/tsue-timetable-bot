@@ -16,28 +16,36 @@ const WEEK_A = process.env.WEEK_A_MONDAY || ''; // optional, e.g. 2026-09-07 if 
 const KEEP_CHANGES = 10;
 
 async function post(func, file, args) {
-  const url = `${BASE}/timetable/server/${file}?__func=${func}`;
+  const body = JSON.stringify({ __args: args, __gsh: '00000000' });
+  // 1) straight to EduPage; 2) if EduPage refuses GitHub's servers, go through our Cloudflare Worker
+  const routes = [{ name: 'direct', url: `${BASE}/timetable/server/${file}?__func=${func}`, headers: {} }];
+  if (process.env.WORKER_URL && process.env.ADMIN_KEY) {
+    routes.push({ name: 'cloudflare', url: `${process.env.WORKER_URL.replace(/\/+$/, '')}/internal/edupage?file=${file}&func=${func}`, headers: { 'X-Admin-Key': process.env.ADMIN_KEY } });
+  }
   let lastErr;
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 6; i++) {
+    const route = routes[i % routes.length];
     try {
-      const res = await fetch(url, {
+      const res = await fetch(route.url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
-          'User-Agent': 'Mozilla/5.0 (TSUE timetable bot; +https://github.com)',
+          'User-Agent': 'Mozilla/5.0 (TDIU Jadval bot)',
           Referer: `${BASE}/timetable/`,
+          ...route.headers,
         },
-        body: JSON.stringify({ __args: args, __gsh: '00000000' }),
-        signal: AbortSignal.timeout(90_000),
+        body,
+        signal: AbortSignal.timeout(route.name === 'direct' ? 25_000 : 90_000),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const j = await res.json();
       if (!j.r) throw new Error('No data in response');
+      console.log(`${func}: ok via ${route.name}`);
       return j;
     } catch (e) {
       lastErr = e;
-      console.warn(`${func} attempt ${i + 1} failed: ${e.message}`);
-      await new Promise((r) => setTimeout(r, 5000 * (i + 1)));
+      console.warn(`${func} via ${route.name} failed: ${e.message}`);
+      await new Promise((r) => setTimeout(r, 3000 * (i + 1)));
     }
   }
   throw lastErr;

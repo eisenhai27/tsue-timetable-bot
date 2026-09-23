@@ -41,6 +41,8 @@ jobs:
         if: github.event_name != 'push'
         env:
           WEEK_A_MONDAY: ${{ vars.WEEK_A_MONDAY }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
         run: node scripts/update.mjs
 
       - name: Save data to the repository
