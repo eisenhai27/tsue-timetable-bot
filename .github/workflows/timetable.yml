@@ -1,0 +1,85 @@
+name: Timetable
+
+on:
+  schedule:
+    - cron: '*/15 * * * *'   # check EduPage for changes every 15 minutes
+    - cron: '0 15 * * 0'     # Sunday 20:00 Tashkent time → weekly timetable post
+  workflow_dispatch:
+    inputs:
+      weekly:
+        description: 'Also send the weekly timetable post now'
+        type: boolean
+        default: false
+  push:
+    branches: [main]
+    paths: ['docs/**', '!docs/data/**']  # redeploy the Mini App when you edit it
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: timetable
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment:
+      name: github-pages
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Download timetable and detect changes
+        id: update
+        if: github.event_name != 'push'
+        env:
+          WEEK_A_MONDAY: ${{ vars.WEEK_A_MONDAY }}
+        run: node scripts/update.mjs
+
+      - name: Save data to the repository
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "timetable-bot"
+          git config user.email "timetable-bot@users.noreply.github.com"
+          git add docs/data
+          if git diff --cached --quiet; then
+            echo "No data changes"
+          else
+            git commit -m "Timetable update $(date -u +'%Y-%m-%d %H:%M') UTC" -q
+            git push -q
+          fi
+
+      - name: Publish Mini App and data (GitHub Pages)
+        if: github.event_name == 'push' || steps.update.outputs.written != '0'
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: docs
+
+      - name: Deploy GitHub Pages
+        if: github.event_name == 'push' || steps.update.outputs.written != '0'
+        uses: actions/deploy-pages@v4
+
+      - name: Send change alerts
+        if: github.event_name != 'push' && steps.update.outputs.changed != '0'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/notify.mjs changes
+
+      - name: Send weekly timetable
+        if: github.event.schedule == '0 15 * * 0' || inputs.weekly
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/notify.mjs weekly

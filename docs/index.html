@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>TDIU Jadval</title>
+<meta name="description" content="TDIU Jadval — dars jadvali, tez qidiruv, o'qituvchilar, xonalar va bo'sh xonalar.">
+<meta name="theme-color" content="#2a7de1">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="TDIU Jadval">
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{
+  --bg: var(--tg-theme-secondary-bg-color, #f2f3f7);
+  --card: var(--tg-theme-bg-color, #ffffff);
+  --text: var(--tg-theme-text-color, #14161a);
+  --hint: var(--tg-theme-hint-color, #8a8f98);
+  --link: var(--tg-theme-link-color, #2a7de1);
+  --accent: var(--tg-theme-button-color, #2a7de1);
+  --accent-text: var(--tg-theme-button-text-color, #ffffff);
+  --line: color-mix(in srgb, var(--hint) 22%, transparent);
+  --soft: color-mix(in srgb, var(--accent) 12%, transparent);
+  --good: #1f9d55; --good-soft: color-mix(in srgb, #1f9d55 14%, transparent);
+  --warn: #d97706; --warn-soft: color-mix(in srgb, #d97706 15%, transparent);
+  --bad: #dc2626;
+  --r: 14px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not(.tg){ --bg:#0f1115; --card:#1a1d23; --text:#eef0f3; --hint:#8b919c; --link:#5aa2ff; --accent:#3b8cf0; }
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif}
+body{padding-bottom:calc(72px + env(safe-area-inset-bottom))}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input{font:inherit;color:inherit}
+.wrap{max-width:720px;margin:0 auto;padding:0 12px}
+.hidden{display:none!important}
+.muted{color:var(--hint)}
+.small{font-size:13px}
+
+/* header */
+.top{position:sticky;top:0;z-index:5;background:var(--bg);padding:10px 0 6px}
+.titlebtn{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:var(--card);border-radius:var(--r);padding:10px 12px}
+.titlebtn .ico{width:36px;height:36px;border-radius:10px;background:var(--soft);display:grid;place-items:center;font-size:18px;flex:none}
+.titlebtn .t1{font-weight:700;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titlebtn .t2{font-size:12px;color:var(--hint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.titlebtn .grow{flex:1;min-width:0}
+.star{font-size:22px;padding:4px 6px;color:var(--hint)}
+.star.on{color:#f5b301}
+
+/* week strip */
+.weekbar{display:flex;align-items:center;justify-content:space-between;margin:10px 2px 6px}
+.weekbar .lbl{font-weight:600}
+.pill{background:var(--card);border-radius:999px;padding:6px 12px;font-size:13px}
+.pill.on{background:var(--accent);color:var(--accent-text)}
+.days{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.day{background:var(--card);border-radius:12px;padding:6px 0;text-align:center;position:relative}
+.day .dn{font-size:12px;color:var(--hint)}
+.day .dd{font-weight:700;font-size:17px}
+.day.today .dd{color:var(--accent)}
+.day.sel{background:var(--accent);color:var(--accent-text)}
+.day.sel .dn,.day.sel .dd{color:var(--accent-text)}
+.day .dot{position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--hint)}
+.day.sel .dot{background:var(--accent-text)}
+.day .chg{position:absolute;top:4px;right:6px;width:7px;height:7px;border-radius:50%;background:var(--warn)}
+
+/* banner */
+.banner{background:var(--warn-soft);border-radius:var(--r);padding:10px 12px;margin:10px 0;font-size:14px}
+.banner b{color:var(--warn)}
+.banner details summary{cursor:pointer;list-style:none}
+.banner details summary::-webkit-details-marker{display:none}
+.banner .diff{margin-top:8px;font-size:13px}
+.banner .diff div{padding:2px 0}
+.banner .rm{text-decoration:line-through;color:var(--hint)}
+
+/* lessons */
+.list{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.lesson{display:flex;gap:12px;background:var(--card);border-radius:var(--r);padding:12px;position:relative;overflow:hidden}
+.lesson .time{flex:none;width:52px;text-align:center}
+.lesson .time .n{display:inline-grid;place-items:center;width:26px;height:26px;border-radius:8px;background:var(--soft);color:var(--accent);font-weight:700;font-size:14px}
+.lesson .time .a{font-weight:700;margin-top:4px;font-size:14px}
+.lesson .time .b{font-size:12px;color:var(--hint)}
+.lesson .body{flex:1;min-width:0}
+.lesson .subj{font-weight:600;font-size:15.5px}
+.lesson .meta{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{display:inline-flex;align-items:center;gap:4px;background:var(--bg);border-radius:8px;padding:3px 8px;font-size:13px;max-width:100%}
+.chip.link{color:var(--link)}
+.chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.badge{display:inline-block;font-size:11px;font-weight:700;border-radius:6px;padding:1px 6px;margin-left:6px;vertical-align:2px;background:var(--soft);color:var(--accent)}
+.badge.sem{background:var(--good-soft);color:var(--good)}
+.badge.wk{background:var(--bg);color:var(--hint)}
+.badge.new{background:var(--warn);color:#fff}
+.lesson.now{outline:2px solid var(--accent)}
+.lesson.past{opacity:.55}
+.lesson .state{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;margin-bottom:4px;background:var(--accent);color:var(--accent-text)}
+.lesson .state.next{background:var(--soft);color:var(--accent)}
+.gap{font-size:12px;color:var(--hint);text-align:center;padding:2px 0}
+.empty{text-align:center;padding:40px 10px;color:var(--hint)}
+.empty .big{font-size:44px}
+
+/* search */
+.search{display:flex;align-items:center;gap:8px;background:var(--card);border-radius:var(--r);padding:0 12px}
+.search input{flex:1;border:0;outline:0;background:transparent;padding:12px 0;font-size:16px;min-width:0}
+.seg{display:flex;gap:6px;margin:10px 0;overflow-x:auto;scrollbar-width:none}
+.seg::-webkit-scrollbar{display:none}
+.sec{margin:16px 2px 6px;font-size:13px;font-weight:600;color:var(--hint);text-transform:uppercase;letter-spacing:.03em}
+.rows{background:var(--card);border-radius:var(--r);overflow:hidden}
+.row{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:11px 12px;border-bottom:1px solid var(--line)}
+.row:last-child{border-bottom:0}
+.row .ri{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--soft);flex:none;font-size:15px}
+.row .rt{flex:1;min-width:0}
+.row .rt div:first-child{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .rs{font-size:12px;color:var(--hint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .chev{color:var(--hint)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(104px,1fr));gap:6px}
+.gbtn{background:var(--card);border-radius:10px;padding:10px 6px;text-align:center;font-weight:600;font-size:14px}
+mark{background:color-mix(in srgb,var(--accent) 25%,transparent);color:inherit;border-radius:3px}
+
+/* free rooms */
+.slotbar{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:8px 0}
+.slotbar::-webkit-scrollbar{display:none}
+.slotbar .pill{flex:none;white-space:nowrap}
+.bld{margin-top:10px}
+.bld h4{margin:12px 2px 6px;font-size:13px;color:var(--hint)}
+.rooms{display:flex;flex-wrap:wrap;gap:6px}
+.room{background:var(--good-soft);color:var(--good);border-radius:9px;padding:6px 10px;font-weight:600;font-size:13px}
+
+/* bottom nav */
+.nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+.nav .wrap{display:grid;grid-template-columns:repeat(3,1fr)}
+.nav button{padding:8px 0 10px;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;color:var(--hint)}
+.nav button .i{font-size:20px;line-height:1.2}
+.nav button.on{color:var(--accent)}
+
+/* sheet */
+.sheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:20}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;background:var(--card);border-radius:18px 18px 0 0;padding:16px 16px calc(20px + env(safe-area-inset-bottom));max-width:720px;margin:0 auto;animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(40px);opacity:.4}to{transform:none;opacity:1}}
+.sheet h3{margin:0 0 4px;font-size:18px}
+.sheet .kv{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);align-items:center}
+.sheet .kv:last-child{border-bottom:0}
+.sheet .kv .k{width:26px;text-align:center}
+.sheet .kv .v{flex:1}
+.sheet .kv button{color:var(--link);text-align:left}
+.langs{display:flex;gap:6px;margin-top:10px}
+.foot{margin:18px 2px;font-size:12px;color:var(--hint);text-align:center}
+.spin{width:28px;height:28px;border:3px solid var(--line);border-top-color:var(--accent);border-radius:50%;animation:s 0.8s linear infinite;margin:40px auto}
+@keyframes s{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<nav class="nav"><div class="wrap">
+  <button data-tab="tt"><span class="i">📅</span><span data-t="navTT"></span></button>
+  <button data-tab="search"><span class="i">🔎</span><span data-t="navSearch"></span></button>
+  <button data-tab="free"><span class="i">🟢</span><span data-t="navFree"></span></button>
+</div></nav>
+<div id="sheet"></div>
+
+<script>
+(() => {
+'use strict';
+const tg = window.Telegram && window.Telegram.WebApp;
+const inTg = !!(tg && tg.initData);
+if (inTg) { document.documentElement.classList.add('tg'); tg.ready(); tg.expand(); }
+
+// ---------------------------------------------------------------- i18n
+const dur = (m, h, mi) => m >= 60 ? `${Math.floor(m / 60)} ${h}${m % 60 ? ' ' + (m % 60) + ' ' + mi : ''}` : `${m} ${mi}`;
+const I = {
+  uz: { days:['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'], dShort:['Du','Se','Ch','Pa','Ju','Sh','Ya'],
+    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'A hafta', weekB:'B hafta',
+    now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", sunday:'Yakshanba — dam olish kuni 😌', searchPh:'Guruh, o\'qituvchi yoki xona…',
+    all:'Hammasi', groups:'Guruhlar', teachers:"O'qituvchilar", rooms:'Xonalar', recent:"So'nggi", favs:'Sevimlilar', browse:"Fakultet bo'yicha",
+    pick:'Guruhingizni tanlang', pickSub:'Qidiruvga guruh nomini yozing, masalan 901', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
+    changedAt:(d)=>`${d} da yangilandi`, show:'Batafsil', newTT:"Yangi jadval e'lon qilindi", lecture:"Ma'ruza", seminar:'Seminar', lab:'Laboratoriya', practice:'Amaliy',
+    free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-juftlik`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…', teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar',
+    time:'Vaqt', week:'Hafta', open:'Ochish', course:(n)=>n?`${n}-kurs`:'Boshqa', validity:'Amal qiladi', lang:'Til', breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi', inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${m} daq qoldi` },
+  ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
+    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Неделя A', weekB:'Неделя B',
+    now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', sunday:'Воскресенье — выходной 😌', searchPh:'Группа, преподаватель или аудитория…',
+    all:'Все', groups:'Группы', teachers:'Преподаватели', rooms:'Аудитории', recent:'Недавние', favs:'Избранное', browse:'По факультетам',
+    pick:'Выберите группу', pickSub:'Введите название группы, например 901', nothing:'Ничего не найдено', changed:'Расписание изменилось',
+    changedAt:(d)=>`обновлено ${d}`, show:'Подробнее', newTT:'Опубликовано новое расписание', lecture:'Лекция', seminar:'Семинар', lab:'Лаб.', practice:'Практика',
+    free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} свободных`, filterRoom:'Номер аудитории…', teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы',
+    time:'Время', week:'Неделя', open:'Открыть', course:(n)=>n?`${n} курс`:'Другое', validity:'Действует', lang:'Язык', breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое', inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${m} мин` },
+  en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', thisWeek:'This week', nextWeek:'Next week', weekA:'Week A', weekB:'Week B',
+    now:'Now', next:'Next', noLessons:'No classes this day', sunday:'Sunday — day off 😌', searchPh:'Group, teacher or room…',
+    all:'All', groups:'Groups', teachers:'Teachers', rooms:'Rooms', recent:'Recent', favs:'Favorites', browse:'By faculty',
+    pick:'Pick your group', pickSub:'Type your group name, e.g. 901', nothing:'Nothing found', changed:'Timetable changed',
+    changedAt:(d)=>`updated ${d}`, show:'Details', newTT:'New timetable published', lecture:'Lecture', seminar:'Seminar', lab:'Lab', practice:'Practice',
+    free:'Free rooms', freeFor:(d,p)=>`${d}, pair ${p}`, freeCount:(n)=>`${n} free rooms`, filterRoom:'Room number…', teacher:'Teacher', room:'Room', groupsL:'Groups',
+    time:'Time', week:'Week', open:'Open', course:(n)=>n?`Year ${n}`:'Other', validity:'Valid', lang:'Language', breakMin:(m)=>`${m} min break`, error:"Couldn't load data. Check your connection and try again.", retry:'Retry', new:'New', inMin:(m)=>`in ${dur(m,'h','min')}`, left:(m)=>`${m} min left` },
+};
+
+// ---------------------------------------------------------------- state
+const hash = new URLSearchParams(location.hash.slice(1));
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('tt_' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) {
+    try { localStorage.setItem('tt_' + k, JSON.stringify(v)); } catch {}
+    try { if (inTg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) tg.CloudStorage.setItem(k, JSON.stringify(v)); } catch {}
+  },
+};
+const userLang = (inTg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) || navigator.language || 'uz';
+let lang = hash.get('l') || store.get('lang', null) || (/^ru/.test(userLang) ? 'ru' : /^en/.test(userLang) ? 'en' : 'uz');
+if (!I[lang]) lang = 'uz';
+let L = I[lang];
+
+const S = {
+  tab: 'tt',
+  mine: store.get('mine', null),         // {type:'g'|'t'|'r', id, name}
+  view: null,                            // entity currently shown in the timetable tab
+  stack: [],                             // navigation history (for Telegram back button)
+  weekOffset: 0,
+  day: null,
+  q: '',
+  filter: 'all',
+  recent: store.get('recent', []),
+  favs: store.get('favs', []),
+  freeDay: null, freeP: null, freeQ: '',
+  browseFac: null,
+};
+
+// ---------------------------------------------------------------- data
+const cache = {};
+async function load(path) {
+  if (cache[path]) return cache[path];
+  const p = fetch('data/' + path, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
+  cache[path] = p;
+  p.catch(() => delete cache[path]);
+  return p;
+}
+const fileOf = (e) => e.type === 'g' ? `g/${e.id}.json` : e.type === 't' ? `t/${e.id}.json` : `r/${e.id}.json`;
+
+// ---------------------------------------------------------------- time helpers (Tashkent UTC+5)
+const TZ = 5 * 3600e3, DAY = 864e5;
+const nowT = () => new Date(Date.now() + TZ);
+const wd = (d) => (d.getUTCDay() + 6) % 7;
+const monday = (d) => { const m = new Date(d.getTime() - wd(d) * DAY); return new Date(Date.UTC(m.getUTCFullYear(), m.getUTCMonth(), m.getUTCDate())); };
+const addD = (d, n) => new Date(d.getTime() + n * DAY);
+const sameDay = (a, b) => a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
+const mins = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
+const dm = (d) => `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+function parity(weekA, d) {
+  if (!weekA) return null;
+  const base = monday(new Date(weekA + 'T00:00:00Z'));
+  const diff = Math.round((monday(d) - base) / (7 * DAY));
+  return ((diff % 2) + 2) % 2 === 0 ? 'A' : 'B';
+}
+
+// ---------------------------------------------------------------- utils
+const $ = (s, r = document) => r.querySelector(s);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const norm = (s) => String(s || '').toUpperCase().replace(/[‘’ʻʼ`']/g, '').replace(/[^0-9A-ZА-ЯЁЎҚҒҲ]/g, '');
+const haptic = (k = 'light') => { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(k); } catch {} };
+const idOfName = {}; // name → entity (for tapping teacher/room chips)
+
+function splitType(subject) {
+  const m = /^(.*?)\s*\(([^()]+)\)\s*$/.exec(subject || '');
+  if (!m) return { name: subject, type: null };
+  const t = m[2].toLowerCase();
+  let type = null, cls = '';
+  if (/^(ma|ma'ruza|лек|лекция|lek|lec)/.test(t)) type = L.lecture;
+  else if (/^(sem|сем)/.test(t)) { type = L.seminar; cls = 'sem'; }
+  else if (/^(lab|лаб)/.test(t)) { type = L.lab; cls = 'sem'; }
+  else if (/^(amal|пр|prac)/.test(t)) { type = L.practice; cls = 'sem'; }
+  else type = m[2];
+  return { name: m[1], type, cls };
+}
+
+// ---------------------------------------------------------------- entities & search index
+let INDEX = null, PEOPLE = null, ALL = [];
+async function ensureIndex() {
+  if (INDEX) return;
+  INDEX = await load('index.json');
+  ALL = [];
+  for (const f of INDEX.faculties) for (const c of f.courses) for (const [id, name] of c.groups) {
+    ALL.push({ type: 'g', id, name, sub: `${f.name} · ${L.course(c.name)}`, n: norm(name) });
+  }
+}
+async function ensurePeople() {
+  if (PEOPLE) return;
+  try {
+    PEOPLE = await load('people.json');
+    for (const [id, name] of PEOPLE.teachers) { const e = { type: 't', id, name, sub: L.teacher, n: norm(name) }; ALL.push(e); idOfName['t:' + name] = e; }
+    for (const [id, name] of PEOPLE.rooms) { const e = { type: 'r', id, name, sub: L.room, n: norm(name) }; ALL.push(e); idOfName['r:' + name] = e; }
+  } catch { PEOPLE = { teachers: [], rooms: [] }; }
+}
+
+function search(q, filter) {
+  const nq = norm(q);
+  if (!nq) return [];
+  const words = String(q).toUpperCase().split(/\s+/).map(norm).filter(Boolean);
+  const out = [];
+  for (const e of ALL) {
+    if (filter !== 'all' && filter !== e.type) continue;
+    let score;
+    if (e.n === nq) score = 0;
+    else if (e.n.startsWith(nq)) score = 1;
+    else if (e.n.includes(nq)) score = 2;
+    else if (words.length > 1 && words.every(w => e.n.includes(w))) score = 3;
+    else {
+      // "901" should find "MO-901/26": compare against digits-only too
+      const digits = e.n.replace(/[^0-9]/g, '');
+      if (/^\d+$/.test(nq) && digits.includes(nq)) score = 4; else continue;
+    }
+    out.push([score + (e.type === 'g' ? 0 : 0.5), e]);
+  }
+  out.sort((a, b) => a[0] - b[0] || a[1].name.localeCompare(b[1].name, undefined, { numeric: true }));
+  return out.slice(0, 60).map(x => x[1]);
+}
+
+function highlight(name, q) {
+  const nq = norm(q);
+  if (!nq) return esc(name);
+  // map normalized positions back to the original string
+  const map = []; let n = '';
+  for (let i = 0; i < name.length; i++) { const c = norm(name[i]); if (c) { n += c; for (let k = 0; k < c.length; k++) map.push(i); } }
+  const at = n.indexOf(nq);
+  if (at < 0) return esc(name);
+  const a = map[at], b = map[at + nq.length - 1] + 1;
+  return esc(name.slice(0, a)) + '<mark>' + esc(name.slice(a, b)) + '</mark>' + esc(name.slice(b));
+}
+
+// ---------------------------------------------------------------- navigation
+function remember(e) {
+  const item = { type: e.type, id: e.id, name: e.name };
+  S.recent = [item, ...S.recent.filter(x => !(x.type === e.type && x.id === e.id))].slice(0, 8);
+  store.set('recent', S.recent);
+}
+function openEntity(e, { asMine = false, push = true } = {}) {
+  haptic();
+  if (push && S.view) S.stack.push({ tab: S.tab, view: S.view });
+  if (asMine || !S.mine) { S.mine = { type: e.type, id: e.id, name: e.name }; store.set('mine', S.mine); }
+  S.view = { type: e.type, id: e.id, name: e.name };
+  remember(e);
+  S.tab = 'tt'; S.day = null; S.weekOffset = 0;
+  render();
+}
+function goBack() {
+  const prev = S.stack.pop();
+  if (!prev) return;
+  S.tab = prev.tab; S.view = prev.view; S.day = null;
+  render();
+}
+function syncBack() {
+  if (!inTg || !tg.BackButton) return;
+  if (S.stack.length) tg.BackButton.show(); else tg.BackButton.hide();
+}
+if (inTg && tg.BackButton) tg.BackButton.onClick(() => { closeSheet(); goBack(); });
+
+// ---------------------------------------------------------------- render
+const app = $('#app');
+function setNav() {
+  document.querySelectorAll('[data-t]').forEach(el => el.textContent = L[el.dataset.t]);
+  document.querySelectorAll('.nav button').forEach(b => b.classList.toggle('on', b.dataset.tab === S.tab));
+}
+document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click', () => {
+  haptic();
+  if (b.dataset.tab !== S.tab) { S.stack.push({ tab: S.tab, view: S.view }); S.tab = b.dataset.tab; }
+  if (S.tab === 'tt' && S.mine && (!S.view || b.dataset.tab === 'tt')) S.view = S.view || S.mine;
+  render();
+  window.scrollTo(0, 0);
+}));
+
+async function render() {
+  setNav(); syncBack();
+  try {
+    await ensureIndex();
+    if (S.tab === 'search') return renderSearch();
+    if (S.tab === 'free') return renderFree();
+    if (!S.view) S.view = S.mine;
+    if (!S.view) { S.tab = 'search'; setNav(); return renderSearch(); }
+    return renderTimetable();
+  } catch (e) {
+    console.error(e);
+    app.innerHTML = `<div class="wrap"><div class="empty"><div class="big">📡</div><p>${esc(L.error)}</p><button class="pill on" id="retry">${esc(L.retry)}</button></div></div>`;
+    $('#retry').onclick = () => { for (const k in cache) delete cache[k]; INDEX = null; render(); };
+  }
+}
+
+// ---- timetable tab
+async function renderTimetable() {
+  const v = S.view;
+  const icon = v.type === 'g' ? '👥' : v.type === 't' ? '👤' : '🚪';
+  app.innerHTML = `<div class="wrap"><div class="top">${titleHtml(v, icon, '')}</div><div class="spin"></div></div>`;
+  bindTitle();
+  let data;
+  try { data = await load(fileOf(v)); } catch (e) {
+    if (String(e.message) === '404') { app.innerHTML = `<div class="wrap"><div class="top">${titleHtml(v, icon, '')}</div><div class="empty">${esc(L.nothing)}</div></div>`; bindTitle(); return; }
+    throw e;
+  }
+  if (v.type !== 'g') await ensurePeople(); else ensurePeople().then(() => {}).catch(() => {});
+  const sub = v.type === 'g' ? (data.fac + (data.course ? ' · ' + L.course(data.course) : '')) : (v.type === 't' ? L.teacher : L.room);
+
+  const now = nowT();
+  const baseMon = monday(wd(now) === 6 ? addD(now, 1) : now);
+  const mon = addD(baseMon, S.weekOffset * 7);
+  const par = parity(INDEX.weekA, mon);
+  if (S.day == null) S.day = (S.weekOffset === 0 && wd(now) < 6) ? wd(now) : 0;
+  const lessonsOf = (d) => (data.lessons || []).filter(l => l.d === d && (!par || !l.w || l.w === par));
+
+  // recently changed lessons (last 7 days)
+  const recentChanges = (data.changes || []).filter(c => Date.now() - Date.parse(c.at) < 7 * DAY);
+  const newKeys = new Set();
+  const changedDays = new Set();
+  for (const c of recentChanges) for (const dd of c.days) { changedDays.add(dd.d); for (const l of dd.added) newKeys.add(key(l)); }
+
+  const dayBtns = [0, 1, 2, 3, 4, 5].map(d => {
+    const date = addD(mon, d);
+    const has = lessonsOf(d).length;
+    return `<button class="day ${d === S.day ? 'sel' : ''} ${sameDay(date, now) ? 'today' : ''}" data-d="${d}">
+      <div class="dn">${L.dShort[d]}</div><div class="dd">${date.getUTCDate()}</div>
+      ${has ? '<span class="dot"></span>' : ''}${changedDays.has(d) && S.weekOffset === 0 ? '<span class="chg"></span>' : ''}</button>`;
+  }).join('');
+
+  let banner = '';
+  if (recentChanges.length) {
+    const c = recentChanges[0];
+    const when = new Date(Date.parse(c.at) + TZ);
+    const whenS = `${dm(when)} ${String(when.getUTCHours()).padStart(2, '0')}:${String(when.getUTCMinutes()).padStart(2, '0')}`;
+    const lines = [];
+    for (const dd of c.days) {
+      for (const l of dd.removed) lines.push(`<div class="rm">➖ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${esc(l.s)}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
+      for (const l of dd.added) lines.push(`<div>➕ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${esc(l.s)}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
+    }
+    banner = `<div class="banner"><details><summary>⚠️ <b>${esc(c.newTT ? L.newTT : L.changed)}</b> · <span class="muted small">${esc(L.changedAt(whenS))}</span> ▾</summary><div class="diff">${lines.slice(0, 30).join('')}</div></details></div>`;
+  }
+
+  const date = addD(mon, S.day);
+  const list = lessonsOf(S.day);
+  let body = '';
+  if (!list.length) body = `<div class="empty"><div class="big">🎉</div>${esc(L.noLessons)}</div>`;
+  else {
+    const isToday = sameDay(date, now);
+    const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
+    let nextMarked = false;
+    let prevEnd = null;
+    body = list.map(l => {
+      const t = timeOf(l);
+      let cls = '', state = '';
+      if (isToday) {
+        const a = mins(t.a), b = mins(t.b);
+        if (nm >= a && nm < b) { cls = 'now'; state = `<span class="state">${esc(L.now)} · ${esc(L.left(b - nm))}</span>`; }
+        else if (nm >= b) cls = 'past';
+        else if (!nextMarked) { nextMarked = true; state = `<span class="state next">${esc(L.next)} · ${esc(L.inMin(a - nm))}</span>`; }
+      }
+      let gap = '';
+      if (prevEnd != null) { const g = mins(t.a) - prevEnd; if (g >= 30) gap = `<div class="gap">☕ ${esc(L.breakMin(g))}</div>`; }
+      prevEnd = mins(t.b);
+      return gap + lessonHtml(l, t, cls, state, v, newKeys.has(key(l)) && S.weekOffset === 0, par);
+    }).join('');
+  }
+
+  const parLbl = par ? ` · ${par === 'A' ? L.weekA : L.weekB}` : '';
+  app.innerHTML = `<div class="wrap">
+    <div class="top">${titleHtml(v, icon, sub)}</div>
+    <div class="weekbar"><div class="lbl">${esc(L.days[S.day])}, ${dm(date)}<span class="muted small">${esc(parLbl)}</span></div>
+      <div style="display:flex;gap:6px"><button class="pill ${S.weekOffset === 0 ? 'on' : ''}" data-w="0">${esc(L.thisWeek)}</button><button class="pill ${S.weekOffset === 1 ? 'on' : ''}" data-w="1">${esc(L.nextWeek)}</button></div></div>
+    <div class="days">${dayBtns}</div>
+    ${banner}
+    <div class="list">${body}</div>
+    <div class="foot">${esc(L.validity)}: ${esc((data.tt && data.tt.label) || '')}<br>tsue.edupage.org</div>
+  </div>`;
+  bindTitle();
+  app.querySelectorAll('.day').forEach(b => b.onclick = () => { haptic(); S.day = Number(b.dataset.d); renderTimetable(); });
+  app.querySelectorAll('[data-w]').forEach(b => b.onclick = () => { haptic(); S.weekOffset = Number(b.dataset.w); S.day = S.weekOffset === 0 ? null : 0; renderTimetable(); });
+  app.querySelectorAll('[data-open]').forEach(b => b.onclick = (ev) => {
+    ev.stopPropagation();
+    const [type, name] = [b.dataset.open[0], b.dataset.open.slice(2)];
+    const e = type === 'g' ? ALL.find(x => x.type === 'g' && x.name === name) : idOfName[type + ':' + name];
+    if (e) openEntity(e);
+  });
+  app.querySelectorAll('.lesson').forEach((el, i) => el.onclick = () => showLesson(list[i], v, par));
+}
+
+const key = (l) => [l.d, l.p, l.w || '', l.g || '', l.s, l.t, l.r, l.n].join('|');
+function timeOf(l) {
+  const a = INDEX.periods.find(p => p.p === l.p);
+  const b = INDEX.periods.find(p => p.p === l.p + (l.n || 1) - 1) || a;
+  return { a: a ? a.start : '', b: b ? b.end : '' };
+}
+
+function lessonHtml(l, t, cls, state, v, isNew, par) {
+  const st = splitType(l.s);
+  const chips = [];
+  if (v.type !== 'r' && l.r) for (const r of l.r.split(', ')) chips.push(`<button class="chip link" data-open="r:${esc(r)}">🚪 <span>${esc(r)}</span></button>`);
+  if (v.type !== 't' && l.t) for (const t2 of l.t.split(', ')) chips.push(`<button class="chip link" data-open="t:${esc(t2)}">👤 <span>${esc(t2)}</span></button>`);
+  if (l.gr) {
+    const gs = l.gr.split(', ');
+    if (gs.length <= 4) for (const g of gs) chips.push(`<button class="chip link" data-open="g:${esc(g)}">👥 <span>${esc(g)}</span></button>`);
+    else chips.push(`<span class="chip">👥 <span>${esc(gs.slice(0, 3).join(', '))} +${gs.length - 3}</span></span>`);
+  }
+  if (l.g) chips.push(`<span class="chip">🔹 <span>${esc(l.g)}</span></span>`);
+  return `<div class="lesson ${cls}">
+    <div class="time"><div class="n">${l.p}</div><div class="a">${esc(t.a)}</div><div class="b">${esc(t.b)}</div></div>
+    <div class="body">${state ? `<div>${state}</div>` : ''}<div class="subj">${esc(st.name)}${st.type ? `<span class="badge ${st.cls}">${esc(st.type)}</span>` : ''}${l.w && !par ? `<span class="badge wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>` : ''}${isNew ? `<span class="badge new">${esc(L.new)}</span>` : ''}</div>
+    <div class="meta">${chips.join('')}</div></div></div>`;
+}
+
+function titleHtml(v, icon, sub) {
+  const fav = S.favs.some(f => f.type === v.type && f.id === v.id);
+  return `<div class="titlebtn"><button class="ico" id="goSearch">${icon}</button>
+    <button class="grow" id="goSearch2" style="text-align:left;min-width:0"><div class="t1">${esc(v.name)} ▾</div><div class="t2">${esc(sub)}</div></button>
+    <button class="star ${fav ? 'on' : ''}" id="favBtn" aria-label="favorite">${fav ? '★' : '☆'}</button></div>`;
+}
+function bindTitle() {
+  const go = () => { haptic(); S.stack.push({ tab: S.tab, view: S.view }); S.tab = 'search'; render(); };
+  const a = $('#goSearch'), b = $('#goSearch2'), f = $('#favBtn');
+  if (a) a.onclick = go; if (b) b.onclick = go;
+  if (f) f.onclick = () => {
+    haptic('medium');
+    const v = S.view;
+    const i = S.favs.findIndex(x => x.type === v.type && x.id === v.id);
+    if (i >= 0) S.favs.splice(i, 1); else S.favs.unshift({ type: v.type, id: v.id, name: v.name });
+    store.set('favs', S.favs);
+    f.classList.toggle('on', i < 0); f.textContent = i < 0 ? '★' : '☆';
+  };
+}
+
+function showLesson(l, v, par) {
+  const st = splitType(l.s); const t = timeOf(l);
+  const rows = [];
+  rows.push(`<div class="kv"><div class="k">🕘</div><div class="v">${esc(L.days[l.d])}, ${l.p} · ${esc(t.a)}–${esc(t.b)}${l.w ? ` · ${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}` : ''}</div></div>`);
+  if (st.type) rows.push(`<div class="kv"><div class="k">📘</div><div class="v">${esc(st.type)}</div></div>`);
+  if (l.r) for (const r of l.r.split(', ')) rows.push(`<div class="kv"><div class="k">🚪</div><div class="v"><button data-open="r:${esc(r)}">${esc(r)}</button></div></div>`);
+  if (l.t) for (const x of l.t.split(', ')) rows.push(`<div class="kv"><div class="k">👤</div><div class="v"><button data-open="t:${esc(x)}">${esc(x)}</button></div></div>`);
+  if (l.gr) rows.push(`<div class="kv"><div class="k">👥</div><div class="v">${l.gr.split(', ').map(g => `<button data-open="g:${esc(g)}">${esc(g)}</button>`).join(', ')}</div></div>`);
+  if (l.g) rows.push(`<div class="kv"><div class="k">🔹</div><div class="v">${esc(l.g)}</div></div>`);
+  openSheet(`<h3>${esc(st.name)}</h3>${rows.join('')}`);
+  $('#sheet').querySelectorAll('[data-open]').forEach(b => b.onclick = () => {
+    const [type, name] = [b.dataset.open[0], b.dataset.open.slice(2)];
+    const e = type === 'g' ? ALL.find(x => x.type === 'g' && x.name === name) : idOfName[type + ':' + name];
+    closeSheet(); if (e) openEntity(e);
+  });
+}
+function openSheet(html) {
+  $('#sheet').innerHTML = `<div class="sheet-bg"></div><div class="sheet">${html}</div>`;
+  $('#sheet .sheet-bg').onclick = closeSheet;
+}
+function closeSheet() { $('#sheet').innerHTML = ''; }
+
+// ---- search tab
+function entityRow(e, q) {
+  const icon = e.type === 'g' ? '👥' : e.type === 't' ? '👤' : '🚪';
+  const sub = e.sub || (e.type === 'g' ? '' : e.type === 't' ? L.teacher : L.room);
+  return `<button class="row" data-type="${e.type}" data-id="${esc(e.id)}"><span class="ri">${icon}</span><span class="rt"><div>${highlight(e.name, q)}</div><div class="rs">${esc(sub)}</div></span><span class="chev">›</span></button>`;
+}
+async function renderSearch() {
+  ensurePeople().then(() => { if (S.tab === 'search' && S.q) drawResults(); });
+  app.innerHTML = `<div class="wrap"><div class="top">
+      <label class="search">🔎<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(L.searchPh)}" value="${esc(S.q)}"></label>
+      <div class="seg">${['all', 'g', 't', 'r'].map(f => `<button class="pill ${S.filter === f ? 'on' : ''}" data-f="${f}">${esc(f === 'all' ? L.all : f === 'g' ? L.groups : f === 't' ? L.teachers : L.rooms)}</button>`).join('')}</div>
+    </div><div id="res"></div>
+    <div class="foot"><span class="muted">${esc(L.lang)}:</span> ${['uz', 'ru', 'en'].map(l => `<button class="pill ${l === lang ? 'on' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`).join(' ')}</div></div>`;
+  const inp = $('#q');
+  inp.oninput = () => { S.q = inp.value; drawResults(); };
+  if (!S.mine || S.q) setTimeout(() => inp.focus(), 50);
+  app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { haptic(); S.filter = b.dataset.f; app.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); drawResults(); });
+  app.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { lang = b.dataset.lang; L = I[lang]; store.set('lang', lang); INDEX = null; PEOPLE = null; render(); });
+  drawResults();
+}
+function bindRows(root) {
+  root.querySelectorAll('.row[data-type]').forEach(b => b.onclick = () => {
+    const e = ALL.find(x => x.type === b.dataset.type && x.id === b.dataset.id) || S.recent.concat(S.favs).find(x => x.type === b.dataset.type && x.id === b.dataset.id);
+    if (e) openEntity(e, { asMine: !S.mine && e.type === 'g' });
+  });
+}
+function drawResults() {
+  const res = $('#res'); if (!res) return;
+  if (S.q.trim()) {
+    const hits = search(S.q, S.filter);
+    res.innerHTML = hits.length ? `<div class="rows" style="margin-top:6px">${hits.map(e => entityRow(e, S.q)).join('')}</div>` : `<div class="empty"><div class="big">🤷</div>${esc(L.nothing)}</div>`;
+    bindRows(res);
+    return;
+  }
+  let html = '';
+  if (!S.mine) html += `<div class="empty" style="padding:24px 10px"><div class="big">👋</div><b>${esc(L.pick)}</b><br><span class="small">${esc(L.pickSub)}</span></div>`;
+  if (S.favs.length) html += `<div class="sec">⭐ ${esc(L.favs)}</div><div class="rows">${S.favs.map(e => entityRow(e, '')).join('')}</div>`;
+  const rec = S.recent.filter(r => !S.favs.some(f => f.type === r.type && f.id === r.id));
+  if (rec.length) html += `<div class="sec">🕘 ${esc(L.recent)}</div><div class="rows">${rec.map(e => entityRow(e, '')).join('')}</div>`;
+  // browse by faculty
+  html += `<div class="sec">🏛 ${esc(L.browse)}</div>`;
+  if (S.browseFac == null) {
+    html += `<div class="rows">${INDEX.faculties.map((f, i) => `<button class="row" data-fac="${i}"><span class="ri">🏛</span><span class="rt"><div>${esc(f.name)}</div><div class="rs">${f.courses.reduce((n, c) => n + c.groups.length, 0)} ${esc(L.groups.toLowerCase())}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
+  } else {
+    const f = INDEX.faculties[S.browseFac];
+    html += `<div class="rows"><button class="row" data-fac="-1"><span class="ri">⬅️</span><span class="rt"><div>${esc(f.name)}</div></span></button></div>`;
+    for (const c of f.courses) {
+      html += `<div class="sec">${esc(L.course(c.name))}</div><div class="grid">${c.groups.map(([id, name]) => `<button class="gbtn" data-gid="${esc(id)}">${esc(name)}</button>`).join('')}</div>`;
+    }
+  }
+  res.innerHTML = html;
+  bindRows(res);
+  res.querySelectorAll('[data-fac]').forEach(b => b.onclick = () => { haptic(); const i = Number(b.dataset.fac); S.browseFac = i < 0 ? null : i; drawResults(); });
+  res.querySelectorAll('[data-gid]').forEach(b => b.onclick = () => { const e = ALL.find(x => x.type === 'g' && x.id === b.dataset.gid); if (e) openEntity(e, { asMine: !S.mine }); });
+}
+
+// ---- free rooms tab
+async function renderFree() {
+  app.innerHTML = `<div class="wrap"><div class="spin"></div></div>`;
+  const [busy] = await Promise.all([load('busy.json'), ensurePeople()]);
+  const now = nowT();
+  const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
+  if (S.freeDay == null) {
+    S.freeDay = wd(now) === 6 ? 0 : wd(now);
+    // current pair, or the next one
+    let p = INDEX.periods.find(x => nm < mins(x.end));
+    if (!p || wd(now) === 6) { p = INDEX.periods[0]; if (wd(now) !== 6 && nm >= mins(INDEX.periods[INDEX.periods.length - 1].end)) S.freeDay = (S.freeDay + 1) % 6; }
+    S.freeP = p.p;
+  }
+  const mon = monday(wd(now) === 6 ? addD(now, 1) : now);
+  const par = parity(INDEX.weekA, mon);
+  const slot = `${S.freeDay}.${S.freeP}`;
+  const free = [];
+  for (const [id, name] of PEOPLE.rooms) {
+    const b = busy.rooms[id] || [];
+    const taken = b.includes(slot) || (par ? b.includes(slot + par) : (b.includes(slot + 'A') || b.includes(slot + 'B')));
+    // only real campus rooms ("8-403-66", "4/1-…"); skip hotels, companies, online etc.
+    if (!taken && /^\d/.test(name) && !/online|onlayn|masofa|zoom/i.test(name)) free.push(name);
+  }
+  const fq = norm(S.freeQ);
+  const shown = free.filter(n => !fq || norm(n).includes(fq));
+  // group by building: text before the first "-" or "/"
+  const groups = {};
+  for (const n of shown) { const b = (/^([^-/\s]+)/.exec(n) || [, '?'])[1]; (groups[b] ||= []).push(n); }
+  const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  const per = INDEX.periods.find(x => x.p === S.freeP);
+  app.innerHTML = `<div class="wrap"><div class="top">
+      <div class="titlebtn"><span class="ico">🟢</span><div class="grow"><div class="t1">${esc(L.free)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)} · ${esc(L.freeCount(free.length))}</div></div></div>
+      <div class="slotbar">${[0, 1, 2, 3, 4, 5].map(d => `<button class="pill ${d === S.freeDay ? 'on' : ''}" data-fd="${d}">${esc(L.dShort[d])}</button>`).join('')}</div>
+      <div class="slotbar">${INDEX.periods.map(p => `<button class="pill ${p.p === S.freeP ? 'on' : ''}" data-fp="${p.p}">${p.p} · ${esc(p.start)}</button>`).join('')}</div>
+      <label class="search">🔎<input id="fq" type="search" placeholder="${esc(L.filterRoom)}" value="${esc(S.freeQ)}"></label>
+    </div>
+    ${keys.map(k => `<div class="bld"><h4>🏢 ${esc(k)} · ${groups[k].length}</h4><div class="rooms">${groups[k].map(n => `<button class="room" data-room="${esc(n)}">${esc(n)}</button>`).join('')}</div></div>`).join('') || `<div class="empty">${esc(L.nothing)}</div>`}
+  </div>`;
+  app.querySelectorAll('[data-fd]').forEach(b => b.onclick = () => { haptic(); S.freeDay = Number(b.dataset.fd); renderFree(); });
+  app.querySelectorAll('[data-fp]').forEach(b => b.onclick = () => { haptic(); S.freeP = Number(b.dataset.fp); renderFree(); });
+  app.querySelectorAll('[data-room]').forEach(b => b.onclick = () => { const e = idOfName['r:' + b.dataset.room]; if (e) openEntity(e); });
+  const fqi = $('#fq');
+  fqi.oninput = () => { S.freeQ = fqi.value; const pos = fqi.selectionStart; renderFree().then(() => { const n = $('#fq'); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} }); };
+}
+
+// ---------------------------------------------------------------- start
+if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch {} }
+(async () => {
+  document.documentElement.lang = lang;
+  if (hash.get('l')) store.set('lang', lang);
+  // Telegram CloudStorage keeps favourites across the user's devices
+  if (inTg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) {
+    await new Promise(res => {
+      tg.CloudStorage.getItems(['mine', 'favs', 'recent'], (err, v) => {
+        try {
+          if (!err && v) {
+            if (v.mine && !S.mine) S.mine = JSON.parse(v.mine);
+            if (v.favs && !S.favs.length) S.favs = JSON.parse(v.favs);
+            if (v.recent && !S.recent.length) S.recent = JSON.parse(v.recent);
+          }
+        } catch {}
+        res();
+      });
+      setTimeout(res, 800);
+    });
+  }
+  const gid = hash.get('g') || hash.get('t') || hash.get('r');
+  if (gid) {
+    try {
+      await ensureIndex();
+      const type = hash.get('g') ? 'g' : hash.get('t') ? 't' : 'r';
+      if (type !== 'g') await ensurePeople();
+      const e = ALL.find(x => x.type === type && x.id === gid);
+      if (e) { if (type === 'g') { S.mine = { type, id: e.id, name: e.name }; store.set('mine', S.mine); } S.view = { type, id: e.id, name: e.name }; remember(e); }
+    } catch {}
+  }
+  render();
+})();
+})();
+</script>
+</body>
+</html>
