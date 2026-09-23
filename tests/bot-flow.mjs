@@ -19,11 +19,13 @@ check('rejects wrong secret', (await fetch(W + '/tg', { method: 'POST', headers:
 
 await reset(); await post(msg('/start'));
 let l = await log();
-check('new user → language picker', l.some((c) => c.method === 'sendMessage' && c.data.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data === 'lang:uz:start'), l);
+check('new user → welcome in Uzbek (default) + faculty list', l.some((c) => /Assalomu alaykum/.test(c.data.text || '')) && l.some((c) => /Fakultetni tanlang/.test(c.data.text || '')), texts(l));
+const pickKb = l.find((c) => /Fakultetni/.test(c.data.text || ''))?.data.reply_markup.inline_keyboard;
+check('language row under faculty list, Uzbek first and selected', pickKb?.at(-1)?.[0]?.callback_data === 'lang:uz:pick:111' && /✓/.test(pickKb.at(-1)[0].text), pickKb?.at(-1));
 
-await reset(); await post(cb('lang:ru:start'));
+await reset(); await post(cb('lang:ru:pick:111'));
 l = await log();
-check('choose RU → welcome in Russian + faculty list', l.some((c) => /Здравствуйте/.test(c.data.text || '')) && l.some((c) => /факультет/.test(c.data.text || '')), texts(l));
+check('switch to RU → faculty list redrawn in Russian', l.some((c) => c.method === 'editMessageText' && /факультет/.test(c.data.text || '')), texts(l));
 const facKb = l.find((c) => /факультет/.test(c.data.text || ''))?.data.reply_markup.inline_keyboard;
 console.log('   faculties:', facKb?.map((r) => r[0].text).join(' | '));
 
@@ -96,6 +98,10 @@ await reset(); await post(msg('/setgroup', grp));
 await post(cb('g:111:1thm8e1', grp));
 l = await log();
 check('admin /setgroup → linked + weekly post', l.some((c) => /ulandi/.test(c.data.text || '')) && l.some((c) => c.method === 'sendPhoto' && /haftalik jadval/.test(c.data.caption || '')), texts(l));
+check('group link message has language row', l.some((c) => /ulandi/.test(c.data.text || '') && c.data.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data === 'lang:uz:chat'), texts(l));
+await reset(); await post(cb('lang:ru:chat', grp));
+l = await log();
+check('admin switches group chat to RU', l.some((c) => c.method === 'editMessageText' && /привязан/.test(c.data.text || '')), texts(l));
 
 await reset(); await post(msg('/today', grp, { id: 444 }));
 l = await log();

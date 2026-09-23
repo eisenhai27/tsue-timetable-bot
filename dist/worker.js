@@ -167,12 +167,6 @@ Every Sunday evening I'll post the week's timetable, and I'll post an alert when
   }
 };
 var tr = (lang) => T[lang] || T.uz;
-function langFromCode(code) {
-  const c = String(code || "").slice(0, 2).toLowerCase();
-  if (c === "ru") return "ru";
-  if (c === "en") return "en";
-  return "uz";
-}
 var esc = (s) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 var TZ_MS = 5 * 3600 * 1e3;
 var DAY_MS = 864e5;
@@ -482,9 +476,10 @@ async function ensureChat(env, chat, langCode) {
     kind,
     group_id: null,
     group_name: null,
-    lang: langFromCode(langCode),
+    lang: "uz",
     alerts: 1,
     weekly: kind === "group" ? 1 : 0
+    // Uzbek is the default for everyone; changeable in the menu / settings
   };
   const now = Date.now();
   await (await db(env)).prepare("INSERT OR IGNORE INTO chats (chat_id, kind, lang, alerts, weekly, created_at, updated_at) VALUES (?,?,?,?,?,?,?)").bind(row.chat_id, kind, row.lang, row.alerts, row.weekly, now, now).run();
@@ -623,7 +618,6 @@ async function onPrivate(env, msg, command) {
   if (action === "start") {
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
     if (m) return chooseGroup(env, msg.chat, uid, m[1], null, lang);
-    if (isNew) return askLanguage(env, msg.chat.id, "start");
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id) });
     if (!row.group_id) return showFaculties(env, msg.chat.id, uid, lang, null);
     return;
@@ -755,11 +749,15 @@ async function showFaculties(env, chatId, uid, lang, messageId) {
     return send(env, chatId, L.dataError);
   }
   const kb = index.faculties.map((f, i) => [{ text: `🏛 ${f.name}`, callback_data: `f:${uid}:${i}` }]);
+  kb.push(langRow(lang, `pick:${uid}`));
   const text = `${L.chooseFaculty}
 
 ${L.searchHint}`;
   if (messageId) return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", reply_markup: { inline_keyboard: kb } });
   return send(env, chatId, text, { reply_markup: { inline_keyboard: kb } });
+}
+function langRow(current, suffix) {
+  return LANGS.map((l) => ({ text: T[l].langName.replace(/^(\S+)\s.*$/, "$1") + " " + { uz: "O'zbek", ru: "Рус", en: "Eng" }[l] + (l === current ? " ✓" : ""), callback_data: `lang:${l}:${suffix}` }));
 }
 async function showCourses(env, chatId, uid, lang, fi, messageId) {
   const L = tr(lang);
@@ -832,8 +830,9 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
   await updateChat(env, chat.id, { group_id: groupId, group_name: name });
   const isPrivate = chat.type === "private";
   const text = isPrivate ? L.groupSet(esc(name)) : L.groupSetChat(esc(name));
-  if (messageId) await tg(env, "editMessageText", { chat_id: chat.id, message_id: messageId, text, parse_mode: "HTML" });
-  else await send(env, chat.id, text);
+  const markup = isPrivate ? void 0 : { inline_keyboard: [langRow(lang, "chat")] };
+  if (messageId) await tg(env, "editMessageText", { chat_id: chat.id, message_id: messageId, text, parse_mode: "HTML", reply_markup: markup });
+  else await send(env, chat.id, text, markup ? { reply_markup: markup } : {});
   const updated = { ...row, group_id: groupId, group_name: name };
   if (isPrivate) {
     const [index, group] = await Promise.all([getIndex(env), getGroup(env, groupId)]);
@@ -880,6 +879,10 @@ async function onCallback(env, cb) {
     const newLang = LANGS.includes(parts[1]) ? parts[1] : "uz";
     await updateChat(env, chatId, { lang: newLang });
     const L2 = tr(newLang);
+    if (parts[2] === "pick") return showFaculties(env, chatId, parts[3], newLang, msg.message_id);
+    if (parts[2] === "chat") {
+      return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: L2.groupSetChat(esc(row.group_name || "")), parse_mode: "HTML", reply_markup: { inline_keyboard: [langRow(newLang, "chat")] } });
+    }
     if (parts[2] === "start") {
       await tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: L2.langName });
       await send(env, chatId, L2.welcome, { reply_markup: mainKeyboard(env, newLang, row.group_id) });

@@ -230,7 +230,7 @@ const store = {
   },
 };
 const userLang = (inTg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) || navigator.language || 'uz';
-let lang = hash.get('l') || store.get('lang', null) || (/^ru/.test(userLang) ? 'ru' : /^en/.test(userLang) ? 'en' : 'uz');
+let lang = hash.get('l') || store.get('lang', null) || 'uz'; // Uzbek by default
 if (!I[lang]) lang = 'uz';
 let L = I[lang];
 

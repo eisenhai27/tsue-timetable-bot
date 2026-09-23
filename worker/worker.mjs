@@ -104,7 +104,7 @@ async function ensureChat(env, chat, langCode) {
   const kind = chat.type === 'private' ? 'private' : 'group';
   row = {
     chat_id: chat.id, kind, group_id: null, group_name: null,
-    lang: langFromCode(langCode), alerts: 1, weekly: kind === 'group' ? 1 : 0,
+    lang: 'uz', alerts: 1, weekly: kind === 'group' ? 1 : 0, // Uzbek is the default for everyone; changeable in the menu / settings
   };
   const now = Date.now();
   await (await db(env))
@@ -269,7 +269,6 @@ async function onPrivate(env, msg, command) {
     // Deep link from a group chat post: /start g_<groupId>
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
     if (m) return chooseGroup(env, msg.chat, uid, m[1], null, lang);
-    if (isNew) return askLanguage(env, msg.chat.id, 'start');
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id) });
     if (!row.group_id) return showFaculties(env, msg.chat.id, uid, lang, null);
     return;
@@ -413,9 +412,15 @@ async function showFaculties(env, chatId, uid, lang, messageId) {
   let index;
   try { index = await getIndex(env); } catch { return send(env, chatId, L.dataError); }
   const kb = index.faculties.map((f, i) => [{ text: `🏛 ${f.name}`, callback_data: `f:${uid}:${i}` }]);
+  kb.push(langRow(lang, `pick:${uid}`)); // language can be switched right here
   const text = `${L.chooseFaculty}\n\n${L.searchHint}`;
   if (messageId) return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } });
   return send(env, chatId, text, { reply_markup: { inline_keyboard: kb } });
+}
+
+/** [🇺🇿 O'zbekcha ✓] [🇷🇺 Русский] [🇬🇧 English] — Uzbek always first */
+function langRow(current, suffix) {
+  return LANGS.map((l) => ({ text: TEXTS[l].langName.replace(/^(\S+)\s.*$/, '$1') + ' ' + ({ uz: "O'zbek", ru: 'Рус', en: 'Eng' })[l] + (l === current ? ' ✓' : ''), callback_data: `lang:${l}:${suffix}` }));
 }
 
 async function showCourses(env, chatId, uid, lang, fi, messageId) {
@@ -488,8 +493,10 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
   await updateChat(env, chat.id, { group_id: groupId, group_name: name });
   const isPrivate = chat.type === 'private';
   const text = isPrivate ? L.groupSet(esc(name)) : L.groupSetChat(esc(name));
-  if (messageId) await tg(env, 'editMessageText', { chat_id: chat.id, message_id: messageId, text, parse_mode: 'HTML' });
-  else await send(env, chat.id, text);
+  // In group chats the admin can pick the chat's language right under the confirmation
+  const markup = isPrivate ? undefined : { inline_keyboard: [langRow(lang, 'chat')] };
+  if (messageId) await tg(env, 'editMessageText', { chat_id: chat.id, message_id: messageId, text, parse_mode: 'HTML', reply_markup: markup });
+  else await send(env, chat.id, text, markup ? { reply_markup: markup } : {});
   const updated = { ...row, group_id: groupId, group_name: name };
   if (isPrivate) {
     // Show today's classes right away, together with the main buttons
@@ -542,6 +549,10 @@ async function onCallback(env, cb) {
     const newLang = LANGS.includes(parts[1]) ? parts[1] : 'uz';
     await updateChat(env, chatId, { lang: newLang });
     const L2 = tr(newLang);
+    if (parts[2] === 'pick') return showFaculties(env, chatId, parts[3], newLang, msg.message_id);
+    if (parts[2] === 'chat') {
+      return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: L2.groupSetChat(esc(row.group_name || '')), parse_mode: 'HTML', reply_markup: { inline_keyboard: [langRow(newLang, 'chat')] } });
+    }
     if (parts[2] === 'start') {
       await tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: L2.langName });
       await send(env, chatId, L2.welcome, { reply_markup: mainKeyboard(env, newLang, row.group_id) });
