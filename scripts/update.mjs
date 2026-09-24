@@ -137,7 +137,14 @@ async function main() {
   }
 }
 
-main().catch((e) => {
+main().catch(async (e) => {
   console.error(e);
+  // EduPage being temporarily unreachable is normal (night maintenance, network blips).
+  // Don't mark the run as failed (GitHub would e-mail you every 15 minutes) — just skip this round.
+  if (/fetch failed|timeout|ETIMEDOUT|ECONNRESET|HTTP 5\d\d|No data/i.test(String(e?.message) + String(e?.cause?.code))) {
+    console.log('::warning::EduPage is not reachable right now — skipped this check, will try again next time.');
+    if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, 'written=0\nchanged=0\n');
+    process.exit(0);
+  }
   process.exit(1);
 });
