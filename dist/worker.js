@@ -1,5 +1,5 @@
 // TDIU Jadval bot — ONE-FILE version for pasting into the Cloudflare dashboard.
-// Generated from worker/worker.mjs + src/shared.mjs with `npm run build`. Edit those files, not this one.
+
 // src/shared.mjs
 var LANGS = ["uz", "ru", "en"];
 var T = {
@@ -7,161 +7,161 @@ var T = {
     days: ["Dushanba", "Seshanba", "Chorshanba", "Payshanba", "Juma", "Shanba", "Yakshanba"],
     daysShort: ["Du", "Se", "Ch", "Pa", "Ju", "Sh", "Ya"],
     months: ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"],
-    langName: "🇺🇿 O'zbekcha",
-    chooseLang: "Tilni tanlang / Выберите язык / Choose language",
-    welcome: "Assalomu alaykum! 👋\nMen <b>TDIU Jadval</b> botiman.\n\n• Guruhingiz jadvalini ko'rsataman\n• Jadval o'zgarsa darhol xabar beraman\n• O'qituvchi va xonalarni qidiraman\n\nAvval guruhingizni tanlang 👇",
-    chooseFaculty: "🏛 Fakultetni tanlang:",
-    chooseCourse: "🎓 Kursni tanlang:",
-    chooseGroup: "👥 Guruhni tanlang:",
+    langName: "\u{1F1FA}\u{1F1FF} O'zbekcha",
+    chooseLang: "Tilni tanlang / \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u044F\u0437\u044B\u043A / Choose language",
+    welcome: "Assalomu alaykum! \u{1F44B}\nMen <b>TDIU Jadval</b> botiman.\n\n\u2022 Guruhingiz jadvalini ko'rsataman\n\u2022 Jadval o'zgarsa darhol xabar beraman\n\u2022 O'qituvchi va xonalarni qidiraman\n\nAvval guruhingizni tanlang \u{1F447}",
+    chooseFaculty: "\u{1F3DB} Fakultetni tanlang:",
+    chooseCourse: "\u{1F393} Kursni tanlang:",
+    chooseGroup: "\u{1F465} Guruhni tanlang:",
     course: (n) => n ? `${n}-kurs` : "Boshqa",
-    searchHint: "💡 Yoki guruh nomini yozing, masalan: <code>MO-901</code>",
-    groupSet: (g) => `✅ Guruh saqlandi: <b>${g}</b>`,
-    groupSetChat: (g) => `✅ Bu chat <b>${g}</b> guruhiga ulandi.
+    searchHint: "\u{1F4A1} Yoki guruh nomini yozing, masalan: <code>MO-901</code>",
+    groupSet: (g) => `\u2705 Guruh saqlandi: <b>${g}</b>`,
+    groupSetChat: (g) => `\u2705 Bu chat <b>${g}</b> guruhiga ulandi.
 
 Har yakshanba kechqurun haftalik jadval yuboriladi va jadval o'zgarsa darhol xabar beriladi.`,
     noGroup: "Siz hali guruh tanlamagansiz. /group buyrug'ini yuboring.",
     noGroupChat: "Bu chat hali guruhga ulanmagan. Chat admini /setgroup yuborsin.",
-    noLessons: "Dars yo'q 🎉",
-    freeDay: "Bugun dars yo'q 🎉",
+    noLessons: "Dars yo'q \u{1F389}",
+    freeDay: "Bugun dars yo'q \u{1F389}",
     today: "Bugun",
     tomorrow: "Ertaga",
-    btnToday: "📅 Bugun",
-    btnTomorrow: "➡️ Ertaga",
-    btnWeek: "🗓 Hafta",
-    btnSettings: "⚙️ Sozlamalar",
-    btnApp: "📱 Ilovani ochish",
-    btnFree: "🟢 Bo'sh xonalar",
+    btnToday: "\u{1F4C5} Bugun",
+    btnTomorrow: "\u27A1\uFE0F Ertaga",
+    btnWeek: "\u{1F5D3} Hafta",
+    btnSettings: "\u2699\uFE0F Sozlamalar",
+    btnApp: "\u{1F4F1} Ilovani ochish",
+    btnFree: "\u{1F7E2} Bo'sh xonalar",
     thisWeekShort: "Shu hafta",
     nextWeekShort: "Keyingi hafta",
-    btnOpenInApp: "📱 Ilovada ochish",
-    weekTitle: (g, range) => `🗓 <b>Haftalik jadval</b> — ${g}
+    btnOpenInApp: "\u{1F4F1} Ilovada ochish",
+    weekTitle: (g, range) => `\u{1F5D3} <b>Haftalik jadval</b> \u2014 ${g}
 <i>${range}</i>`,
-    changedTitle: (g) => `⚠️ <b>Jadval o'zgardi</b> — ${g}`,
-    newTTTitle: (g) => `🆕 <b>Yangi jadval e'lon qilindi</b> — ${g}`,
+    changedTitle: (g) => `\u26A0\uFE0F <b>Jadval o'zgardi</b> \u2014 ${g}`,
+    newTTTitle: (g) => `\u{1F195} <b>Yangi jadval e'lon qilindi</b> \u2014 ${g}`,
     weekA: "A hafta",
     weekB: "B hafta",
     onlyAdmins: "Faqat chat adminlari guruhni tanlashi mumkin.",
     notYourMenu: "Bu menyu sizga tegishli emas.",
-    addedToGroup: "Salom! 👋 Men dars jadvali botiman.\n\nChat admini /setgroup yuborib guruhni tanlasin — shundan so'ng haftalik jadval va o'zgarishlar shu yerga yuboriladi.",
-    settings: "⚙️ <b>Sozlamalar</b>",
-    setGroup: (g) => `👥 Guruh: ${g || "—"}`,
-    setAlerts: (on) => `🔔 O'zgarish xabarlari: ${on ? "yoqilgan" : "o'chirilgan"}`,
-    setWeekly: (on) => `🗓 Haftalik jadval: ${on ? "yoqilgan" : "o'chirilgan"}`,
-    setLang: "🌐 Til",
+    addedToGroup: "Salom! \u{1F44B} Men dars jadvali botiman.\n\nChat admini /setgroup yuborib guruhni tanlasin \u2014 shundan so'ng haftalik jadval va o'zgarishlar shu yerga yuboriladi.",
+    settings: "\u2699\uFE0F <b>Sozlamalar</b>",
+    setGroup: (g) => `\u{1F465} Guruh: ${g || "\u2014"}`,
+    setAlerts: (on) => `\u{1F514} O'zgarish xabarlari: ${on ? "yoqilgan" : "o'chirilgan"}`,
+    setWeekly: (on) => `\u{1F5D3} Haftalik jadval: ${on ? "yoqilgan" : "o'chirilgan"}`,
+    setLang: "\u{1F310} Til",
     notFound: "Hech narsa topilmadi. Guruh nomini tekshiring, masalan: MO-901",
     found: "Topildi:",
-    back: "⬅️ Orqaga",
-    more: "Yana ➡️",
-    unset: "✅ Bu chat guruhdan uzildi.",
-    help: "<b>Buyruqlar</b>\n/today — bugungi darslar\n/tomorrow — ertangi darslar\n/week — haftalik jadval\n/group — guruhni tanlash\n/settings — sozlamalar\n/app — ilovani ochish\n\n<b>Guruh chatida</b>\n/setgroup — chatni guruhga ulash (admin)\n/unset — uzish (admin)",
+    back: "\u2B05\uFE0F Orqaga",
+    more: "Yana \u27A1\uFE0F",
+    unset: "\u2705 Bu chat guruhdan uzildi.",
+    help: "<b>Buyruqlar</b>\n/today \u2014 bugungi darslar\n/tomorrow \u2014 ertangi darslar\n/week \u2014 haftalik jadval\n/group \u2014 guruhni tanlash\n/settings \u2014 sozlamalar\n/app \u2014 ilovani ochish\n\n<b>Guruh chatida</b>\n/setgroup \u2014 chatni guruhga ulash (admin)\n/unset \u2014 uzish (admin)",
     dataError: "Jadvalni yuklab bo'lmadi, birozdan so'ng qayta urinib ko'ring.",
     now: "Hozir"
   },
   ru: {
-    days: ["Понедельник", "Вторник", "Среда", "Четверг", "Пятница", "Суббота", "Воскресенье"],
-    daysShort: ["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"],
-    months: ["января", "февраля", "марта", "апреля", "мая", "июня", "июля", "августа", "сентября", "октября", "ноября", "декабря"],
-    langName: "🇷🇺 Русский",
-    chooseLang: "Tilni tanlang / Выберите язык / Choose language",
-    welcome: "Здравствуйте! 👋\nЯ <b>TDIU Jadval</b> — бот расписания ТГЭУ.\n\n• Показываю расписание вашей группы\n• Сразу сообщаю об изменениях\n• Ищу преподавателей и аудитории\n\nСначала выберите группу 👇",
-    chooseFaculty: "🏛 Выберите факультет:",
-    chooseCourse: "🎓 Выберите курс:",
-    chooseGroup: "👥 Выберите группу:",
-    course: (n) => n ? `${n} курс` : "Другое",
-    searchHint: "💡 Или напишите название группы, например: <code>MO-901</code>",
-    groupSet: (g) => `✅ Группа сохранена: <b>${g}</b>`,
-    groupSetChat: (g) => `✅ Этот чат привязан к группе <b>${g}</b>.
+    days: ["\u041F\u043E\u043D\u0435\u0434\u0435\u043B\u044C\u043D\u0438\u043A", "\u0412\u0442\u043E\u0440\u043D\u0438\u043A", "\u0421\u0440\u0435\u0434\u0430", "\u0427\u0435\u0442\u0432\u0435\u0440\u0433", "\u041F\u044F\u0442\u043D\u0438\u0446\u0430", "\u0421\u0443\u0431\u0431\u043E\u0442\u0430", "\u0412\u043E\u0441\u043A\u0440\u0435\u0441\u0435\u043D\u044C\u0435"],
+    daysShort: ["\u041F\u043D", "\u0412\u0442", "\u0421\u0440", "\u0427\u0442", "\u041F\u0442", "\u0421\u0431", "\u0412\u0441"],
+    months: ["\u044F\u043D\u0432\u0430\u0440\u044F", "\u0444\u0435\u0432\u0440\u0430\u043B\u044F", "\u043C\u0430\u0440\u0442\u0430", "\u0430\u043F\u0440\u0435\u043B\u044F", "\u043C\u0430\u044F", "\u0438\u044E\u043D\u044F", "\u0438\u044E\u043B\u044F", "\u0430\u0432\u0433\u0443\u0441\u0442\u0430", "\u0441\u0435\u043D\u0442\u044F\u0431\u0440\u044F", "\u043E\u043A\u0442\u044F\u0431\u0440\u044F", "\u043D\u043E\u044F\u0431\u0440\u044F", "\u0434\u0435\u043A\u0430\u0431\u0440\u044F"],
+    langName: "\u{1F1F7}\u{1F1FA} \u0420\u0443\u0441\u0441\u043A\u0438\u0439",
+    chooseLang: "Tilni tanlang / \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u044F\u0437\u044B\u043A / Choose language",
+    welcome: "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435! \u{1F44B}\n\u042F <b>TDIU Jadval</b> \u2014 \u0431\u043E\u0442 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F \u0422\u0413\u042D\u0423.\n\n\u2022 \u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0432\u0430\u0448\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u044B\n\u2022 \u0421\u0440\u0430\u0437\u0443 \u0441\u043E\u043E\u0431\u0449\u0430\u044E \u043E\u0431 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445\n\u2022 \u0418\u0449\u0443 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u0435\u0439 \u0438 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438\n\n\u0421\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u0443 \u{1F447}",
+    chooseFaculty: "\u{1F3DB} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0444\u0430\u043A\u0443\u043B\u044C\u0442\u0435\u0442:",
+    chooseCourse: "\u{1F393} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0443\u0440\u0441:",
+    chooseGroup: "\u{1F465} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u0443:",
+    course: (n) => n ? `${n} \u043A\u0443\u0440\u0441` : "\u0414\u0440\u0443\u0433\u043E\u0435",
+    searchHint: "\u{1F4A1} \u0418\u043B\u0438 \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0433\u0440\u0443\u043F\u043F\u044B, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: <code>MO-901</code>",
+    groupSet: (g) => `\u2705 \u0413\u0440\u0443\u043F\u043F\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430: <b>${g}</b>`,
+    groupSetChat: (g) => `\u2705 \u042D\u0442\u043E\u0442 \u0447\u0430\u0442 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D \u043A \u0433\u0440\u0443\u043F\u043F\u0435 <b>${g}</b>.
 
-Каждое воскресенье вечером будет приходить расписание на неделю, а при изменениях — уведомление.`,
-    noGroup: "Вы ещё не выбрали группу. Отправьте /group.",
-    noGroupChat: "Чат ещё не привязан к группе. Админ чата должен отправить /setgroup.",
-    noLessons: "Пар нет 🎉",
-    freeDay: "Сегодня пар нет 🎉",
-    today: "Сегодня",
-    tomorrow: "Завтра",
-    btnToday: "📅 Сегодня",
-    btnTomorrow: "➡️ Завтра",
-    btnWeek: "🗓 Неделя",
-    btnSettings: "⚙️ Настройки",
-    btnApp: "📱 Открыть приложение",
-    btnFree: "🟢 Свободные",
-    thisWeekShort: "Эта неделя",
-    nextWeekShort: "След. неделя",
-    btnOpenInApp: "📱 Открыть в приложении",
-    weekTitle: (g, range) => `🗓 <b>Расписание на неделю</b> — ${g}
+\u041A\u0430\u0436\u0434\u043E\u0435 \u0432\u043E\u0441\u043A\u0440\u0435\u0441\u0435\u043D\u044C\u0435 \u0432\u0435\u0447\u0435\u0440\u043E\u043C \u0431\u0443\u0434\u0435\u0442 \u043F\u0440\u0438\u0445\u043E\u0434\u0438\u0442\u044C \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E, \u0430 \u043F\u0440\u0438 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445 \u2014 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u0435.`,
+    noGroup: "\u0412\u044B \u0435\u0449\u0451 \u043D\u0435 \u0432\u044B\u0431\u0440\u0430\u043B\u0438 \u0433\u0440\u0443\u043F\u043F\u0443. \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /group.",
+    noGroupChat: "\u0427\u0430\u0442 \u0435\u0449\u0451 \u043D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D \u043A \u0433\u0440\u0443\u043F\u043F\u0435. \u0410\u0434\u043C\u0438\u043D \u0447\u0430\u0442\u0430 \u0434\u043E\u043B\u0436\u0435\u043D \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C /setgroup.",
+    noLessons: "\u041F\u0430\u0440 \u043D\u0435\u0442 \u{1F389}",
+    freeDay: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043F\u0430\u0440 \u043D\u0435\u0442 \u{1F389}",
+    today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F",
+    tomorrow: "\u0417\u0430\u0432\u0442\u0440\u0430",
+    btnToday: "\u{1F4C5} \u0421\u0435\u0433\u043E\u0434\u043D\u044F",
+    btnTomorrow: "\u27A1\uFE0F \u0417\u0430\u0432\u0442\u0440\u0430",
+    btnWeek: "\u{1F5D3} \u041D\u0435\u0434\u0435\u043B\u044F",
+    btnSettings: "\u2699\uFE0F \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
+    btnApp: "\u{1F4F1} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
+    btnFree: "\u{1F7E2} \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435",
+    thisWeekShort: "\u042D\u0442\u0430 \u043D\u0435\u0434\u0435\u043B\u044F",
+    nextWeekShort: "\u0421\u043B\u0435\u0434. \u043D\u0435\u0434\u0435\u043B\u044F",
+    btnOpenInApp: "\u{1F4F1} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438",
+    weekTitle: (g, range) => `\u{1F5D3} <b>\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E</b> \u2014 ${g}
 <i>${range}</i>`,
-    changedTitle: (g) => `⚠️ <b>Расписание изменилось</b> — ${g}`,
-    newTTTitle: (g) => `🆕 <b>Опубликовано новое расписание</b> — ${g}`,
-    weekA: "Неделя A",
-    weekB: "Неделя B",
-    onlyAdmins: "Только админы чата могут выбирать группу.",
-    notYourMenu: "Это меню не для вас.",
-    addedToGroup: "Привет! 👋 Я бот расписания.\n\nАдмин чата, отправьте /setgroup и выберите группу — после этого сюда будут приходить расписание на неделю и изменения.",
-    settings: "⚙️ <b>Настройки</b>",
-    setGroup: (g) => `👥 Группа: ${g || "—"}`,
-    setAlerts: (on) => `🔔 Уведомления об изменениях: ${on ? "вкл" : "выкл"}`,
-    setWeekly: (on) => `🗓 Расписание на неделю: ${on ? "вкл" : "выкл"}`,
-    setLang: "🌐 Язык",
-    notFound: "Ничего не найдено. Проверьте название группы, например: MO-901",
-    found: "Найдено:",
-    back: "⬅️ Назад",
-    more: "Ещё ➡️",
-    unset: "✅ Чат отвязан от группы.",
-    help: "<b>Команды</b>\n/today — пары на сегодня\n/tomorrow — пары на завтра\n/week — расписание на неделю\n/group — выбрать группу\n/settings — настройки\n/app — открыть приложение\n\n<b>В чате группы</b>\n/setgroup — привязать чат к группе (админ)\n/unset — отвязать (админ)",
-    dataError: "Не удалось загрузить расписание, попробуйте чуть позже.",
-    now: "Сейчас"
+    changedTitle: (g) => `\u26A0\uFE0F <b>\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0438\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C</b> \u2014 ${g}`,
+    newTTTitle: (g) => `\u{1F195} <b>\u041E\u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u043D\u043E \u043D\u043E\u0432\u043E\u0435 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435</b> \u2014 ${g}`,
+    weekA: "\u041D\u0435\u0434\u0435\u043B\u044F A",
+    weekB: "\u041D\u0435\u0434\u0435\u043B\u044F B",
+    onlyAdmins: "\u0422\u043E\u043B\u044C\u043A\u043E \u0430\u0434\u043C\u0438\u043D\u044B \u0447\u0430\u0442\u0430 \u043C\u043E\u0433\u0443\u0442 \u0432\u044B\u0431\u0438\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443.",
+    notYourMenu: "\u042D\u0442\u043E \u043C\u0435\u043D\u044E \u043D\u0435 \u0434\u043B\u044F \u0432\u0430\u0441.",
+    addedToGroup: "\u041F\u0440\u0438\u0432\u0435\u0442! \u{1F44B} \u042F \u0431\u043E\u0442 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F.\n\n\u0410\u0434\u043C\u0438\u043D \u0447\u0430\u0442\u0430, \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /setgroup \u0438 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u0443 \u2014 \u043F\u043E\u0441\u043B\u0435 \u044D\u0442\u043E\u0433\u043E \u0441\u044E\u0434\u0430 \u0431\u0443\u0434\u0443\u0442 \u043F\u0440\u0438\u0445\u043E\u0434\u0438\u0442\u044C \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E \u0438 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F.",
+    settings: "\u2699\uFE0F <b>\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438</b>",
+    setGroup: (g) => `\u{1F465} \u0413\u0440\u0443\u043F\u043F\u0430: ${g || "\u2014"}`,
+    setAlerts: (on) => `\u{1F514} \u0423\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F \u043E\u0431 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445: ${on ? "\u0432\u043A\u043B" : "\u0432\u044B\u043A\u043B"}`,
+    setWeekly: (on) => `\u{1F5D3} \u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E: ${on ? "\u0432\u043A\u043B" : "\u0432\u044B\u043A\u043B"}`,
+    setLang: "\u{1F310} \u042F\u0437\u044B\u043A",
+    notFound: "\u041D\u0438\u0447\u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D\u043E. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0433\u0440\u0443\u043F\u043F\u044B, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: MO-901",
+    found: "\u041D\u0430\u0439\u0434\u0435\u043D\u043E:",
+    back: "\u2B05\uFE0F \u041D\u0430\u0437\u0430\u0434",
+    more: "\u0415\u0449\u0451 \u27A1\uFE0F",
+    unset: "\u2705 \u0427\u0430\u0442 \u043E\u0442\u0432\u044F\u0437\u0430\u043D \u043E\u0442 \u0433\u0440\u0443\u043F\u043F\u044B.",
+    help: "<b>\u041A\u043E\u043C\u0430\u043D\u0434\u044B</b>\n/today \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\n/tomorrow \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430\n/week \u2014 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E\n/group \u2014 \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443\n/settings \u2014 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\n/app \u2014 \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\n\n<b>\u0412 \u0447\u0430\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u044B</b>\n/setgroup \u2014 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)\n/unset \u2014 \u043E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)",
+    dataError: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435, \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0447\u0443\u0442\u044C \u043F\u043E\u0437\u0436\u0435.",
+    now: "\u0421\u0435\u0439\u0447\u0430\u0441"
   },
   en: {
     days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
     daysShort: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
     months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
-    langName: "🇬🇧 English",
-    chooseLang: "Tilni tanlang / Выберите язык / Choose language",
-    welcome: "Hi! 👋\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n• I show your group's timetable\n• I tell you right away when it changes\n• I can find teachers and rooms\n\nFirst, pick your group 👇",
-    chooseFaculty: "🏛 Choose your faculty:",
-    chooseCourse: "🎓 Choose your year:",
-    chooseGroup: "👥 Choose your group:",
+    langName: "\u{1F1EC}\u{1F1E7} English",
+    chooseLang: "Tilni tanlang / \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u044F\u0437\u044B\u043A / Choose language",
+    welcome: "Hi! \u{1F44B}\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n\u2022 I show your group's timetable\n\u2022 I tell you right away when it changes\n\u2022 I can find teachers and rooms\n\nFirst, pick your group \u{1F447}",
+    chooseFaculty: "\u{1F3DB} Choose your faculty:",
+    chooseCourse: "\u{1F393} Choose your year:",
+    chooseGroup: "\u{1F465} Choose your group:",
     course: (n) => n ? `Year ${n}` : "Other",
-    searchHint: "💡 Or type your group name, e.g. <code>MO-901</code>",
-    groupSet: (g) => `✅ Group saved: <b>${g}</b>`,
-    groupSetChat: (g) => `✅ This chat is now linked to <b>${g}</b>.
+    searchHint: "\u{1F4A1} Or type your group name, e.g. <code>MO-901</code>",
+    groupSet: (g) => `\u2705 Group saved: <b>${g}</b>`,
+    groupSetChat: (g) => `\u2705 This chat is now linked to <b>${g}</b>.
 
 Every Sunday evening I'll post the week's timetable, and I'll post an alert whenever it changes.`,
     noGroup: "You haven't picked a group yet. Send /group.",
     noGroupChat: "This chat isn't linked to a group yet. A chat admin should send /setgroup.",
-    noLessons: "No classes 🎉",
-    freeDay: "No classes today 🎉",
+    noLessons: "No classes \u{1F389}",
+    freeDay: "No classes today \u{1F389}",
     today: "Today",
     tomorrow: "Tomorrow",
-    btnToday: "📅 Today",
-    btnTomorrow: "➡️ Tomorrow",
-    btnWeek: "🗓 Week",
-    btnSettings: "⚙️ Settings",
-    btnApp: "📱 Open app",
-    btnFree: "🟢 Free rooms",
+    btnToday: "\u{1F4C5} Today",
+    btnTomorrow: "\u27A1\uFE0F Tomorrow",
+    btnWeek: "\u{1F5D3} Week",
+    btnSettings: "\u2699\uFE0F Settings",
+    btnApp: "\u{1F4F1} Open app",
+    btnFree: "\u{1F7E2} Free rooms",
     thisWeekShort: "This week",
     nextWeekShort: "Next week",
-    btnOpenInApp: "📱 Open in app",
-    weekTitle: (g, range) => `🗓 <b>Weekly timetable</b> — ${g}
+    btnOpenInApp: "\u{1F4F1} Open in app",
+    weekTitle: (g, range) => `\u{1F5D3} <b>Weekly timetable</b> \u2014 ${g}
 <i>${range}</i>`,
-    changedTitle: (g) => `⚠️ <b>Timetable changed</b> — ${g}`,
-    newTTTitle: (g) => `🆕 <b>New timetable published</b> — ${g}`,
+    changedTitle: (g) => `\u26A0\uFE0F <b>Timetable changed</b> \u2014 ${g}`,
+    newTTTitle: (g) => `\u{1F195} <b>New timetable published</b> \u2014 ${g}`,
     weekA: "Week A",
     weekB: "Week B",
     onlyAdmins: "Only chat admins can choose the group.",
     notYourMenu: "This menu is not for you.",
-    addedToGroup: "Hi! 👋 I'm the timetable bot.\n\nA chat admin should send /setgroup and pick the group. After that I'll post the weekly timetable and changes here.",
-    settings: "⚙️ <b>Settings</b>",
-    setGroup: (g) => `👥 Group: ${g || "—"}`,
-    setAlerts: (on) => `🔔 Change alerts: ${on ? "on" : "off"}`,
-    setWeekly: (on) => `🗓 Weekly timetable: ${on ? "on" : "off"}`,
-    setLang: "🌐 Language",
+    addedToGroup: "Hi! \u{1F44B} I'm the timetable bot.\n\nA chat admin should send /setgroup and pick the group. After that I'll post the weekly timetable and changes here.",
+    settings: "\u2699\uFE0F <b>Settings</b>",
+    setGroup: (g) => `\u{1F465} Group: ${g || "\u2014"}`,
+    setAlerts: (on) => `\u{1F514} Change alerts: ${on ? "on" : "off"}`,
+    setWeekly: (on) => `\u{1F5D3} Weekly timetable: ${on ? "on" : "off"}`,
+    setLang: "\u{1F310} Language",
     notFound: "Nothing found. Check the group name, e.g. MO-901",
     found: "Found:",
-    back: "⬅️ Back",
-    more: "More ➡️",
-    unset: "✅ This chat is no longer linked to a group.",
-    help: "<b>Commands</b>\n/today — today's classes\n/tomorrow — tomorrow's classes\n/week — weekly timetable\n/group — choose group\n/settings — settings\n/app — open the app\n\n<b>In a group chat</b>\n/setgroup — link chat to a group (admin)\n/unset — unlink (admin)",
+    back: "\u2B05\uFE0F Back",
+    more: "More \u27A1\uFE0F",
+    unset: "\u2705 This chat is no longer linked to a group.",
+    help: "<b>Commands</b>\n/today \u2014 today's classes\n/tomorrow \u2014 tomorrow's classes\n/week \u2014 weekly timetable\n/group \u2014 choose group\n/settings \u2014 settings\n/app \u2014 open the app\n\n<b>In a group chat</b>\n/setgroup \u2014 link chat to a group (admin)\n/unset \u2014 unlink (admin)",
     dataError: "Couldn't load the timetable, please try again in a moment.",
     now: "Now"
   }
@@ -203,44 +203,44 @@ var W = {
     room: (r) => `${r}-xona`,
     count: (n) => `${n} ta dars`,
     pair: (n) => `${n}-para`,
-    now: "🟢 Hozir",
-    next: "⏭ Keyingi",
-    brk: (m) => `☕ ${m} daqiqa tanaffus`,
-    finish: (t) => `🏁 Darslar ${t} da tugaydi`,
-    moved: "🔁 Vaqti o‘zgardi",
-    roomCh: "🚪 Xona o‘zgardi",
-    teachCh: "👤 O‘qituvchi o‘zgardi",
-    removed: "❌ Bekor qilindi",
-    added: "➕ Yangi dars",
-    wkCap: (g, r, n) => `🗓 <b>${g}</b> — haftalik jadval
-${r} · ${n} ta dars`,
+    now: "\u{1F7E2} Hozir",
+    next: "\u23ED Keyingi",
+    brk: (m) => `\u2615 ${m} daqiqa tanaffus`,
+    finish: (t) => `\u{1F3C1} Darslar ${t} da tugaydi`,
+    moved: "\u{1F501} Vaqti o\u2018zgardi",
+    roomCh: "\u{1F6AA} Xona o\u2018zgardi",
+    teachCh: "\u{1F464} O\u2018qituvchi o\u2018zgardi",
+    removed: "\u274C Bekor qilindi",
+    added: "\u2795 Yangi dars",
+    wkCap: (g, r, n) => `\u{1F5D3} <b>${g}</b> \u2014 haftalik jadval
+${r} \xB7 ${n} ta dars`,
     lessonsWeek: "Haftalik jadval",
-    freeWeek: "Bu hafta dars yo'q 🎉",
-    seeApp: "📱 Batafsil — ilovada"
+    freeWeek: "Bu hafta dars yo'q \u{1F389}",
+    seeApp: "\u{1F4F1} Batafsil \u2014 ilovada"
   },
   ru: {
-    lecture: "Лекция",
-    seminar: "Семинар",
-    lab: "Лабораторная",
-    practice: "Практика",
-    bld: (b) => `корпус ${b}`,
-    room: (r) => `ауд. ${r}`,
-    count: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "пара" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "пары" : "пар"}`,
-    pair: (n) => `${n} пара`,
-    now: "🟢 Сейчас",
-    next: "⏭ Следующая",
-    brk: (m) => `☕ перерыв ${m} мин`,
-    finish: (t) => `🏁 Пары закончатся в ${t}`,
-    moved: "🔁 Изменилось время",
-    roomCh: "🚪 Изменилась аудитория",
-    teachCh: "👤 Изменился преподаватель",
-    removed: "❌ Отменено",
-    added: "➕ Новая пара",
-    wkCap: (g, r, n) => `🗓 <b>${g}</b> — расписание на неделю
-${r} · ${n} пар`,
-    lessonsWeek: "Расписание на неделю",
-    freeWeek: "На этой неделе пар нет 🎉",
-    seeApp: "📱 Подробнее — в приложении"
+    lecture: "\u041B\u0435\u043A\u0446\u0438\u044F",
+    seminar: "\u0421\u0435\u043C\u0438\u043D\u0430\u0440",
+    lab: "\u041B\u0430\u0431\u043E\u0440\u0430\u0442\u043E\u0440\u043D\u0430\u044F",
+    practice: "\u041F\u0440\u0430\u043A\u0442\u0438\u043A\u0430",
+    bld: (b) => `\u043A\u043E\u0440\u043F\u0443\u0441 ${b}`,
+    room: (r) => `\u0430\u0443\u0434. ${r}`,
+    count: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? "\u043F\u0430\u0440\u0430" : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? "\u043F\u0430\u0440\u044B" : "\u043F\u0430\u0440"}`,
+    pair: (n) => `${n} \u043F\u0430\u0440\u0430`,
+    now: "\u{1F7E2} \u0421\u0435\u0439\u0447\u0430\u0441",
+    next: "\u23ED \u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F",
+    brk: (m) => `\u2615 \u043F\u0435\u0440\u0435\u0440\u044B\u0432 ${m} \u043C\u0438\u043D`,
+    finish: (t) => `\u{1F3C1} \u041F\u0430\u0440\u044B \u0437\u0430\u043A\u043E\u043D\u0447\u0430\u0442\u0441\u044F \u0432 ${t}`,
+    moved: "\u{1F501} \u0418\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C \u0432\u0440\u0435\u043C\u044F",
+    roomCh: "\u{1F6AA} \u0418\u0437\u043C\u0435\u043D\u0438\u043B\u0430\u0441\u044C \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F",
+    teachCh: "\u{1F464} \u0418\u0437\u043C\u0435\u043D\u0438\u043B\u0441\u044F \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C",
+    removed: "\u274C \u041E\u0442\u043C\u0435\u043D\u0435\u043D\u043E",
+    added: "\u2795 \u041D\u043E\u0432\u0430\u044F \u043F\u0430\u0440\u0430",
+    wkCap: (g, r, n) => `\u{1F5D3} <b>${g}</b> \u2014 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E
+${r} \xB7 ${n} \u043F\u0430\u0440`,
+    lessonsWeek: "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E",
+    freeWeek: "\u041D\u0430 \u044D\u0442\u043E\u0439 \u043D\u0435\u0434\u0435\u043B\u0435 \u043F\u0430\u0440 \u043D\u0435\u0442 \u{1F389}",
+    seeApp: "\u{1F4F1} \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435 \u2014 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438"
   },
   en: {
     lecture: "Lecture",
@@ -251,20 +251,20 @@ ${r} · ${n} пар`,
     room: (r) => `Room ${r}`,
     count: (n) => `${n} class${n === 1 ? "" : "es"}`,
     pair: (n) => `Period ${n}`,
-    now: "🟢 Now",
-    next: "⏭ Next",
-    brk: (m) => `☕ ${m} min break`,
-    finish: (t) => `🏁 Classes end at ${t}`,
-    moved: "🔁 Time changed",
-    roomCh: "🚪 Room changed",
-    teachCh: "👤 Teacher changed",
-    removed: "❌ Cancelled",
-    added: "➕ New class",
-    wkCap: (g, r, n) => `🗓 <b>${g}</b> — weekly timetable
-${r} · ${n} classes`,
+    now: "\u{1F7E2} Now",
+    next: "\u23ED Next",
+    brk: (m) => `\u2615 ${m} min break`,
+    finish: (t) => `\u{1F3C1} Classes end at ${t}`,
+    moved: "\u{1F501} Time changed",
+    roomCh: "\u{1F6AA} Room changed",
+    teachCh: "\u{1F464} Teacher changed",
+    removed: "\u274C Cancelled",
+    added: "\u2795 New class",
+    wkCap: (g, r, n) => `\u{1F5D3} <b>${g}</b> \u2014 weekly timetable
+${r} \xB7 ${n} classes`,
     lessonsWeek: "Weekly timetable",
-    freeWeek: "No classes this week 🎉",
-    seeApp: "📱 More in the app"
+    freeWeek: "No classes this week \u{1F389}",
+    seeApp: "\u{1F4F1} More in the app"
   }
 };
 var words = (lang) => W[lang] || W.uz;
@@ -301,16 +301,16 @@ var mins = (t) => {
 };
 function weekTag(l, lang, parity) {
   if (!l.w || parity) return "";
-  return ` · <i>${l.w === "A" ? tr(lang).weekA : tr(lang).weekB}</i>`;
+  return ` \xB7 <i>${l.w === "A" ? tr(lang).weekA : tr(lang).weekB}</i>`;
 }
 function fmtLesson(l, periods, lang, parity, state) {
   const w = words(lang);
   const t = times(periods, l);
   const sub = parseSubject(l.s);
-  const head = `${state ? state + "\n" : ""}<b>${t.a} – ${t.b}</b>  ·  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
-  const lines = [head, `📘 <b>${esc(sub.name)}</b>${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`];
-  if (l.r) lines.push(`📍 ${esc(roomLabel(l.r, lang))}`);
-  if (l.t) lines.push(`👤 ${esc(l.t)}`);
+  const head = `${state ? state + "\n" : ""}<b>${t.a} \u2013 ${t.b}</b>  \xB7  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
+  const lines = [head, `\u{1F4D8} <b>${esc(sub.name)}</b>${sub.type ? ` \u2014 ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`];
+  if (l.r) lines.push(`\u{1F4CD} ${esc(roomLabel(l.r, lang))}`);
+  if (l.t) lines.push(`\u{1F464} ${esc(l.t)}`);
   return lines.join("\n");
 }
 function fmtLessonShort(l, periods, lang, parity) {
@@ -319,8 +319,8 @@ function fmtLessonShort(l, periods, lang, parity) {
   let s = `<b>${t.a}</b> ${esc(sub.name)}`;
   if (sub.type) s += ` <i>(${typeLabel(sub.type, lang).toLowerCase()})</i>`;
   if (l.g) s += ` <i>[${esc(l.g)}]</i>`;
-  if (l.r) s += ` · 📍${esc(l.r)}`;
-  if (l.w && !parity) s += ` · <i>${l.w}</i>`;
+  if (l.r) s += ` \xB7 \u{1F4CD}${esc(l.r)}`;
+  if (l.w && !parity) s += ` \xB7 <i>${l.w}</i>`;
   return s;
 }
 function fmtDay(group, index, date, lang, nowDate) {
@@ -330,8 +330,8 @@ function fmtDay(group, index, date, lang, nowDate) {
   const parity = weekParity(index.weekA, date);
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
   const head = [
-    `📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === "A" ? L.weekA : L.weekB}` : ""),
-    `👥 ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}` : ""}`
+    `\u{1F4C5} <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` \xB7 ${parity === "A" ? L.weekA : L.weekB}` : ""),
+    `\u{1F465} ${esc(group.name)}${ls.length ? ` \xB7 ${w.count(ls.length)}` : ""}`
   ].join("\n");
   if (!ls.length) return `${head}
 
@@ -360,7 +360,7 @@ ${L.noLessons}`;
   }
   const last = times(index.periods, ls[ls.length - 1]).b;
   return clip(`${head}
-━━━━━━━━━━━━━━
+\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
 ${blocks.join("\n\n")}
 
@@ -369,7 +369,7 @@ ${w.finish(last)}`);
 function fmtWeek(group, index, monday, lang) {
   const L = tr(lang);
   const parity = weekParity(index.weekA, monday);
-  const range = `${dm(monday)} – ${dm(addDays(monday, 5))}` + (parity ? ` · ${parity === "A" ? L.weekA : L.weekB}` : "");
+  const range = `${dm(monday)} \u2013 ${dm(addDays(monday, 5))}` + (parity ? ` \xB7 ${parity === "A" ? L.weekA : L.weekB}` : "");
   const parts = [L.weekTitle(esc(group.name), range)];
   for (let d = 0; d < 6; d++) {
     const ls = lessonsForDay(group, d, parity);
@@ -385,13 +385,13 @@ function fmtWeekCaption(group, index, monday, lang) {
   const L = tr(lang);
   const parity = weekParity(index.weekA, monday);
   const n = [0, 1, 2, 3, 4, 5].reduce((s, d) => s + lessonsForDay(group, d, parity).length, 0);
-  const range = `${fmtDate(monday, lang)} – ${fmtDate(addDays(monday, 5), lang)}` + (parity ? ` · ${parity === "A" ? L.weekA : L.weekB}` : "");
+  const range = `${fmtDate(monday, lang)} \u2013 ${fmtDate(addDays(monday, 5), lang)}` + (parity ? ` \xB7 ${parity === "A" ? L.weekA : L.weekB}` : "");
   return w.wkCap(esc(group.name), range, n);
 }
 function clip(s) {
   if (s.length <= 4e3) return s;
   const cut = s.lastIndexOf("\n", 3950);
-  return s.slice(0, cut > 0 ? cut : 3950) + "\n…";
+  return s.slice(0, cut > 0 ? cut : 3950) + "\n\u2026";
 }
 
 // worker/worker.mjs
@@ -403,17 +403,41 @@ var worker_default = {
       if (request.method === "POST" && url.pathname === "/tg") return await onWebhook(request, env);
       if (url.pathname === "/setup") return await onSetup(url, env);
       if (url.pathname.startsWith("/internal/")) return await onInternal(request, url, env);
-      return new Response("TDIU Jadval bot is running ✅", { headers: { "content-type": "text/plain; charset=utf-8" } });
+      return new Response("TDIU Jadval bot is running \u2705", { headers: { "content-type": "text/plain; charset=utf-8" } });
     } catch (e) {
       console.error(e.stack || e);
       if (url.pathname === "/tg") return new Response("ok");
-      return new Response("Error: " + e.message, { status: 500 });
+      return new Response("Something went wrong. Try again shortly.", { status: 500 });
     }
+  },
+  // GitHub's own `schedule:` trigger is "best effort" and can silently go quiet for hours on a
+  // low-traffic public repo (a known GitHub Actions limitation, not a bug in our workflow) — so
+  // instead of trusting it alone, Cloudflare's own Cron Trigger (reliable, free, up to once a
+  // minute) calls this on its schedule and nudges the GitHub Action awake via the API. Configure
+  // a Cron Trigger for this Worker in the dashboard and set GITHUB_PAT + GITHUB_REPO to turn it
+  // on; without them this quietly does nothing, so it's safe to leave unconfigured.
+  async scheduled(event, env, ctx) {
+    if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
+    const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/timetable.yml/dispatches`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.GITHUB_PAT}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "User-Agent": "tdiu-jadval-cron"
+      },
+      body: JSON.stringify({ ref: "main" })
+    });
+    if (!res.ok) console.error("GitHub dispatch failed:", res.status, await res.text().catch(() => ""));
   }
 };
 async function sha256hex(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function safeEqual(a, b) {
+  const [ha, hb] = await Promise.all([sha256hex(String(a ?? "")), sha256hex(String(b ?? ""))]);
+  return ha === hb;
 }
 var webhookSecret = async (env) => (await sha256hex("tg:" + env.ADMIN_KEY)).slice(0, 48);
 var siteUrl = (env) => String(env.SITE_URL || "").replace(/\/+$/, "");
@@ -494,7 +518,7 @@ async function deleteChat(env, chatId) {
   await (await db(env)).prepare("DELETE FROM chats WHERE chat_id = ?").bind(chatId).run();
 }
 async function onSetup(url, env) {
-  if (url.searchParams.get("key") !== env.ADMIN_KEY) return new Response("Wrong key", { status: 403 });
+  if (!await safeEqual(url.searchParams.get("key"), env.ADMIN_KEY)) return new Response("Wrong key", { status: 403 });
   const out = {};
   out.webhook = await tg(env, "setWebhook", {
     url: `${url.origin}/tg`,
@@ -504,12 +528,12 @@ async function onSetup(url, env) {
   });
   const cmds = {
     uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["group", "Guruhni tanlash"], ["settings", "Sozlamalar"], ["app", "Ilovani ochish"], ["help", "Yordam"]],
-    ru: [["today", "Пары на сегодня"], ["tomorrow", "Пары на завтра"], ["week", "Расписание на неделю"], ["group", "Выбрать группу"], ["settings", "Настройки"], ["app", "Открыть приложение"], ["help", "Помощь"]],
+    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]],
     en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["group", "Choose group"], ["settings", "Settings"], ["app", "Open the app"], ["help", "Help"]]
   };
   const groupCmds = {
     uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["setgroup", "Chatni guruhga ulash (admin)"], ["unset", "Uzish (admin)"]],
-    ru: [["today", "Пары на сегодня"], ["tomorrow", "Пары на завтра"], ["week", "Расписание на неделю"], ["setgroup", "Привязать чат к группе (админ)"], ["unset", "Отвязать (админ)"]],
+    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["setgroup", "\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)"], ["unset", "\u041E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)"]],
     en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["setgroup", "Link chat to a group (admin)"], ["unset", "Unlink (admin)"]]
   };
   const toCmd = (l) => l.map(([command, description]) => ({ command, description }));
@@ -519,14 +543,14 @@ async function onSetup(url, env) {
     out["cmd_group_" + lang] = await tg(env, "setMyCommands", { commands: toCmd(groupCmds[lang]), scope: { type: "all_group_chats" }, language_code });
   }
   if (siteUrl(env)) {
-    out.menu = await tg(env, "setChatMenuButton", { menu_button: { type: "web_app", text: "📅 Jadval", web_app: { url: siteUrl(env) + "/" } } });
+    out.menu = await tg(env, "setChatMenuButton", { menu_button: { type: "web_app", text: "\u{1F4C5} Jadval", web_app: { url: siteUrl(env) + "/" } } });
   }
-  out.description = await tg(env, "setMyShortDescription", { short_description: "Jadvalingiz, bo'sh xonalar va o'zgarishlar — hammasi bir joyda. Jadval o'zgarsa, birinchi siz bilasiz." });
+  out.description = await tg(env, "setMyShortDescription", { short_description: "Jadvalingiz, bo'sh xonalar va o'zgarishlar \u2014 hammasi bir joyda. Jadval o'zgarsa, birinchi siz bilasiz." });
   const ok = Object.values(out).every((r) => r.ok);
-  return json({ ok, hint: ok ? "All set! Open your bot in Telegram and press Start." : "Some steps failed — see details.", ...out });
+  return json({ ok, hint: ok ? "All set! Open your bot in Telegram and press Start." : "Some steps failed \u2014 see details.", ...out });
 }
 async function onInternal(request, url, env) {
-  if (request.headers.get("x-admin-key") !== env.ADMIN_KEY) return new Response("Forbidden", { status: 403 });
+  if (!await safeEqual(request.headers.get("x-admin-key"), env.ADMIN_KEY)) return new Response("Forbidden", { status: 403 });
   const D = await db(env);
   if (url.pathname === "/internal/subs") {
     const mode = url.searchParams.get("mode");
@@ -562,7 +586,7 @@ async function onInternal(request, url, env) {
   return new Response("Not found", { status: 404 });
 }
 async function onWebhook(request, env) {
-  if (request.headers.get("x-telegram-bot-api-secret-token") !== await webhookSecret(env)) {
+  if (!await safeEqual(request.headers.get("x-telegram-bot-api-secret-token"), await webhookSecret(env))) {
     return new Response("Forbidden", { status: 403 });
   }
   const update = await request.json();
@@ -638,7 +662,7 @@ async function onPrivate(env, msg, command) {
   if (action === "lang" || action === "language") return askLanguage(env, msg.chat.id, "settings");
   if (action === "settings") return showSettings(env, msg.chat.id, row, null);
   if (action === "app") {
-    return send(env, msg.chat.id, "📱", { reply_markup: { inline_keyboard: [[{ text: L.btnApp, web_app: { url: appUrl(env, row.group_id, lang) } }]] } });
+    return send(env, msg.chat.id, "\u{1F4F1}", { reply_markup: { inline_keyboard: [[{ text: L.btnApp, web_app: { url: appUrl(env, row.group_id, lang) } }]] } });
   }
   if (action === "today" || action === "tomorrow" || action === "week") {
     if (!row.group_id) {
@@ -714,10 +738,10 @@ function dayKeyboard(lang, date, now, extraKb) {
   const baseMon = mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
   const off = Math.round((mondayOf(date) - baseMon) / (7 * 864e5));
   const sel = weekday(date);
-  const days = [0, 1, 2, 3, 4, 5].map((d) => ({ text: d === sel ? `• ${L.daysShort[d]} •` : L.daysShort[d], callback_data: `day:${d}:${off}` }));
+  const days = [0, 1, 2, 3, 4, 5].map((d) => ({ text: d === sel ? `\u2022 ${L.daysShort[d]} \u2022` : L.daysShort[d], callback_data: `day:${d}:${off}` }));
   const nav = [];
-  if (off > 0) nav.push({ text: `◀ ${L.thisWeekShort}`, callback_data: `day:${sel}:${off - 1}` });
-  if (off < 1) nav.push({ text: `${L.nextWeekShort} ▶`, callback_data: `day:0:${off + 1}` });
+  if (off > 0) nav.push({ text: `\u25C0 ${L.thisWeekShort}`, callback_data: `day:${sel}:${off - 1}` });
+  if (off < 1) nav.push({ text: `${L.nextWeekShort} \u25B6`, callback_data: `day:0:${off + 1}` });
   nav.push({ text: L.btnWeek, callback_data: `wk:${off}` });
   const rows = [days.slice(0, 6), nav];
   if (extraKb?.inline_keyboard) rows.push(...extraKb.inline_keyboard);
@@ -759,7 +783,7 @@ async function showFaculties(env, chatId, uid, lang, messageId) {
   } catch {
     return send(env, chatId, L.dataError);
   }
-  const kb = index.faculties.map((f, i) => [{ text: `🏛 ${f.name}`, callback_data: `f:${uid}:${i}` }]);
+  const kb = index.faculties.map((f, i) => [{ text: `\u{1F3DB} ${f.name}`, callback_data: `f:${uid}:${i}` }]);
   kb.push(langRow(lang, `pick:${uid}`));
   const text = `${L.chooseFaculty}
 
@@ -768,7 +792,7 @@ ${L.searchHint}`;
   return send(env, chatId, text, { reply_markup: { inline_keyboard: kb } });
 }
 function langRow(current, suffix) {
-  return LANGS.map((l) => ({ text: T[l].langName.replace(/^(\S+)\s.*$/, "$1") + " " + { uz: "O'zbek", ru: "Рус", en: "Eng" }[l] + (l === current ? " ✓" : ""), callback_data: `lang:${l}:${suffix}` }));
+  return LANGS.map((l) => ({ text: T[l].langName.replace(/^(\S+)\s.*$/, "$1") + " " + { uz: "O'zbek", ru: "\u0420\u0443\u0441", en: "Eng" }[l] + (l === current ? " \u2713" : ""), callback_data: `lang:${l}:${suffix}` }));
 }
 async function showCourses(env, chatId, uid, lang, fi, messageId) {
   const L = tr(lang);
@@ -778,10 +802,10 @@ async function showCourses(env, chatId, uid, lang, fi, messageId) {
   if (fac.courses.length === 1) return showGroups(env, chatId, uid, lang, fi, 0, 0, messageId);
   const kb = [];
   for (let i = 0; i < fac.courses.length; i += 2) {
-    kb.push(fac.courses.slice(i, i + 2).map((c, j) => ({ text: `🎓 ${L.course(c.name)}`, callback_data: `c:${uid}:${fi}:${i + j}:0` })));
+    kb.push(fac.courses.slice(i, i + 2).map((c, j) => ({ text: `\u{1F393} ${L.course(c.name)}`, callback_data: `c:${uid}:${fi}:${i + j}:0` })));
   }
   kb.push([{ text: L.back, callback_data: `F:${uid}` }]);
-  return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: `🏛 <b>${esc(fac.name)}</b>
+  return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: `\u{1F3DB} <b>${esc(fac.name)}</b>
 ${L.chooseCourse}`, parse_mode: "HTML", reply_markup: { inline_keyboard: kb } });
 }
 async function showGroups(env, chatId, uid, lang, fi, ci, page, messageId) {
@@ -797,10 +821,10 @@ async function showGroups(env, chatId, uid, lang, fi, ci, page, messageId) {
   }
   const nav = [];
   nav.push({ text: L.back, callback_data: fac.courses.length > 1 ? `f:${uid}:${fi}` : `F:${uid}` });
-  if (page > 0) nav.push({ text: "⬅️", callback_data: `c:${uid}:${fi}:${ci}:${page - 1}` });
+  if (page > 0) nav.push({ text: "\u2B05\uFE0F", callback_data: `c:${uid}:${fi}:${ci}:${page - 1}` });
   if ((page + 1) * PAGE < course.groups.length) nav.push({ text: L.more, callback_data: `c:${uid}:${fi}:${ci}:${page + 1}` });
   kb.push(nav);
-  const title = `🏛 <b>${esc(fac.name)}</b>${course.name ? ` · ${L.course(course.name)}` : ""}
+  const title = `\u{1F3DB} <b>${esc(fac.name)}</b>${course.name ? ` \xB7 ${L.course(course.name)}` : ""}
 ${L.chooseGroup}`;
   return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: title, parse_mode: "HTML", reply_markup: { inline_keyboard: kb } });
 }
@@ -825,7 +849,7 @@ async function searchGroups(env, chatId, uid, lang, query) {
   const top = hits.slice(0, 24);
   const kb = [];
   for (let i = 0; i < top.length; i += 3) kb.push(top.slice(i, i + 3).map(([id, name]) => ({ text: name, callback_data: `g:${uid}:${id}` })));
-  return send(env, chatId, `🔎 ${L.found}`, { reply_markup: { inline_keyboard: kb } });
+  return send(env, chatId, `\u{1F50E} ${L.found}`, { reply_markup: { inline_keyboard: kb } });
 }
 async function findGroupName(env, id) {
   const index = await getIndex(env);
@@ -859,7 +883,7 @@ async function showSettings(env, chatId, row, messageId) {
     inline_keyboard: [
       [{ text: L.setAlerts(!!row.alerts), callback_data: "s:alerts" }],
       [{ text: L.setWeekly(!!row.weekly), callback_data: "s:weekly" }],
-      [{ text: L.setLang, callback_data: "s:lang" }, { text: "👥 " + (row.group_name || "—"), callback_data: "s:group" }]
+      [{ text: L.setLang, callback_data: "s:lang" }, { text: "\u{1F465} " + (row.group_name || "\u2014"), callback_data: "s:group" }]
     ]
   };
   if (messageId) return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", reply_markup: kb });
@@ -900,8 +924,8 @@ async function onCallback(env, cb) {
       if (!row.group_id) return showFaculties(env, chatId, cb.from.id, newLang, null);
       return;
     }
-    await tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: "✅ " + L2.langName });
-    if (!isGroupChat) await send(env, chatId, "👌", { reply_markup: mainKeyboard(env, newLang, row.group_id) });
+    await tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: "\u2705 " + L2.langName });
+    if (!isGroupChat) await send(env, chatId, "\u{1F44C}", { reply_markup: mainKeyboard(env, newLang, row.group_id) });
     return;
   }
   if (kind === "day") {

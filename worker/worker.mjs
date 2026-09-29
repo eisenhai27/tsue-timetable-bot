@@ -2,10 +2,13 @@
 // Handles Telegram updates (webhook) and a few internal endpoints used by the GitHub Action.
 //
 // Settings (Cloudflare → Worker → Settings → Variables):
-//   BOT_TOKEN  (secret)  token from @BotFather
-//   ADMIN_KEY  (secret)  any long random password; the same value goes into GitHub secrets
-//   SITE_URL   (text)    your GitHub Pages address, e.g. https://yourname.github.io/tsue-timetable-bot
-//   DB         (D1 binding) a D1 database (tables are created automatically)
+//   BOT_TOKEN   (secret)  token from @BotFather
+//   ADMIN_KEY   (secret)  any long random password; the same value goes into GitHub secrets
+//   SITE_URL    (text)    your GitHub Pages address, e.g. https://yourname.github.io/tsue-timetable-bot
+//   DB          (D1 binding) a D1 database (tables are created automatically)
+//   GITHUB_PAT  (secret, optional) fine-grained token, "Actions: read and write" on this repo only —
+//               lets a Cloudflare Cron Trigger wake up the GitHub Action reliably (see `scheduled` below)
+//   GITHUB_REPO (text, optional) "yourname/tsue-timetable-bot" — required together with GITHUB_PAT
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
@@ -26,8 +29,31 @@ export default {
       console.error(e.stack || e);
       // Always answer 200 to Telegram so it doesn't retry the same broken update forever
       if (url.pathname === '/tg') return new Response('ok');
-      return new Response('Error: ' + e.message, { status: 500 });
+      // Don't leak internal details (D1/Telegram error text, stack info) to whoever sent the request —
+      // the real message is in the Cloudflare dashboard's Logs tab for us to debug.
+      return new Response('Something went wrong. Try again shortly.', { status: 500 });
     }
+  },
+
+  // GitHub's own `schedule:` trigger is "best effort" and can silently go quiet for hours on a
+  // low-traffic public repo (a known GitHub Actions limitation, not a bug in our workflow) — so
+  // instead of trusting it alone, Cloudflare's own Cron Trigger (reliable, free, up to once a
+  // minute) calls this on its schedule and nudges the GitHub Action awake via the API. Configure
+  // a Cron Trigger for this Worker in the dashboard and set GITHUB_PAT + GITHUB_REPO to turn it
+  // on; without them this quietly does nothing, so it's safe to leave unconfigured.
+  async scheduled(event, env, ctx) {
+    if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
+    const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/timetable.yml/dispatches`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.GITHUB_PAT}`,
+        Accept: 'application/vnd.github+json',
+        'Content-Type': 'application/json',
+        'User-Agent': 'tdiu-jadval-cron',
+      },
+      body: JSON.stringify({ ref: 'main' }),
+    });
+    if (!res.ok) console.error('GitHub dispatch failed:', res.status, await res.text().catch(() => ''));
   },
 };
 
@@ -36,6 +62,12 @@ export default {
 async function sha256hex(s) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+// Constant-time-ish comparison for secrets: hashing both sides first means the result is always
+// a same-length compare, so a caller can't learn anything about ADMIN_KEY from response timing.
+async function safeEqual(a, b) {
+  const [ha, hb] = await Promise.all([sha256hex(String(a ?? '')), sha256hex(String(b ?? ''))]);
+  return ha === hb;
 }
 const webhookSecret = async (env) => (await sha256hex('tg:' + env.ADMIN_KEY)).slice(0, 48);
 const siteUrl = (env) => String(env.SITE_URL || '').replace(/\/+$/, '');
@@ -127,7 +159,7 @@ async function deleteChat(env, chatId) {
 // ---------------------------------------------------------------- setup & internal API
 
 async function onSetup(url, env) {
-  if (url.searchParams.get('key') !== env.ADMIN_KEY) return new Response('Wrong key', { status: 403 });
+  if (!(await safeEqual(url.searchParams.get('key'), env.ADMIN_KEY))) return new Response('Wrong key', { status: 403 });
   const out = {};
   out.webhook = await tg(env, 'setWebhook', {
     url: `${url.origin}/tg`,
@@ -160,7 +192,7 @@ async function onSetup(url, env) {
 }
 
 async function onInternal(request, url, env) {
-  if (request.headers.get('x-admin-key') !== env.ADMIN_KEY) return new Response('Forbidden', { status: 403 });
+  if (!(await safeEqual(request.headers.get('x-admin-key'), env.ADMIN_KEY))) return new Response('Forbidden', { status: 403 });
   const D = await db(env);
   if (url.pathname === '/internal/subs') {
     const mode = url.searchParams.get('mode');
@@ -204,7 +236,7 @@ async function onInternal(request, url, env) {
 // ---------------------------------------------------------------- Telegram updates
 
 async function onWebhook(request, env) {
-  if (request.headers.get('x-telegram-bot-api-secret-token') !== (await webhookSecret(env))) {
+  if (!(await safeEqual(request.headers.get('x-telegram-bot-api-secret-token'), await webhookSecret(env)))) {
     return new Response('Forbidden', { status: 403 });
   }
   const update = await request.json();

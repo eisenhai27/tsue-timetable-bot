@@ -347,6 +347,30 @@ export function fmtWeekCaption(group, index, monday, lang) {
   return w.wkCap(esc(group.name), range, n);
 }
 
+/**
+ * Short evening "tomorrow" ping — one per day, only to chats that have classes tomorrow.
+ * Returns null (send nothing) when tomorrow is a free day, so quiet days stay quiet.
+ */
+export function fmtTomorrow(group, index, date, lang) {
+  const L = tr(lang);
+  const w = words(lang);
+  const d = weekday(date);
+  const parity = weekParity(index.weekA, date);
+  const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
+  if (!ls.length) return null;
+  const first = times(index.periods, ls[0]);
+  const firstName = parseSubject(ls[0].s).name;
+  const last = times(index.periods, ls[ls.length - 1]).b;
+  const title = lang === 'ru' ? `🌙 <b>Завтра</b> — ${L.days[d]}, ${fmtDate(date, lang)}`
+    : lang === 'en' ? `🌙 <b>Tomorrow</b> — ${L.days[d]}, ${fmtDate(date, lang)}`
+    : `🌙 <b>Ertaga</b> — ${L.days[d]}, ${fmtDate(date, lang)}`;
+  const line2 = `👥 ${esc(group.name)} · ${w.count(ls.length)}${parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''}`;
+  const line3 = lang === 'ru' ? `🕘 Первая пара: <b>${first.a}</b> — ${esc(firstName)}`
+    : lang === 'en' ? `🕘 First class: <b>${first.a}</b> — ${esc(firstName)}`
+    : `🕘 Birinchi dars: <b>${first.a}</b> — ${esc(firstName)}`;
+  return `${title}\n${line2}\n\n${line3}\n${w.finish(last)}`;
+}
+
 /** Date of the next occurrence of weekday `d` (today counts). */
 function nextDateOf(d, from) {
   const diff = (d - weekday(from) + 7) % 7;

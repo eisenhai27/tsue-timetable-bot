@@ -1,12 +1,13 @@
 // Sends Telegram messages that go to many chats at once.
-//   node scripts/notify.mjs changes   → change alerts (uses .out/changes.json from update.mjs)
-//   node scripts/notify.mjs weekly    → the weekly timetable post (run on Sunday evening)
+//   node scripts/notify.mjs changes    → change alerts (uses .out/changes.json from update.mjs)
+//   node scripts/notify.mjs weekly     → the weekly timetable post (run on Sunday evening)
+//   node scripts/notify.mjs tomorrow   → short evening reminder of tomorrow's first class
 //
 // Env: BOT_TOKEN, WORKER_URL, ADMIN_KEY, SITE_URL. DRY_RUN=1 prints instead of sending.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fmtChanges, fmtWeek, fmtWeekCaption, tr, tashkentNow, addDays, mondayOf } from '../src/shared.mjs';
+import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, tr, tashkentNow, addDays, mondayOf } from '../src/shared.mjs';
 
 const { BOT_TOKEN, WORKER_URL, ADMIN_KEY } = process.env;
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/+$/, '');
@@ -127,8 +128,20 @@ async function main() {
       const photo = SITE_URL ? `${SITE_URL}/img/g/${g.id}.png?v=${g.v || index.tt?.num || ''}` : null;
       await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null);
     }
+  } else if (mode === 'tomorrow') {
+    // Evening ping about tomorrow's first class. Uses the same subscribers as change alerts
+    // (no new opt-in toggle yet — that needs a Worker/D1 change) and stays silent on free days.
+    const now = tashkentNow();
+    const tomorrow = addDays(now, 1);
+    for await (const sub of subscribers('alerts')) {
+      const g = await loadGroup(sub.group_id);
+      if (!g) continue;
+      const text = fmtTomorrow(g, index, tomorrow, sub.lang);
+      if (!text) continue;
+      await send(sub.chat_id, text, await keyboard(sub, g.id));
+    }
   } else {
-    throw new Error('Usage: node scripts/notify.mjs changes|weekly');
+    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow');
   }
 
   if (!DRY && (removed.length || migrated.length)) {

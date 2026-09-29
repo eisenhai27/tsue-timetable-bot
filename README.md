@@ -67,7 +67,25 @@ You'll create 3 free accounts: Telegram bot, GitHub and Cloudflare. Keep a notep
 In GitHub, go to **Settings → Secrets and variables → Actions → Variables** and add:
 `WORKER_URL` = `https://tsue-timetable-bot.YOURNAME.workers.dev`
 
-### 5. Try it
+### 5. Make the 15-minute check reliable (recommended)
+
+GitHub's own `schedule:` trigger is "best effort" — on a quiet public repo it can silently go
+hours without firing instead of every 15 minutes. To fix this, Cloudflare's own Cron Trigger
+(reliable, free) pings the GitHub Action awake on schedule instead of relying on GitHub alone:
+
+1. On [github.com/settings/tokens?type=beta](https://github.com/settings/tokens?type=beta),
+   click **Generate new token** (fine-grained). Set **Repository access** to only this repo,
+   and under **Permissions → Actions** choose **Read and write**. Copy the token.
+2. In the Cloudflare Worker → **Settings → Variables and Secrets → Add**:
+   - `GITHUB_PAT`: type **Secret**, paste the token from step 1
+   - `GITHUB_REPO`: type **Text**, `YOURNAME/tsue-timetable-bot`
+3. Worker → **Settings → Trigger Events → Cron Trigger → Add Cron Trigger**. Use `*/10 * * * *`
+   (every 10 minutes).
+
+That's it — Cloudflare will now nudge GitHub Actions awake every 10 minutes, on top of GitHub's
+own (unreliable) 15-minute schedule, so changes get caught quickly and consistently.
+
+### 6. Try it
 
 - Open your bot in Telegram, press **Start**, pick a language, then pick a group.
 - Tap **📱 Ilovani ochish** to open the Mini App.
@@ -106,13 +124,14 @@ Students ──> Telegram ──webhook──> Cloudflare Worker (buttons, /toda
 - **Cloudflare Workers:** 100,000 requests/day. Each student tap is one request, so that's enough for tens of thousands of daily users.
 - **Cloudflare D1:** 5 GB storage and 5 million row reads/day. One row per chat, so 52,000 students is tiny.
 - **Telegram:** about 30 messages/second. The weekly post to ~2,000 group chats takes about 1–2 minutes.
-- **GitHub Actions:** unlimited minutes for public repositories. Scheduled runs can start a few minutes late. GitHub pauses schedules if a repo has no activity for 60 days, but timetable updates count as activity. If it ever pauses, click **Enable workflow** in the Actions tab.
+- **GitHub Actions:** unlimited minutes for public repositories. GitHub's own `schedule:` trigger is "best effort" and, on a quiet repo, can go hours without firing instead of every 15 minutes — this is a known GitHub limitation, not something this project can fix directly. Step 5 above (Cloudflare Cron Trigger) works around it and is strongly recommended. GitHub also pauses schedules if a repo has no activity for 60 days, but timetable updates count as activity. If it ever pauses, click **Enable workflow** in the Actions tab.
 
 ## Troubleshooting
 
 | Problem | Fix |
 |---|---|
 | Action fails at *Download timetable* | EduPage may be down. It retries automatically every 15 minutes. If it keeps failing for hours, EduPage may be blocking GitHub's servers. Tell the developer. |
+| Changes show up hours late | GitHub's scheduled runs are unreliable on quiet repos (see Limits above) — set up the Cloudflare Cron Trigger in step 5, which fixes this. |
 | Bot doesn't answer | Open the `/setup?key=…` link again. Check that `BOT_TOKEN`, `ADMIN_KEY`, `SITE_URL` and the `DB` binding are set on the Worker. |
 | Bot answers "Couldn't load the timetable" | `SITE_URL` is wrong, or the first Action run hasn't finished yet. Open `SITE_URL/data/index.json` in a browser to check. |
 | Mini App button missing | `SITE_URL` must start with `https://`. Open `/setup?key=…` again. |

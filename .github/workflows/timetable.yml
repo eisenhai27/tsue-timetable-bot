@@ -4,6 +4,7 @@ on:
   schedule:
     - cron: '*/15 * * * *'   # check EduPage for changes every 15 minutes
     - cron: '0 15 * * 0'     # Sunday 20:00 Tashkent time → weekly timetable post
+    - cron: '0 16 * * *'     # every day 21:00 Tashkent time → tomorrow's reminder
   workflow_dispatch:
     inputs:
       weekly:
@@ -91,3 +92,12 @@ jobs:
           WORKER_URL: ${{ vars.WORKER_URL }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: node scripts/notify.mjs weekly
+
+      - name: Send tomorrow's reminder
+        if: github.event.schedule == '0 16 * * *'
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/notify.mjs tomorrow
