@@ -2,9 +2,11 @@ name: Timetable
 
 on:
   schedule:
-    - cron: '*/15 * * * *'   # check EduPage for changes every 15 minutes
-    - cron: '0 15 * * 0'     # Sunday 20:00 Tashkent time → weekly timetable post
-    - cron: '0 16 * * *'     # every day 21:00 Tashkent time → tomorrow's reminder
+    # Every 15 minutes, all day: checks EduPage for changes, and (via `notify.mjs auto`) sends the
+    # Sunday weekly post / daily evening reminder the first run that reaches their time each day.
+    # GitHub's own schedule trigger is "best effort" and can miss a run — see step 5 of the README
+    # for the Cloudflare Cron Trigger that nudges this workflow awake reliably in between.
+    - cron: '*/15 * * * *'
   workflow_dispatch:
     inputs:
       weekly:
@@ -84,8 +86,8 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
         run: node scripts/notify.mjs changes
 
-      - name: Send weekly timetable
-        if: github.event.schedule == '0 15 * * 0' || inputs.weekly
+      - name: Send weekly timetable (manual force)
+        if: github.event_name == 'workflow_dispatch' && inputs.weekly
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
@@ -93,11 +95,24 @@ jobs:
           SITE_URL: ${{ vars.SITE_URL }}
         run: node scripts/notify.mjs weekly
 
-      - name: Send tomorrow's reminder
-        if: github.event.schedule == '0 16 * * *'
+      - name: Send weekly/tomorrow reminders when due
+        if: github.event_name != 'push'
         env:
           BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
           WORKER_URL: ${{ vars.WORKER_URL }}
           SITE_URL: ${{ vars.SITE_URL }}
-        run: node scripts/notify.mjs tomorrow
+        run: node scripts/notify.mjs auto
+
+      - name: Save notification state
+        if: github.event_name != 'push'
+        run: |
+          git config user.name "timetable-bot"
+          git config user.email "timetable-bot@users.noreply.github.com"
+          if [ -f docs/data/state.json ]; then git add docs/data/state.json; fi
+          if git diff --cached --quiet; then
+            echo "No state changes"
+          else
+            git commit -m "Notification state $(date -u +'%Y-%m-%d %H:%M') UTC" -q
+            git push -q
+          fi

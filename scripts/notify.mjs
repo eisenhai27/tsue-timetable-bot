@@ -1,13 +1,18 @@
 // Sends Telegram messages that go to many chats at once.
 //   node scripts/notify.mjs changes    → change alerts (uses .out/changes.json from update.mjs)
-//   node scripts/notify.mjs weekly     → the weekly timetable post (run on Sunday evening)
-//   node scripts/notify.mjs tomorrow   → short evening reminder of tomorrow's first class
+//   node scripts/notify.mjs weekly     → the weekly timetable post (force-send now)
+//   node scripts/notify.mjs tomorrow   → short evening reminder of tomorrow's first class (force-send now)
+//   node scripts/notify.mjs auto       → checks Tashkent time + docs/data/state.json and sends
+//                                        weekly/tomorrow the first time each run reaches their
+//                                        window that day — safe to call every few minutes, since
+//                                        GitHub's own `schedule:` trigger can silently miss its
+//                                        exact minute on a quiet repo (state.json prevents resending).
 //
 // Env: BOT_TOKEN, WORKER_URL, ADMIN_KEY, SITE_URL. DRY_RUN=1 prints instead of sending.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, tr, tashkentNow, addDays, mondayOf } from '../src/shared.mjs';
+import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, tr, tashkentNow, addDays, mondayOf, weekday, ymd } from '../src/shared.mjs';
 
 const { BOT_TOKEN, WORKER_URL, ADMIN_KEY } = process.env;
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/+$/, '');
@@ -101,47 +106,98 @@ async function loadGroup(id) {
   return groupCache.get(id);
 }
 
+const STATE_FILE = path.join(DATA, 'state.json');
+async function readState() {
+  try { return JSON.parse(await fs.readFile(STATE_FILE, 'utf8')); }
+  catch { return {}; }
+}
+async function writeState(state) {
+  if (DRY) return;
+  await fs.writeFile(STATE_FILE, JSON.stringify(state));
+}
+
+async function sendChanges(index) {
+  let changes = [];
+  try { changes = JSON.parse(await fs.readFile('.out/changes.json', 'utf8')); } catch {}
+  if (!changes.length) { console.log('No changes, nothing to send.'); return; }
+  const byGroup = new Map(changes.map((c) => [c.id, c]));
+  for await (const sub of subscribers('alerts')) {
+    const c = byGroup.get(sub.group_id);
+    if (!c) continue;
+    const g = await loadGroup(sub.group_id);
+    if (!g) continue;
+    await send(sub.chat_id, fmtChanges(g, index, c.days, sub.lang, c.newTT), await keyboard(sub, g.id));
+  }
+}
+
+async function sendWeekly(index) {
+  // Run on Sunday evening → next Monday. Any other day (a manual force-send) → this week's Monday.
+  const now = tashkentNow();
+  const monday = mondayOf(addDays(now, 1));
+  for await (const sub of subscribers('weekly')) {
+    const g = await loadGroup(sub.group_id);
+    if (!g) continue;
+    const photo = SITE_URL ? `${SITE_URL}/img/g/${g.id}.png?v=${g.v || index.tt?.num || ''}` : null;
+    await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null);
+  }
+}
+
+async function sendTomorrow(index) {
+  // Evening ping about tomorrow's first class. Uses the same subscribers as change alerts
+  // (no new opt-in toggle yet — that needs a Worker/D1 change) and stays silent on free days.
+  const now = tashkentNow();
+  const tomorrow = addDays(now, 1);
+  for await (const sub of subscribers('alerts')) {
+    const g = await loadGroup(sub.group_id);
+    if (!g) continue;
+    const text = fmtTomorrow(g, index, tomorrow, sub.lang);
+    if (!text) continue;
+    await send(sub.chat_id, text, await keyboard(sub, g.id));
+  }
+}
+
 async function main() {
   const mode = process.argv[2];
   if (!BOT_TOKEN || !WORKER_URL || !ADMIN_KEY) throw new Error('BOT_TOKEN, WORKER_URL and ADMIN_KEY must be set');
   const index = JSON.parse(await fs.readFile(path.join(DATA, 'index.json'), 'utf8'));
+  const today = ymd(tashkentNow());
 
   if (mode === 'changes') {
-    let changes = [];
-    try { changes = JSON.parse(await fs.readFile('.out/changes.json', 'utf8')); } catch {}
-    if (!changes.length) { console.log('No changes, nothing to send.'); return; }
-    const byGroup = new Map(changes.map((c) => [c.id, c]));
-    for await (const sub of subscribers('alerts')) {
-      const c = byGroup.get(sub.group_id);
-      if (!c) continue;
-      const g = await loadGroup(sub.group_id);
-      if (!g) continue;
-      await send(sub.chat_id, fmtChanges(g, index, c.days, sub.lang, c.newTT), await keyboard(sub, g.id));
-    }
+    await sendChanges(index);
   } else if (mode === 'weekly') {
-    // Run on Sunday evening → next Monday. Any other day → this week's Monday.
-    const now = tashkentNow();
-    const monday = mondayOf(addDays(now, 1));
-    for await (const sub of subscribers('weekly')) {
-      const g = await loadGroup(sub.group_id);
-      if (!g) continue;
-      const photo = SITE_URL ? `${SITE_URL}/img/g/${g.id}.png?v=${g.v || index.tt?.num || ''}` : null;
-      await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null);
-    }
+    // Explicit/manual force-send (e.g. the admin's "send now" checkbox). Still marks state so
+    // `auto` doesn't send a second copy later the same day.
+    await sendWeekly(index);
+    const state = await readState();
+    if (state.weeklySent !== today) { state.weeklySent = today; await writeState(state); }
   } else if (mode === 'tomorrow') {
-    // Evening ping about tomorrow's first class. Uses the same subscribers as change alerts
-    // (no new opt-in toggle yet — that needs a Worker/D1 change) and stays silent on free days.
+    await sendTomorrow(index);
+    const state = await readState();
+    if (state.tomorrowSent !== today) { state.tomorrowSent = today; await writeState(state); }
+  } else if (mode === 'auto') {
+    // Self-gating: run this on every trigger (every ~10 min via Cloudflare, plus GitHub's own
+    // best-effort schedule). It decides for itself whether it's time, and docs/data/state.json
+    // (committed to the repo) remembers what's already been sent today so nothing doubles up —
+    // this closes the gap left by GitHub's `schedule:` event sometimes missing its exact minute.
+    const state = await readState();
+    let changed = false;
     const now = tashkentNow();
-    const tomorrow = addDays(now, 1);
-    for await (const sub of subscribers('alerts')) {
-      const g = await loadGroup(sub.group_id);
-      if (!g) continue;
-      const text = fmtTomorrow(g, index, tomorrow, sub.lang);
-      if (!text) continue;
-      await send(sub.chat_id, text, await keyboard(sub, g.id));
+    if (now.getUTCHours() >= 21 && state.tomorrowSent !== today) {
+      console.log('auto: sending tomorrow\'s reminder');
+      await sendTomorrow(index);
+      state.tomorrowSent = today;
+      changed = true;
     }
+    if (weekday(now) === 6 && now.getUTCHours() >= 20 && state.weeklySent !== today) {
+      console.log('auto: sending weekly timetable');
+      await sendWeekly(index);
+      state.weeklySent = today;
+      changed = true;
+    }
+    if (changed) await writeState(state);
+    else console.log('auto: nothing due yet today');
   } else {
-    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow');
+    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow|auto');
   }
 
   if (!DRY && (removed.length || migrated.length)) {
