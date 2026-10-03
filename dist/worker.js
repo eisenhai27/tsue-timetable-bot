@@ -53,9 +53,26 @@ Har yakshanba kechqurun haftalik jadval yuboriladi va jadval o'zgarsa darhol xab
     back: "\u2B05\uFE0F Orqaga",
     more: "Yana \u27A1\uFE0F",
     unset: "\u2705 Bu chat guruhdan uzildi.",
-    help: "<b>Buyruqlar</b>\n/today \u2014 bugungi darslar\n/tomorrow \u2014 ertangi darslar\n/week \u2014 haftalik jadval\n/group \u2014 guruhni tanlash\n/settings \u2014 sozlamalar\n/app \u2014 ilovani ochish\n\n<b>Guruh chatida</b>\n/setgroup \u2014 chatni guruhga ulash (admin)\n/unset \u2014 uzish (admin)",
+    help: "<b>Buyruqlar</b>\n/today \u2014 bugungi darslar\n/tomorrow \u2014 ertangi darslar\n/week \u2014 haftalik jadval\n/group \u2014 guruhni tanlash\n/settings \u2014 sozlamalar\n/app \u2014 ilovani ochish\n/calendar \u2014 kalendarga obuna bo'lish\n/feedback \u2014 taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup \u2014 chatni guruhga ulash (admin)\n/unset \u2014 uzish (admin)",
     dataError: "Jadvalni yuklab bo'lmadi, birozdan so'ng qayta urinib ko'ring.",
-    now: "Hozir"
+    now: "Hozir",
+    btnInvite: "\u{1F4E4} Do'stlarni taklif qilish",
+    inviteCaption: (g, n) => n > 0 ? `\u{1F389} <b>${g}</b> guruhidan yana ${n} kishi botdan foydalanmoqda!
+
+Guruhdoshlaringizni ham taklif qiling \u{1F447}` : "\u{1F44B} Guruhdoshlaringizni ham taklif qiling \u2014 ularga ham qulay bo'ladi!",
+    inviteShareText: (g) => `TDIU Jadval \u2014 ${g} guruhi jadvalini ko'rsatadi va o'zgarsa darhol xabar beradi. Sinab ko'ring:`,
+    groupChatTip: "\u{1F4A1} <b>Maslahat:</b> botni guruh chatingizga ham qo'shing \u2014 u yerda /setgroup yuborsangiz, butun guruhga avtomatik xabar boradi.",
+    feedbackPrompt: "\u270D\uFE0F Taklif yoki xatoni yozing:\n<code>/feedback Xona nomi noto'g'ri ko'rsatilyapti</code>",
+    feedbackThanks: "\u2705 Rahmat! Xabaringiz qabul qilindi.",
+    btnCalendar: "\u{1F4C5} Kalendar",
+    calendarInfo: (url) => `\u{1F4C5} <b>Kalendarga obuna bo'ling</b>
+
+Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz, jadval u yerda avtomatik yangilanib turadi.
+
+<b>iPhone (Apple Calendar):</b> havolani oching \u2192 "Obuna bo'lish" tugmasini bosing.
+<b>Google Calendar:</b> Sozlamalar \u2192 "Boshqa kalendarlar qo'shish" \u2192 "URL orqali" \u2192 havolani joylashtiring.
+
+<code>${esc(url)}</code>`
   },
   ru: {
     days: ["\u041F\u043E\u043D\u0435\u0434\u0435\u043B\u044C\u043D\u0438\u043A", "\u0412\u0442\u043E\u0440\u043D\u0438\u043A", "\u0421\u0440\u0435\u0434\u0430", "\u0427\u0435\u0442\u0432\u0435\u0440\u0433", "\u041F\u044F\u0442\u043D\u0438\u0446\u0430", "\u0421\u0443\u0431\u0431\u043E\u0442\u0430", "\u0412\u043E\u0441\u043A\u0440\u0435\u0441\u0435\u043D\u044C\u0435"],
@@ -107,9 +124,26 @@ Har yakshanba kechqurun haftalik jadval yuboriladi va jadval o'zgarsa darhol xab
     back: "\u2B05\uFE0F \u041D\u0430\u0437\u0430\u0434",
     more: "\u0415\u0449\u0451 \u27A1\uFE0F",
     unset: "\u2705 \u0427\u0430\u0442 \u043E\u0442\u0432\u044F\u0437\u0430\u043D \u043E\u0442 \u0433\u0440\u0443\u043F\u043F\u044B.",
-    help: "<b>\u041A\u043E\u043C\u0430\u043D\u0434\u044B</b>\n/today \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\n/tomorrow \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430\n/week \u2014 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E\n/group \u2014 \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443\n/settings \u2014 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\n/app \u2014 \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\n\n<b>\u0412 \u0447\u0430\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u044B</b>\n/setgroup \u2014 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)\n/unset \u2014 \u043E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)",
+    help: "<b>\u041A\u043E\u043C\u0430\u043D\u0434\u044B</b>\n/today \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\n/tomorrow \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430\n/week \u2014 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E\n/group \u2014 \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443\n/settings \u2014 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\n/app \u2014 \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\n/calendar \u2014 \u043F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\n/feedback \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u0441\u043E\u043E\u0431\u0449\u0438\u0442\u044C \u043E\u0431 \u043E\u0448\u0438\u0431\u043A\u0435\n\n<b>\u0412 \u0447\u0430\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u044B</b>\n/setgroup \u2014 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)\n/unset \u2014 \u043E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)",
     dataError: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435, \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0447\u0443\u0442\u044C \u043F\u043E\u0437\u0436\u0435.",
-    now: "\u0421\u0435\u0439\u0447\u0430\u0441"
+    now: "\u0421\u0435\u0439\u0447\u0430\u0441",
+    btnInvite: "\u{1F4E4} \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0434\u0440\u0443\u0437\u0435\u0439",
+    inviteCaption: (g, n) => n > 0 ? `\u{1F389} \u0415\u0449\u0451 ${n} \u0447\u0435\u043B\u043E\u0432\u0435\u043A \u0438\u0437 \u0433\u0440\u0443\u043F\u043F\u044B <b>${g}</b> \u0443\u0436\u0435 \u043F\u043E\u043B\u044C\u0437\u0443\u044E\u0442\u0441\u044F \u0431\u043E\u0442\u043E\u043C!
+
+\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u0435 \u0438 \u0441\u0432\u043E\u0438\u0445 \u043E\u0434\u043D\u043E\u0433\u0440\u0443\u043F\u043F\u043D\u0438\u043A\u043E\u0432 \u{1F447}` : "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u0435 \u0441\u0432\u043E\u0438\u0445 \u043E\u0434\u043D\u043E\u0433\u0440\u0443\u043F\u043F\u043D\u0438\u043A\u043E\u0432 \u2014 \u0438\u043C \u0442\u043E\u0436\u0435 \u0431\u0443\u0434\u0435\u0442 \u0443\u0434\u043E\u0431\u043D\u043E!",
+    inviteShareText: (g) => `TDIU Jadval \u2014 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0433\u0440\u0443\u043F\u043F\u044B ${g} \u0438 \u0441\u0440\u0430\u0437\u0443 \u0441\u043E\u043E\u0431\u0449\u0430\u0435\u0442 \u043E\u0431 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435:`,
+    groupChatTip: "\u{1F4A1} <b>\u0421\u043E\u0432\u0435\u0442:</b> \u0434\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u0431\u043E\u0442\u0430 \u0438 \u0432 \u0447\u0430\u0442 \u0432\u0430\u0448\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u044B \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0442\u0430\u043C /setgroup, \u0438 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F \u0431\u0443\u0434\u0443\u0442 \u043F\u0440\u0438\u0445\u043E\u0434\u0438\u0442\u044C \u0432\u0441\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.",
+    feedbackPrompt: "\u270D\uFE0F \u041D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0448\u0438\u0431\u043A\u0443:\n<code>/feedback \u041D\u0435\u0432\u0435\u0440\u043D\u043E \u0443\u043A\u0430\u0437\u0430\u043D\u0430 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F</code>",
+    feedbackThanks: "\u2705 \u0421\u043F\u0430\u0441\u0438\u0431\u043E! \u0412\u0430\u0448\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u043E.",
+    btnCalendar: "\u{1F4C5} \u041A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C",
+    calendarInfo: (url) => `\u{1F4C5} <b>\u041F\u043E\u0434\u043F\u0438\u0448\u0438\u0442\u0435\u0441\u044C \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C</b>
+
+\u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u044D\u0442\u0443 \u0441\u0441\u044B\u043B\u043A\u0443 \u0432 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C \u043D\u0430 \u0442\u0435\u043B\u0435\u0444\u043E\u043D\u0435 \u0438\u043B\u0438 \u043A\u043E\u043C\u043F\u044C\u044E\u0442\u0435\u0440\u0435 \u2014 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0431\u0443\u0434\u0435\u0442 \u043E\u0431\u043D\u043E\u0432\u043B\u044F\u0442\u044C\u0441\u044F \u0442\u0430\u043C \u0441\u0430\u043C\u043E.
+
+<b>iPhone (Apple Calendar):</b> \u043E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443 \u2192 \u043D\u0430\u0436\u043C\u0438\u0442\u0435 \xAB\u041F\u043E\u0434\u043F\u0438\u0441\u0430\u0442\u044C\u0441\u044F\xBB.
+<b>Google Calendar:</b> \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438 \u2192 \xAB\u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C\xBB \u2192 \xAB\u041F\u043E URL\xBB \u2192 \u0432\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u0441\u044B\u043B\u043A\u0443.
+
+<code>${esc(url)}</code>`
   },
   en: {
     days: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
@@ -161,9 +195,26 @@ Every Sunday evening I'll post the week's timetable, and I'll post an alert when
     back: "\u2B05\uFE0F Back",
     more: "More \u27A1\uFE0F",
     unset: "\u2705 This chat is no longer linked to a group.",
-    help: "<b>Commands</b>\n/today \u2014 today's classes\n/tomorrow \u2014 tomorrow's classes\n/week \u2014 weekly timetable\n/group \u2014 choose group\n/settings \u2014 settings\n/app \u2014 open the app\n\n<b>In a group chat</b>\n/setgroup \u2014 link chat to a group (admin)\n/unset \u2014 unlink (admin)",
+    help: "<b>Commands</b>\n/today \u2014 today's classes\n/tomorrow \u2014 tomorrow's classes\n/week \u2014 weekly timetable\n/group \u2014 choose group\n/settings \u2014 settings\n/app \u2014 open the app\n/calendar \u2014 subscribe to calendar\n/feedback \u2014 send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup \u2014 link chat to a group (admin)\n/unset \u2014 unlink (admin)",
     dataError: "Couldn't load the timetable, please try again in a moment.",
-    now: "Now"
+    now: "Now",
+    btnInvite: "\u{1F4E4} Invite friends",
+    inviteCaption: (g, n) => n > 0 ? `\u{1F389} ${n} more people from <b>${g}</b> already use the bot!
+
+Invite your groupmates too \u{1F447}` : "Invite your groupmates too \u2014 it'll be handy for them as well!",
+    inviteShareText: (g) => `TDIU Jadval \u2014 shows ${g}'s timetable and tells you right away when it changes. Try it:`,
+    groupChatTip: "\u{1F4A1} <b>Tip:</b> add the bot to your group chat too \u2014 send /setgroup there and the whole group gets updates automatically.",
+    feedbackPrompt: "\u270D\uFE0F Write your feedback or describe the bug:\n<code>/feedback The room number is shown wrong</code>",
+    feedbackThanks: "\u2705 Thanks! Your message has been received.",
+    btnCalendar: "\u{1F4C5} Calendar",
+    calendarInfo: (url) => `\u{1F4C5} <b>Subscribe to your calendar</b>
+
+Add this link to your phone or computer's calendar app, and the timetable will keep itself up to date there.
+
+<b>iPhone (Apple Calendar):</b> open the link \u2192 tap "Subscribe".
+<b>Google Calendar:</b> Settings \u2192 "Add calendar" \u2192 "From URL" \u2192 paste the link.
+
+<code>${esc(url)}</code>`
   }
 };
 var tr = (lang) => T[lang] || T.uz;
@@ -482,7 +533,13 @@ async function db(env) {
         weekly INTEGER NOT NULL DEFAULT 0,
         created_at INTEGER,
         updated_at INTEGER)`),
-      env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_group ON chats(group_id)")
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_group ON chats(group_id)"),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER,
+        name TEXT,
+        text TEXT NOT NULL,
+        created_at INTEGER)`)
     ]);
     schemaReady = true;
   }
@@ -517,6 +574,13 @@ async function updateChat(env, chatId, fields) {
 async function deleteChat(env, chatId) {
   await (await db(env)).prepare("DELETE FROM chats WHERE chat_id = ?").bind(chatId).run();
 }
+async function countGroupmates(env, groupId, excludeChatId) {
+  const r = await (await db(env)).prepare("SELECT COUNT(*) AS n FROM chats WHERE group_id = ? AND kind = 'private' AND chat_id != ?").bind(groupId, excludeChatId).first();
+  return r?.n || 0;
+}
+async function addFeedback(env, chatId, name, text) {
+  await (await db(env)).prepare("INSERT INTO feedback (chat_id, name, text, created_at) VALUES (?,?,?,?)").bind(chatId, name || null, text, Date.now()).run();
+}
 async function onSetup(url, env) {
   if (!await safeEqual(url.searchParams.get("key"), env.ADMIN_KEY)) return new Response("Wrong key", { status: 403 });
   const out = {};
@@ -527,9 +591,9 @@ async function onSetup(url, env) {
     drop_pending_updates: true
   });
   const cmds = {
-    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["group", "Guruhni tanlash"], ["settings", "Sozlamalar"], ["app", "Ilovani ochish"], ["help", "Yordam"]],
-    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]],
-    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["group", "Choose group"], ["settings", "Settings"], ["app", "Open the app"], ["help", "Help"]]
+    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["group", "Guruhni tanlash"], ["settings", "Sozlamalar"], ["app", "Ilovani ochish"], ["calendar", "Kalendarga obuna bo'lish"], ["feedback", "Taklif yoki xato yuborish"], ["help", "Yordam"]],
+    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["calendar", "\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"], ["feedback", "\u041E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u0448\u0438\u0431\u043A\u0430"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]],
+    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["group", "Choose group"], ["settings", "Settings"], ["app", "Open the app"], ["calendar", "Subscribe to calendar"], ["feedback", "Send feedback"], ["help", "Help"]]
   };
   const groupCmds = {
     uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["setgroup", "Chatni guruhga ulash (admin)"], ["unset", "Uzish (admin)"]],
@@ -556,8 +620,8 @@ async function onInternal(request, url, env) {
     const mode = url.searchParams.get("mode");
     const after = Number(url.searchParams.get("after") || "-9999999999999");
     const limit = Math.min(5e3, Number(url.searchParams.get("limit") || 2e3));
-    const col = mode === "weekly" ? "weekly" : "alerts";
-    const { results } = await D.prepare(`SELECT chat_id, kind, group_id, lang FROM chats WHERE ${col} = 1 AND group_id IS NOT NULL AND chat_id > ? ORDER BY chat_id LIMIT ?`).bind(after, limit).all();
+    const filter = mode === "all" ? "" : `AND ${mode === "weekly" ? "weekly" : "alerts"} = 1`;
+    const { results } = await D.prepare(`SELECT chat_id, kind, group_id, lang FROM chats WHERE group_id IS NOT NULL ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`).bind(after, limit).all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
   }
   if (url.pathname === "/internal/cleanup" && request.method === "POST") {
@@ -581,7 +645,8 @@ async function onInternal(request, url, env) {
   }
   if (url.pathname === "/internal/stats") {
     const r = await D.prepare(`SELECT kind, COUNT(*) AS n, SUM(group_id IS NOT NULL) AS with_group FROM chats GROUP BY kind`).all();
-    return json({ stats: r.results });
+    const fb = await D.prepare("SELECT chat_id, name, text, created_at FROM feedback ORDER BY id DESC LIMIT 20").all();
+    return json({ stats: r.results, feedback: fb.results });
   }
   return new Response("Not found", { status: 404 });
 }
@@ -670,6 +735,20 @@ async function onPrivate(env, msg, command) {
       return showFaculties(env, msg.chat.id, uid, lang, null);
     }
     return sendSchedule(env, msg.chat.id, row, action);
+  }
+  if (action === "feedback") {
+    const text = command.arg;
+    if (!text) return send(env, msg.chat.id, L.feedbackPrompt);
+    await addFeedback(env, msg.chat.id, msg.from?.username ? "@" + msg.from.username : msg.from?.first_name, text.slice(0, 2e3));
+    return send(env, msg.chat.id, L.feedbackThanks);
+  }
+  if (action === "calendar") {
+    if (!row.group_id) {
+      await send(env, msg.chat.id, L.noGroup);
+      return showFaculties(env, msg.chat.id, uid, lang, null);
+    }
+    const url = `${siteUrl(env)}/data/ics/${row.group_id}.ics`;
+    return send(env, msg.chat.id, L.calendarInfo(url), { reply_markup: { inline_keyboard: [[{ text: L.btnCalendar, url }]] } });
   }
   if (command) return send(env, msg.chat.id, L.help);
   return searchGroups(env, msg.chat.id, uid, lang, msg.text);
@@ -763,12 +842,24 @@ async function onDayTab(env, row, msg, d, off) {
   });
 }
 var botName = null;
+async function getBotName(env) {
+  if (!botName) botName = (await tg(env, "getMe", {})).result?.username || null;
+  return botName;
+}
 async function appButton(env, row) {
   const L = tr(row.lang);
   if (!siteUrl(env)) return null;
   if (row.kind === "private") return { inline_keyboard: [[{ text: L.btnOpenInApp, web_app: { url: appUrl(env, row.group_id, row.lang) } }]] };
-  if (!botName) botName = (await tg(env, "getMe", {})).result?.username || null;
-  return botName ? { inline_keyboard: [[{ text: L.btnOpenInApp, url: `https://t.me/${botName}?start=g_${row.group_id}` }]] } : null;
+  const name = await getBotName(env);
+  return name ? { inline_keyboard: [[{ text: L.btnOpenInApp, url: `https://t.me/${name}?start=g_${row.group_id}` }]] } : null;
+}
+async function inviteKeyboard(env, lang, groupId, groupName) {
+  const L = tr(lang);
+  const name = await getBotName(env);
+  if (!name) return void 0;
+  const link = `https://t.me/${name}?start=g_${groupId}`;
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(L.inviteShareText(groupName))}`;
+  return { inline_keyboard: [[{ text: L.btnInvite, url: shareUrl }]] };
 }
 async function askLanguage(env, chatId, next, messageId) {
   const kb = { inline_keyboard: LANGS.map((l) => [{ text: T[l].langName, callback_data: `lang:${l}:${next}` }]) };
@@ -862,6 +953,7 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
   const L = tr(lang);
   const name = await findGroupName(env, groupId);
   if (!name) return send(env, chat.id, L.notFound);
+  const firstTimeSetup = chat.type === "private" && !row.group_id;
   await updateChat(env, chat.id, { group_id: groupId, group_name: name });
   const isPrivate = chat.type === "private";
   const text = isPrivate ? L.groupSet(esc(name)) : L.groupSetChat(esc(name));
@@ -872,6 +964,9 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
   if (isPrivate) {
     const [index, group] = await Promise.all([getIndex(env), getGroup(env, groupId)]);
     if (group) await send(env, chat.id, fmtDay(group, index, tashkentNow(), lang, tashkentNow()), { reply_markup: mainKeyboard(env, lang, groupId) });
+    const n = await countGroupmates(env, groupId, chat.id);
+    await send(env, chat.id, L.inviteCaption(esc(name), n), { reply_markup: await inviteKeyboard(env, lang, groupId, name) });
+    if (firstTimeSetup) await send(env, chat.id, L.groupChatTip);
   } else {
     await sendSchedule(env, chat.id, updated, "week");
   }
@@ -886,6 +981,11 @@ async function showSettings(env, chatId, row, messageId) {
       [{ text: L.setLang, callback_data: "s:lang" }, { text: "\u{1F465} " + (row.group_name || "\u2014"), callback_data: "s:group" }]
     ]
   };
+  if (row.kind === "private" && row.group_id) {
+    const invite = await inviteKeyboard(env, row.lang, row.group_id, row.group_name || "");
+    if (invite) kb.inline_keyboard.push(invite.inline_keyboard[0]);
+    if (siteUrl(env)) kb.inline_keyboard.push([{ text: L.btnCalendar, callback_data: "s:calendar" }]);
+  }
   if (messageId) return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", reply_markup: kb });
   return send(env, chatId, text, { reply_markup: kb });
 }
@@ -949,6 +1049,11 @@ async function onCallback(env, cb) {
     }
     if (what === "lang") return askLanguage(env, chatId, "settings", msg.message_id);
     if (what === "group") return showFaculties(env, chatId, isGroupChat ? cb.from.id : cb.from.id, lang, msg.message_id);
+    if (what === "calendar") {
+      if (!row.group_id) return;
+      const url = `${siteUrl(env)}/data/ics/${row.group_id}.ics`;
+      return send(env, chatId, L.calendarInfo(url), { reply_markup: { inline_keyboard: [[{ text: L.btnCalendar, url }]] } });
+    }
   }
 }
 export {

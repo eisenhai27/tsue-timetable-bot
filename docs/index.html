@@ -456,8 +456,12 @@ async function renderTimetable() {
   if (S.day == null) S.day = (S.weekOffset === 0 && wd(now) < 6) ? wd(now) : 0;
   const lessonsOf = (d) => (data.lessons || []).filter(l => l.d === d && (!par || !l.w || l.w === par));
 
-  // recently changed lessons (last 7 days)
-  const recentChanges = (data.changes || []).filter(c => Date.now() - Date.parse(c.at) < 7 * DAY);
+  // recently changed lessons — shown for 1 day, or until the user has opened this view once,
+  // whichever comes first (store a per-entity "seen" marker so it doesn't come back on next visit)
+  const seenKey = `seen:${v.type}:${v.id}`;
+  const seenAt = store.get(seenKey, null);
+  const recentChanges = (data.changes || []).filter(c => Date.now() - Date.parse(c.at) < DAY && (!seenAt || Date.parse(c.at) > Date.parse(seenAt)));
+  if (recentChanges.length) store.set(seenKey, recentChanges[0].at);
   const newKeys = new Set();
   const changedDays = new Set();
   for (const c of recentChanges) for (const dd of c.days) { changedDays.add(dd.d); for (const l of dd.added) newKeys.add(key(l)); }

@@ -120,6 +120,12 @@ async function db(env) {
         created_at INTEGER,
         updated_at INTEGER)`),
       env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_chats_group ON chats(group_id)'),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        chat_id INTEGER,
+        name TEXT,
+        text TEXT NOT NULL,
+        created_at INTEGER)`),
     ]);
     schemaReady = true;
   }
@@ -156,6 +162,22 @@ async function deleteChat(env, chatId) {
   await (await db(env)).prepare('DELETE FROM chats WHERE chat_id = ?').bind(chatId).run();
 }
 
+/** How many OTHER private chats already have this group set — used for the invite-friends nudge. */
+async function countGroupmates(env, groupId, excludeChatId) {
+  const r = await (await db(env))
+    .prepare("SELECT COUNT(*) AS n FROM chats WHERE group_id = ? AND kind = 'private' AND chat_id != ?")
+    .bind(groupId, excludeChatId)
+    .first();
+  return r?.n || 0;
+}
+
+async function addFeedback(env, chatId, name, text) {
+  await (await db(env))
+    .prepare('INSERT INTO feedback (chat_id, name, text, created_at) VALUES (?,?,?,?)')
+    .bind(chatId, name || null, text, Date.now())
+    .run();
+}
+
 // ---------------------------------------------------------------- setup & internal API
 
 async function onSetup(url, env) {
@@ -168,9 +190,9 @@ async function onSetup(url, env) {
     drop_pending_updates: true,
   });
   const cmds = {
-    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['group', 'Guruhni tanlash'], ['settings', 'Sozlamalar'], ['app', 'Ilovani ochish'], ['help', 'Yordam']],
-    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['group', 'Выбрать группу'], ['settings', 'Настройки'], ['app', 'Открыть приложение'], ['help', 'Помощь']],
-    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['group', 'Choose group'], ['settings', 'Settings'], ['app', 'Open the app'], ['help', 'Help']],
+    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['group', 'Guruhni tanlash'], ['settings', 'Sozlamalar'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']],
+    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['group', 'Выбрать группу'], ['settings', 'Настройки'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']],
+    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['group', 'Choose group'], ['settings', 'Settings'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']],
   };
   const groupCmds = {
     uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['setgroup', 'Chatni guruhga ulash (admin)'], ['unset', 'Uzish (admin)']],
@@ -198,9 +220,10 @@ async function onInternal(request, url, env) {
     const mode = url.searchParams.get('mode');
     const after = Number(url.searchParams.get('after') || '-9999999999999');
     const limit = Math.min(5000, Number(url.searchParams.get('limit') || 2000));
-    const col = mode === 'weekly' ? 'weekly' : 'alerts';
+    // 'all' = every chat with a group set, regardless of the alerts/weekly toggles (used for admin broadcasts)
+    const filter = mode === 'all' ? '' : `AND ${mode === 'weekly' ? 'weekly' : 'alerts'} = 1`;
     const { results } = await D
-      .prepare(`SELECT chat_id, kind, group_id, lang FROM chats WHERE ${col} = 1 AND group_id IS NOT NULL AND chat_id > ? ORDER BY chat_id LIMIT ?`)
+      .prepare(`SELECT chat_id, kind, group_id, lang FROM chats WHERE group_id IS NOT NULL ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`)
       .bind(after, limit)
       .all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
@@ -228,7 +251,8 @@ async function onInternal(request, url, env) {
   }
   if (url.pathname === '/internal/stats') {
     const r = await D.prepare(`SELECT kind, COUNT(*) AS n, SUM(group_id IS NOT NULL) AS with_group FROM chats GROUP BY kind`).all();
-    return json({ stats: r.results });
+    const fb = await D.prepare('SELECT chat_id, name, text, created_at FROM feedback ORDER BY id DESC LIMIT 20').all();
+    return json({ stats: r.results, feedback: fb.results });
   }
   return new Response('Not found', { status: 404 });
 }
@@ -331,6 +355,20 @@ async function onPrivate(env, msg, command) {
       return showFaculties(env, msg.chat.id, uid, lang, null);
     }
     return sendSchedule(env, msg.chat.id, row, action);
+  }
+  if (action === 'feedback') {
+    const text = command.arg;
+    if (!text) return send(env, msg.chat.id, L.feedbackPrompt);
+    await addFeedback(env, msg.chat.id, msg.from?.username ? '@' + msg.from.username : msg.from?.first_name, text.slice(0, 2000));
+    return send(env, msg.chat.id, L.feedbackThanks);
+  }
+  if (action === 'calendar') {
+    if (!row.group_id) {
+      await send(env, msg.chat.id, L.noGroup);
+      return showFaculties(env, msg.chat.id, uid, lang, null);
+    }
+    const url = `${siteUrl(env)}/data/ics/${row.group_id}.ics`;
+    return send(env, msg.chat.id, L.calendarInfo(url), { reply_markup: { inline_keyboard: [[{ text: L.btnCalendar, url }]] } });
   }
   if (command) return send(env, msg.chat.id, L.help);
   // Free text → search groups by name
@@ -435,13 +473,27 @@ async function onDayTab(env, row, msg, d, off) {
 }
 
 let botName = null;
+async function getBotName(env) {
+  if (!botName) botName = (await tg(env, 'getMe', {})).result?.username || null;
+  return botName;
+}
 async function appButton(env, row) {
   const L = tr(row.lang);
   if (!siteUrl(env)) return null;
   if (row.kind === 'private') return { inline_keyboard: [[{ text: L.btnOpenInApp, web_app: { url: appUrl(env, row.group_id, row.lang) } }]] };
   // web_app buttons are not allowed in groups → deep link into a private chat with the bot
-  if (!botName) botName = (await tg(env, 'getMe', {})).result?.username || null;
-  return botName ? { inline_keyboard: [[{ text: L.btnOpenInApp, url: `https://t.me/${botName}?start=g_${row.group_id}` }]] } : null;
+  const name = await getBotName(env);
+  return name ? { inline_keyboard: [[{ text: L.btnOpenInApp, url: `https://t.me/${name}?start=g_${row.group_id}` }]] } : null;
+}
+
+/** 📤 Share button: opens Telegram's native share sheet with a deep link into this group. */
+async function inviteKeyboard(env, lang, groupId, groupName) {
+  const L = tr(lang);
+  const name = await getBotName(env);
+  if (!name) return undefined;
+  const link = `https://t.me/${name}?start=g_${groupId}`;
+  const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(L.inviteShareText(groupName))}`;
+  return { inline_keyboard: [[{ text: L.btnInvite, url: shareUrl }]] };
 }
 
 // ---------------------------------------------------------------- pickers
@@ -535,6 +587,7 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
   const L = tr(lang);
   const name = await findGroupName(env, groupId);
   if (!name) return send(env, chat.id, L.notFound);
+  const firstTimeSetup = chat.type === 'private' && !row.group_id; // never had a group before → show the group-chat tip once
   await updateChat(env, chat.id, { group_id: groupId, group_name: name });
   const isPrivate = chat.type === 'private';
   const text = isPrivate ? L.groupSet(esc(name)) : L.groupSetChat(esc(name));
@@ -547,6 +600,11 @@ async function chooseGroup(env, chat, uid, groupId, messageId, langHint) {
     // Show today's classes right away, together with the main buttons
     const [index, group] = await Promise.all([getIndex(env), getGroup(env, groupId)]);
     if (group) await send(env, chat.id, fmtDay(group, index, tashkentNow(), lang, tashkentNow()), { reply_markup: mainKeyboard(env, lang, groupId) });
+    // Invite friends + social proof: how many groupmates are already here
+    const n = await countGroupmates(env, groupId, chat.id);
+    await send(env, chat.id, L.inviteCaption(esc(name), n), { reply_markup: await inviteKeyboard(env, lang, groupId, name) });
+    // One-time tip: most value comes from the whole group chat being connected, not just individuals
+    if (firstTimeSetup) await send(env, chat.id, L.groupChatTip);
   } else {
     await sendSchedule(env, chat.id, updated, 'week');
   }
@@ -562,6 +620,11 @@ async function showSettings(env, chatId, row, messageId) {
       [{ text: L.setLang, callback_data: 's:lang' }, { text: '👥 ' + (row.group_name || '—'), callback_data: 's:group' }],
     ],
   };
+  if (row.kind === 'private' && row.group_id) {
+    const invite = await inviteKeyboard(env, row.lang, row.group_id, row.group_name || '');
+    if (invite) kb.inline_keyboard.push(invite.inline_keyboard[0]);
+    if (siteUrl(env)) kb.inline_keyboard.push([{ text: L.btnCalendar, callback_data: 's:calendar' }]);
+  }
   if (messageId) return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', reply_markup: kb });
   return send(env, chatId, text, { reply_markup: kb });
 }
@@ -623,5 +686,10 @@ async function onCallback(env, cb) {
     }
     if (what === 'lang') return askLanguage(env, chatId, 'settings', msg.message_id);
     if (what === 'group') return showFaculties(env, chatId, isGroupChat ? cb.from.id : cb.from.id, lang, msg.message_id);
+    if (what === 'calendar') {
+      if (!row.group_id) return;
+      const url = `${siteUrl(env)}/data/ics/${row.group_id}.ics`;
+      return send(env, chatId, L.calendarInfo(url), { reply_markup: { inline_keyboard: [[{ text: L.btnCalendar, url }]] } });
+    }
   }
 }

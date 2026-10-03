@@ -51,9 +51,19 @@ export const T = {
     back: '⬅️ Orqaga',
     more: 'Yana ➡️',
     unset: "✅ Bu chat guruhdan uzildi.",
-    help: "<b>Buyruqlar</b>\n/today — bugungi darslar\n/tomorrow — ertangi darslar\n/week — haftalik jadval\n/group — guruhni tanlash\n/settings — sozlamalar\n/app — ilovani ochish\n\n<b>Guruh chatida</b>\n/setgroup — chatni guruhga ulash (admin)\n/unset — uzish (admin)",
+    help: "<b>Buyruqlar</b>\n/today — bugungi darslar\n/tomorrow — ertangi darslar\n/week — haftalik jadval\n/group — guruhni tanlash\n/settings — sozlamalar\n/app — ilovani ochish\n/calendar — kalendarga obuna bo'lish\n/feedback — taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup — chatni guruhga ulash (admin)\n/unset — uzish (admin)",
     dataError: "Jadvalni yuklab bo'lmadi, birozdan so'ng qayta urinib ko'ring.",
     now: 'Hozir',
+    btnInvite: "📤 Do'stlarni taklif qilish",
+    inviteCaption: (g, n) => n > 0
+      ? `🎉 <b>${g}</b> guruhidan yana ${n} kishi botdan foydalanmoqda!\n\nGuruhdoshlaringizni ham taklif qiling 👇`
+      : "👋 Guruhdoshlaringizni ham taklif qiling — ularga ham qulay bo'ladi!",
+    inviteShareText: (g) => `TDIU Jadval — ${g} guruhi jadvalini ko'rsatadi va o'zgarsa darhol xabar beradi. Sinab ko'ring:`,
+    groupChatTip: "💡 <b>Maslahat:</b> botni guruh chatingizga ham qo'shing — u yerda /setgroup yuborsangiz, butun guruhga avtomatik xabar boradi.",
+    feedbackPrompt: "✍️ Taklif yoki xatoni yozing:\n<code>/feedback Xona nomi noto'g'ri ko'rsatilyapti</code>",
+    feedbackThanks: '✅ Rahmat! Xabaringiz qabul qilindi.',
+    btnCalendar: '📅 Kalendar',
+    calendarInfo: (url) => `📅 <b>Kalendarga obuna bo'ling</b>\n\nQuyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz, jadval u yerda avtomatik yangilanib turadi.\n\n<b>iPhone (Apple Calendar):</b> havolani oching → "Obuna bo'lish" tugmasini bosing.\n<b>Google Calendar:</b> Sozlamalar → "Boshqa kalendarlar qo'shish" → "URL orqali" → havolani joylashtiring.\n\n<code>${esc(url)}</code>`,
   },
   ru: {
     days: ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье'],
@@ -102,9 +112,19 @@ export const T = {
     back: '⬅️ Назад',
     more: 'Ещё ➡️',
     unset: '✅ Чат отвязан от группы.',
-    help: '<b>Команды</b>\n/today — пары на сегодня\n/tomorrow — пары на завтра\n/week — расписание на неделю\n/group — выбрать группу\n/settings — настройки\n/app — открыть приложение\n\n<b>В чате группы</b>\n/setgroup — привязать чат к группе (админ)\n/unset — отвязать (админ)',
+    help: '<b>Команды</b>\n/today — пары на сегодня\n/tomorrow — пары на завтра\n/week — расписание на неделю\n/group — выбрать группу\n/settings — настройки\n/app — открыть приложение\n/calendar — подписка на календарь\n/feedback — отправить отзыв или сообщить об ошибке\n\n<b>В чате группы</b>\n/setgroup — привязать чат к группе (админ)\n/unset — отвязать (админ)',
     dataError: 'Не удалось загрузить расписание, попробуйте чуть позже.',
     now: 'Сейчас',
+    btnInvite: '📤 Пригласить друзей',
+    inviteCaption: (g, n) => n > 0
+      ? `🎉 Ещё ${n} человек из группы <b>${g}</b> уже пользуются ботом!\n\nПригласите и своих одногруппников 👇`
+      : 'Пригласите своих одногруппников — им тоже будет удобно!',
+    inviteShareText: (g) => `TDIU Jadval — показывает расписание группы ${g} и сразу сообщает об изменениях. Попробуйте:`,
+    groupChatTip: '💡 <b>Совет:</b> добавьте бота и в чат вашей группы — отправьте там /setgroup, и уведомления будут приходить всей группе автоматически.',
+    feedbackPrompt: "✍️ Напишите отзыв или опишите ошибку:\n<code>/feedback Неверно указана аудитория</code>",
+    feedbackThanks: '✅ Спасибо! Ваше сообщение получено.',
+    btnCalendar: '📅 Календарь',
+    calendarInfo: (url) => `📅 <b>Подпишитесь на календарь</b>\n\nДобавьте эту ссылку в календарь на телефоне или компьютере — расписание будет обновляться там само.\n\n<b>iPhone (Apple Calendar):</b> откройте ссылку → нажмите «Подписаться».\n<b>Google Calendar:</b> Настройки → «Добавить календарь» → «По URL» → вставьте ссылку.\n\n<code>${esc(url)}</code>`,
   },
   en: {
     days: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'],
@@ -153,9 +173,19 @@ export const T = {
     back: '⬅️ Back',
     more: 'More ➡️',
     unset: '✅ This chat is no longer linked to a group.',
-    help: '<b>Commands</b>\n/today — today\'s classes\n/tomorrow — tomorrow\'s classes\n/week — weekly timetable\n/group — choose group\n/settings — settings\n/app — open the app\n\n<b>In a group chat</b>\n/setgroup — link chat to a group (admin)\n/unset — unlink (admin)',
+    help: '<b>Commands</b>\n/today — today\'s classes\n/tomorrow — tomorrow\'s classes\n/week — weekly timetable\n/group — choose group\n/settings — settings\n/app — open the app\n/calendar — subscribe to calendar\n/feedback — send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup — link chat to a group (admin)\n/unset — unlink (admin)',
     dataError: "Couldn't load the timetable, please try again in a moment.",
     now: 'Now',
+    btnInvite: '📤 Invite friends',
+    inviteCaption: (g, n) => n > 0
+      ? `🎉 ${n} more people from <b>${g}</b> already use the bot!\n\nInvite your groupmates too 👇`
+      : 'Invite your groupmates too — it\'ll be handy for them as well!',
+    inviteShareText: (g) => `TDIU Jadval — shows ${g}'s timetable and tells you right away when it changes. Try it:`,
+    groupChatTip: '💡 <b>Tip:</b> add the bot to your group chat too — send /setgroup there and the whole group gets updates automatically.',
+    feedbackPrompt: "✍️ Write your feedback or describe the bug:\n<code>/feedback The room number is shown wrong</code>",
+    feedbackThanks: '✅ Thanks! Your message has been received.',
+    btnCalendar: '📅 Calendar',
+    calendarInfo: (url) => `📅 <b>Subscribe to your calendar</b>\n\nAdd this link to your phone or computer's calendar app, and the timetable will keep itself up to date there.\n\n<b>iPhone (Apple Calendar):</b> open the link → tap "Subscribe".\n<b>Google Calendar:</b> Settings → "Add calendar" → "From URL" → paste the link.\n\n<code>${esc(url)}</code>`,
   },
 };
 

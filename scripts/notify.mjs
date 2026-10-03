@@ -7,8 +7,11 @@
 //                                        window that day — safe to call every few minutes, since
 //                                        GitHub's own `schedule:` trigger can silently miss its
 //                                        exact minute on a quiet repo (state.json prevents resending).
+//   node scripts/notify.mjs announce   → broadcasts env.ANNOUNCE_TEXT to every active chat (admin only,
+//                                        via the "Run workflow" announce field — reaches everyone with
+//                                        a group set, not just alert-subscribers)
 //
-// Env: BOT_TOKEN, WORKER_URL, ADMIN_KEY, SITE_URL. DRY_RUN=1 prints instead of sending.
+// Env: BOT_TOKEN, WORKER_URL, ADMIN_KEY, SITE_URL, ANNOUNCE_TEXT (for 'announce'). DRY_RUN=1 prints instead of sending.
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -156,6 +159,16 @@ async function sendTomorrow(index) {
   }
 }
 
+async function sendAnnounce() {
+  const text = (process.env.ANNOUNCE_TEXT || '').trim();
+  if (!text) { console.log('No announcement text set, nothing to send.'); return; }
+  for await (const sub of subscribers('all')) {
+    const g = await loadGroup(sub.group_id);
+    if (!g) continue;
+    await send(sub.chat_id, `📢 ${text}`, await keyboard(sub, g.id));
+  }
+}
+
 async function main() {
   const mode = process.argv[2];
   if (!BOT_TOKEN || !WORKER_URL || !ADMIN_KEY) throw new Error('BOT_TOKEN, WORKER_URL and ADMIN_KEY must be set');
@@ -196,8 +209,10 @@ async function main() {
     }
     if (changed) await writeState(state);
     else console.log('auto: nothing due yet today');
+  } else if (mode === 'announce') {
+    await sendAnnounce();
   } else {
-    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow|auto');
+    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow|auto|announce');
   }
 
   if (!DRY && (removed.length || migrated.length)) {

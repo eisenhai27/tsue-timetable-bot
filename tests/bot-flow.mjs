@@ -107,14 +107,58 @@ await reset(); await post(msg('/today', grp, { id: 444 }));
 l = await log();
 check('anyone can /today in group', l.some((c) => c.data.chat_id === -100500 && /MO-901/.test(c.data.text || '')), texts(l));
 
+// ---- invite friends / social proof / first-time group-chat tip
+// Chat 111 is already on BHA-80/25 (fcrgrf) from the deep-link test above — a second private
+// user picking the same group should see the "N groupmates already here" count.
+const user2 = { id: 555, first_name: 'Olim', language_code: 'uz' };
+const priv2 = { id: 555, type: 'private' };
+await reset(); await post(msg('/start', priv2, user2));
+await post(cb('g:555:fcrgrf', priv2, user2));
+l = await log();
+check('invite message shows groupmate count', l.some((c) => /yana 1 kishi botdan foydalanmoqda/.test(c.data.text || '') && c.data.reply_markup?.inline_keyboard?.[0]?.[0]?.url?.includes('t.me/share/url')), texts(l));
+check('first-time setup shows the group-chat tip', l.some((c) => /guruh chatingizga ham qo'shing/.test(c.data.text || '')), texts(l));
+
+// Picking a *different* group the second time should not repeat the one-time tip
+await reset(); await post(cb('g:555:1thm8e1', priv2, user2));
+l = await log();
+check('switching groups later does not repeat the group-chat tip', !l.some((c) => /guruh chatingizga ham qo'shing/.test(c.data.text || '')), texts(l));
+
+// ---- /calendar
+await reset(); await post(msg('/calendar', priv2, user2));
+l = await log();
+check('/calendar sends the .ics link with instructions', l.some((c) => /Kalendarga obuna bo'ling/.test(c.data.text || '') && /\.ics/.test(c.data.text) && c.data.reply_markup?.inline_keyboard?.[0]?.[0]?.url?.endsWith('.ics')), texts(l));
+await reset(); await post(msg('/settings', priv2, user2));
+l = await log();
+check('settings shows a calendar button', l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Kalendar/.test(b.text))), texts(l));
+await post(cb('s:calendar', priv2, user2));
+l = await log();
+check('settings calendar button sends the .ics link', l.some((c) => /Kalendarga obuna bo'ling/.test(c.data.text || '')), texts(l));
+
+// ---- /feedback
+await reset(); await post(msg('/feedback', priv2, user2));
+l = await log();
+check('/feedback with no text shows the prompt', l.some((c) => /Taklif yoki xatoni yozing/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/feedback Xona nomi notogri korsatilmoqda', priv2, user2));
+l = await log();
+check('/feedback with text is accepted', l.some((c) => /Rahmat! Xabaringiz qabul qilindi/.test(c.data.text || '')), texts(l));
+
 // ---- internal API
 const subs = await (await fetch(W + '/internal/subs?mode=weekly', { headers: { 'x-admin-key': 'secretkey' } })).json();
 check('internal subs (weekly) lists the group chat', subs.rows.some((r) => r.chat_id === -100500 && r.group_id === '1thm8e1'), subs);
 const subsA = await (await fetch(W + '/internal/subs?mode=alerts', { headers: { 'x-admin-key': 'secretkey' } })).json();
-check('internal subs (alerts) has private user + group', subsA.rows.length === 2, subsA);
+check('internal subs (alerts) has both private users + the group', subsA.rows.length === 3 && subsA.rows.some((r) => r.chat_id === 111) && subsA.rows.some((r) => r.chat_id === 555) && subsA.rows.some((r) => r.chat_id === -100500), subsA);
 check('internal API needs key', (await fetch(W + '/internal/subs?mode=alerts')).status === 403);
 const st = await (await fetch(W + '/internal/stats', { headers: { 'x-admin-key': 'secretkey' } })).json();
 console.log('   stats:', JSON.stringify(st));
+check('stats include the feedback message', st.feedback?.some((f) => /Xona nomi/.test(f.text)), st.feedback);
+
+// mode=all reaches every chat with a group, even ones that toggled alerts off
+await post(cb('s:alerts', priv2, user2)); // chat 555 turns its own change-alerts off
+const subsAll = await (await fetch(W + '/internal/subs?mode=all', { headers: { 'x-admin-key': 'secretkey' } })).json();
+const subsAlertsOnly = await (await fetch(W + '/internal/subs?mode=alerts', { headers: { 'x-admin-key': 'secretkey' } })).json();
+check('mode=all includes a chat with alerts off', subsAll.rows.some((r) => r.chat_id === 555), subsAll);
+check('mode=alerts excludes that same chat', !subsAlertsOnly.rows.some((r) => r.chat_id === 555), subsAlertsOnly);
+await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
 
 // setup endpoint
 await reset();

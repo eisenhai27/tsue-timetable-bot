@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "render": "node scripts/render.mjs"
+    "render": "node scripts/render.mjs",
+    "build": "esbuild worker/worker.mjs --bundle --format=esm --outfile=dist/worker.js --banner:js=\"// TDIU Jadval bot — ONE-FILE version for pasting into the Cloudflare dashboard.\""
   },
   "keywords": [],
   "author": "",

@@ -14,9 +14,13 @@ on:
         type: boolean
         default: false
       stats:
-        description: 'Print subscriber counts to the log'
+        description: 'Print subscriber counts and recent feedback to the log'
         type: boolean
         default: false
+      announce:
+        description: 'Broadcast this text to every active chat now (leave empty to skip)'
+        type: string
+        default: ''
   push:
     branches: [main]
     paths: ['docs/**', '!docs/data/**', 'scripts/**', 'src/**', 'fonts/**']  # redeploy the Mini App / pictures when code changes
@@ -71,6 +75,10 @@ jobs:
           npm install --omit=dev --no-audit --no-fund
           node scripts/render.mjs
 
+      - name: Generate calendar (.ics) feeds
+        if: github.event_name == 'push' || steps.update.outputs.written != '0'
+        run: node scripts/ics.mjs
+
       - name: Publish Mini App and data (GitHub Pages)
         if: github.event_name == 'push' || steps.update.outputs.written != '0'
         uses: actions/upload-pages-artifact@v3
@@ -107,6 +115,16 @@ jobs:
           WORKER_URL: ${{ vars.WORKER_URL }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: node scripts/notify.mjs auto
+
+      - name: Send admin announcement
+        if: github.event_name == 'workflow_dispatch' && inputs.announce != ''
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          SITE_URL: ${{ vars.SITE_URL }}
+          ANNOUNCE_TEXT: ${{ inputs.announce }}
+        run: node scripts/notify.mjs announce
 
       - name: Show subscriber stats
         if: github.event_name == 'workflow_dispatch' && inputs.stats
