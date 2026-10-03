@@ -123,24 +123,26 @@ await reset(); await post(cb('g:555:1thm8e1', priv2, user2));
 l = await log();
 check('switching groups later does not repeat the group-chat tip', !l.some((c) => /guruh chatingizga ham qo'shing/.test(c.data.text || '')), texts(l));
 
-// ---- /calendar
+// ---- /calendar (hidden for now — CALENDAR_ENABLED = false)
 await reset(); await post(msg('/calendar', priv2, user2));
 l = await log();
-check('/calendar sends the .ics link with instructions', l.some((c) => /Kalendarga obuna bo'ling/.test(c.data.text || '') && /\.ics/.test(c.data.text) && c.data.reply_markup?.inline_keyboard?.[0]?.[0]?.url?.endsWith('.ics')), texts(l));
+check('/calendar is hidden: falls back to help, no .ics link', !l.some((c) => /Kalendarga obuna bo'ling/.test(c.data.text || '')) && l.some((c) => c.method === 'sendMessage'), texts(l));
 await reset(); await post(msg('/settings', priv2, user2));
 l = await log();
-check('settings shows a calendar button', l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Kalendar/.test(b.text))), texts(l));
-await post(cb('s:calendar', priv2, user2));
-l = await log();
-check('settings calendar button sends the .ics link', l.some((c) => /Kalendarga obuna bo'ling/.test(c.data.text || '')), texts(l));
+check('settings has no calendar button while hidden', !l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Kalendar/.test(b.text))), texts(l));
 
-// ---- /feedback
+// ---- /feedback — now also shown as a Settings button, and forwarded to the admin's own DMs
+check('settings shows a prominent feedback button', l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Taklif yoki xato yuborish/.test(b.text))), texts(l));
+await reset(); await post(cb('s:feedback', priv2, user2));
+l = await log();
+check('settings feedback button shows the prompt', l.some((c) => /Taklif yoki xatoni yozing/.test(c.data.text || '')), texts(l));
 await reset(); await post(msg('/feedback', priv2, user2));
 l = await log();
 check('/feedback with no text shows the prompt', l.some((c) => /Taklif yoki xatoni yozing/.test(c.data.text || '')), texts(l));
 await reset(); await post(msg('/feedback Xona nomi notogri korsatilmoqda', priv2, user2));
 l = await log();
 check('/feedback with text is accepted', l.some((c) => /Rahmat! Xabaringiz qabul qilindi/.test(c.data.text || '')), texts(l));
+check('/feedback is forwarded to ADMIN_CHAT_ID as a DM', l.some((c) => c.method === 'sendMessage' && String(c.data.chat_id) === '999999' && /Xona nomi/.test(c.data.text || '')), texts(l));
 
 // ---- internal API
 const subs = await (await fetch(W + '/internal/subs?mode=weekly', { headers: { 'x-admin-key': 'secretkey' } })).json();
@@ -165,6 +167,7 @@ await reset();
 const setup = await (await fetch(W + '/setup?key=secretkey')).json();
 l = await log();
 check('/setup sets webhook, commands, menu button', setup.ok && l.some((c) => c.method === 'setWebhook' && c.data.secret_token === secret) && l.some((c) => c.method === 'setChatMenuButton'), setup);
+check('/setup command list omits /calendar while hidden', l.filter((c) => c.method === 'setMyCommands').every((c) => !c.data.commands.some((cmd) => cmd.command === 'calendar')), texts(l));
 
 // bot removed from group
 await post({ my_chat_member: { chat: grp, from: user, date: 0, old_chat_member: { status: 'administrator', user: { id: 1 } }, new_chat_member: { status: 'left', user: { id: 1 } } } });

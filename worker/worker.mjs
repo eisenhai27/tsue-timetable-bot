@@ -9,6 +9,9 @@
 //   GITHUB_PAT  (secret, optional) fine-grained token, "Actions: read and write" on this repo only —
 //               lets a Cloudflare Cron Trigger wake up the GitHub Action reliably (see `scheduled` below)
 //   GITHUB_REPO (text, optional) "yourname/tsue-timetable-bot" — required together with GITHUB_PAT
+//   ADMIN_CHAT_ID (text, optional) your own numeric Telegram id — when set, every /feedback message is
+//               forwarded to you instantly as a DM (in addition to being stored, for the stats workflow).
+//               Message @userinfobot on Telegram to get your numeric id, then start this bot yourself first.
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
@@ -16,6 +19,7 @@ import {
 } from '../src/shared.mjs';
 
 const PAGE = 30; // groups per page in the picker
+const CALENDAR_ENABLED = false; // the /calendar command + button are hidden for now; flip to true to bring them back
 
 export default {
   async fetch(request, env, ctx) {
@@ -176,6 +180,15 @@ async function addFeedback(env, chatId, name, text) {
     .prepare('INSERT INTO feedback (chat_id, name, text, created_at) VALUES (?,?,?,?)')
     .bind(chatId, name || null, text, Date.now())
     .run();
+  // Also forward it straight to the admin's own Telegram DMs, if configured, so feedback doesn't
+  // need to wait for someone to go check the stats workflow.
+  if (env.ADMIN_CHAT_ID) {
+    await tg(env, 'sendMessage', {
+      chat_id: env.ADMIN_CHAT_ID,
+      text: `✍️ <b>Yangi fikr-mulohaza</b>\n${esc(name || 'Anonim')} (id: ${chatId}):\n\n${esc(text)}`,
+      parse_mode: 'HTML',
+    });
+  }
 }
 
 // ---------------------------------------------------------------- setup & internal API
@@ -190,9 +203,9 @@ async function onSetup(url, env) {
     drop_pending_updates: true,
   });
   const cmds = {
-    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['group', 'Guruhni tanlash'], ['settings', 'Sozlamalar'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']],
-    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['group', 'Выбрать группу'], ['settings', 'Настройки'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']],
-    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['group', 'Choose group'], ['settings', 'Settings'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']],
+    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['group', 'Guruhni tanlash'], ['settings', 'Sozlamalar'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['group', 'Выбрать группу'], ['settings', 'Настройки'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['group', 'Choose group'], ['settings', 'Settings'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
   };
   const groupCmds = {
     uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['setgroup', 'Chatni guruhga ulash (admin)'], ['unset', 'Uzish (admin)']],
@@ -362,7 +375,7 @@ async function onPrivate(env, msg, command) {
     await addFeedback(env, msg.chat.id, msg.from?.username ? '@' + msg.from.username : msg.from?.first_name, text.slice(0, 2000));
     return send(env, msg.chat.id, L.feedbackThanks);
   }
-  if (action === 'calendar') {
+  if (action === 'calendar' && CALENDAR_ENABLED) {
     if (!row.group_id) {
       await send(env, msg.chat.id, L.noGroup);
       return showFaculties(env, msg.chat.id, uid, lang, null);
@@ -620,10 +633,13 @@ async function showSettings(env, chatId, row, messageId) {
       [{ text: L.setLang, callback_data: 's:lang' }, { text: '👥 ' + (row.group_name || '—'), callback_data: 's:group' }],
     ],
   };
+  if (row.kind === 'private') {
+    kb.inline_keyboard.push([{ text: L.btnFeedback, callback_data: 's:feedback' }]);
+  }
   if (row.kind === 'private' && row.group_id) {
     const invite = await inviteKeyboard(env, row.lang, row.group_id, row.group_name || '');
     if (invite) kb.inline_keyboard.push(invite.inline_keyboard[0]);
-    if (siteUrl(env)) kb.inline_keyboard.push([{ text: L.btnCalendar, callback_data: 's:calendar' }]);
+    if (CALENDAR_ENABLED && siteUrl(env)) kb.inline_keyboard.push([{ text: L.btnCalendar, callback_data: 's:calendar' }]);
   }
   if (messageId) return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', reply_markup: kb });
   return send(env, chatId, text, { reply_markup: kb });
@@ -686,7 +702,8 @@ async function onCallback(env, cb) {
     }
     if (what === 'lang') return askLanguage(env, chatId, 'settings', msg.message_id);
     if (what === 'group') return showFaculties(env, chatId, isGroupChat ? cb.from.id : cb.from.id, lang, msg.message_id);
-    if (what === 'calendar') {
+    if (what === 'feedback') return send(env, chatId, L.feedbackPrompt);
+    if (what === 'calendar' && CALENDAR_ENABLED) {
       if (!row.group_id) return;
       const url = `${siteUrl(env)}/data/ics/${row.group_id}.ics`;
       return send(env, chatId, L.calendarInfo(url), { reply_markup: { inline_keyboard: [[{ text: L.btnCalendar, url }]] } });

@@ -97,6 +97,7 @@ own (unreliable) 15-minute schedule, so changes get caught quickly and consisten
 - **A/B weeks:** some lessons run only in "Week A" or "Week B". By default both are shown with an A/B label. If you know that, for example, the week of 7 September 2026 is Week A, add a GitHub variable `WEEK_A_MONDAY` = `2026-09-07`. Then each week only shows the lessons that apply to it.
 - **Profile picture and description:** in @BotFather use `/setuserpic`, `/setdescription` and `/setabouttext`.
 - **Statistics:** send a request with the header `X-Admin-Key: YOUR_ADMIN_KEY` to `https://…workers.dev/internal/stats` to see how many chats use the bot.
+- **Get feedback as DMs:** message [@userinfobot](https://t.me/userinfobot) on Telegram to get your own numeric id, start this bot yourself if you haven't, then in the Cloudflare Worker → **Settings → Variables and Secrets → Add** a `ADMIN_CHAT_ID` text variable with that number. Every `/feedback` message is then forwarded to you instantly, on top of being stored for the stats workflow.
 
 ---
 
