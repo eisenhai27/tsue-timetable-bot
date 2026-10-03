@@ -13,6 +13,10 @@ on:
         description: 'Also send the weekly timetable post now'
         type: boolean
         default: false
+      stats:
+        description: 'Print subscriber counts to the log'
+        type: boolean
+        default: false
   push:
     branches: [main]
     paths: ['docs/**', '!docs/data/**', 'scripts/**', 'src/**', 'fonts/**']  # redeploy the Mini App / pictures when code changes
@@ -103,6 +107,13 @@ jobs:
           WORKER_URL: ${{ vars.WORKER_URL }}
           SITE_URL: ${{ vars.SITE_URL }}
         run: node scripts/notify.mjs auto
+
+      - name: Show subscriber stats
+        if: github.event_name == 'workflow_dispatch' && inputs.stats
+        env:
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+        run: node scripts/stats.mjs
 
       - name: Save notification state
         if: github.event_name != 'push'
