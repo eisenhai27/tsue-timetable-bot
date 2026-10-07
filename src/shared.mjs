@@ -338,11 +338,19 @@ export function subjectName(name, lang) {
   return (hit && hit[lang === 'ru' ? 0 : 1]) || name;
 }
 
-/** "Ekonometrika (Ma)" -> { name: "Ekonometrika", type: "lecture" }; with `lang` the name is translated. */
+/**
+ * "Ekonometrika (Ma)" -> { name: "Ekonometrika", type: "lecture" }. With `lang` the name is translated and the
+ * original (Uzbek) name is kept in `orig` — only when the translation really differs, so readers see
+ * "Auditing / Audit" but never "Audit / Audit".
+ */
 export function parseSubject(s, lang) {
   const r = parseSubjectRaw(s);
-  return lang ? { name: subjectName(r.name, lang), type: r.type } : r;
+  if (!lang) return r;
+  const name = subjectName(r.name, lang);
+  return { name, orig: subjKey(name) === subjKey(r.name) ? null : r.name, type: r.type };
 }
+/** Name for a message: translated name, then the original in italics — "Auditing / <i>Audit</i>". */
+export const subjHtml = (sub, bold) => (bold ? `<b>${esc(sub.name)}</b>` : esc(sub.name)) + (sub.orig ? ` / <i>${esc(sub.orig)}</i>` : '');
 function parseSubjectRaw(s) {
   const m = /^(.*?)\s*\(([^()]+)\)\s*$/.exec(String(s || '').trim());
   if (!m) return { name: String(s || '').trim(), type: null };
@@ -390,7 +398,7 @@ export function fmtLesson(l, periods, lang, parity, state) {
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
   const head = `${state ? state + '\n' : ''}<b>${t.a} – ${t.b}</b>  ·  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
-  const lines = [head, `📘 <b>${esc(sub.name)}</b>${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ''}${l.g ? ` <i>(${esc(l.g)})</i>` : ''}`];
+  const lines = [head, `📘 ${subjHtml(sub, true)}${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ''}${l.g ? ` <i>(${esc(l.g)})</i>` : ''}`];
   if (l.r) lines.push(`📍 ${esc(roomLabel(l.r, lang))}`);
   if (l.t) lines.push(`👤 ${esc(l.t)}`);
   if (l.gr) lines.push(`👥 ${esc(l.gr)}`); // teacher timetables: which groups attend
@@ -401,7 +409,7 @@ export function fmtLesson(l, periods, lang, parity, state) {
 export function fmtLessonShort(l, periods, lang, parity) {
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
-  let s = `<b>${t.a}</b> ${esc(sub.name)}`;
+  let s = `<b>${t.a}</b> ${subjHtml(sub)}`;
   if (sub.type) s += ` <i>(${typeLabel(sub.type, lang).toLowerCase()})</i>`;
   if (l.g) s += ` <i>[${esc(l.g)}]</i>`;
   if (l.gr) s += ` <i>[${esc(l.gr)}]</i>`;
@@ -483,15 +491,15 @@ export function fmtTomorrow(group, index, date, lang) {
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
   if (!ls.length) return null;
   const first = times(index.periods, ls[0]);
-  const firstName = parseSubject(ls[0].s, lang).name;
+  const firstName = subjHtml(parseSubject(ls[0].s, lang));
   const last = times(index.periods, ls[ls.length - 1]).b;
   const title = lang === 'ru' ? `🌙 <b>Завтра</b> — ${L.days[d]}, ${fmtDate(date, lang)}`
     : lang === 'en' ? `🌙 <b>Tomorrow</b> — ${L.days[d]}, ${fmtDate(date, lang)}`
     : `🌙 <b>Ertaga</b> — ${L.days[d]}, ${fmtDate(date, lang)}`;
   const line2 = `${whoIcon(group)} ${esc(group.name)} · ${w.count(ls.length)}${parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''}`;
-  const line3 = lang === 'ru' ? `🕘 Первая пара: <b>${first.a}</b> — ${esc(firstName)}`
-    : lang === 'en' ? `🕘 First class: <b>${first.a}</b> — ${esc(firstName)}`
-    : `🕘 Birinchi dars: <b>${first.a}</b> — ${esc(firstName)}`;
+  const line3 = lang === 'ru' ? `🕘 Первая пара: <b>${first.a}</b> — ${firstName}`
+    : lang === 'en' ? `🕘 First class: <b>${first.a}</b> — ${firstName}`
+    : `🕘 Birinchi dars: <b>${first.a}</b> — ${firstName}`;
   return `${title}\n${line2}\n\n${line3}\n${w.finish(last)}`;
 }
 
@@ -528,7 +536,7 @@ export function fmtChanges(group, index, dayDiffs, lang, isNewTT, now = tashkent
       const j = added.findIndex((n) => sameSubj(o, n));
       if (j < 0) continue;
       const n = added[j];
-      const name = `<b>${esc(parseSubject(n.s, lang).name)}</b>`;
+      const name = subjHtml(parseSubject(n.s, lang), true);
       if (o.p !== n.p || o.n !== n.n) lines.push(`${w.moved}: ${name}\n     ${times(P, o).a} → <b>${times(P, n).a}</b>${n.r ? ` · 📍${esc(n.r)}` : ''}`);
       else if (o.r !== n.r) lines.push(`${w.roomCh}: ${name} (${times(P, n).a})\n     ${esc(o.r || '—')} → <b>${esc(n.r || '—')}</b>`);
       else if (o.t !== n.t) lines.push(`${w.teachCh}: ${name} (${times(P, n).a})\n     ${esc(o.t || '—')} → <b>${esc(n.t || '—')}</b>`);

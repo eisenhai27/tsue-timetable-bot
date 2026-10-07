@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { buildAll, pickTimetable, diffLessons, groupId } from '../src/build.mjs';
-import { fmtDay, fmtWeek, fmtChanges, weekParity, mondayOf, parseClock, hhmm, fmtTomorrowFull, setSubjects, hasSubject, parseSubject, subjectName } from '../src/shared.mjs';
+import { fmtDay, fmtWeek, fmtChanges, weekParity, mondayOf, parseClock, hhmm, fmtTomorrowFull, setSubjects, hasSubject, parseSubject, subjectName, subjHtml } from '../src/shared.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('./fixtures/regulartt-small.json', import.meta.url)));
 const viewer = JSON.parse(fs.readFileSync(new URL('./fixtures/ttviewer.json', import.meta.url)));
@@ -80,7 +80,11 @@ assert.equal(subjectName('Audit', 'en'), 'Auditing');
 assert.equal(subjectName('Audit', 'uz'), 'Audit');
 assert.equal(subjectName('AUDIT-2', 'en'), 'Auditing 2', 'matching ignores case, spaces and punctuation');
 assert.equal(subjectName('Yangi noma\'lum fan', 'ru'), 'Yangi noma\'lum fan', 'unknown names stay as they are');
-assert.deepEqual(parseSubject('Audit (Ma)', 'ru'), { name: 'Аудит', type: 'lecture' });
+assert.deepEqual(parseSubject('Audit (Ma)', 'ru'), { name: 'Аудит', orig: 'Audit', type: 'lecture' });
+assert.deepEqual(parseSubject('Audit (Ma)', 'uz'), { name: 'Audit', orig: null, type: 'lecture' });
+assert.deepEqual(parseSubject('Yangi noma\'lum fan (Ma)', 'en'), { name: 'Yangi noma\'lum fan', orig: null, type: 'lecture' }, 'no translation -> no duplicate original');
+assert.equal(subjHtml(parseSubject('Audit (Ma)', 'en'), true), '<b>Auditing</b> / <i>Audit</i>');
+assert.equal(subjHtml(parseSubject('Audit (Ma)', 'uz'), true), '<b>Audit</b>');
 const dataDir = new URL('../docs/data/', import.meta.url);
 const missing = new Set();
 for (const dir of ['g', 't']) {

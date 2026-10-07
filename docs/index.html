@@ -129,6 +129,7 @@ html.dark .cd.sel{background:var(--blue)}
 .tag{font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--bar,var(--oth))}
 .tag.wk{color:var(--hint)} .tag.new{color:#fff;background:var(--warn);border-radius:6px;padding:0 6px}
 .lesson .subj{font-weight:800;font-size:16px;line-height:1.3}
+.orig{font-weight:500;opacity:.62;font-size:.88em}
 .meta{display:flex;flex-direction:column;gap:3px;margin-top:8px;font-size:13.5px;font-weight:600}
 .meta .ln{display:flex;gap:6px;align-items:baseline;color:var(--hint);text-align:left}
 .meta .ln span{color:var(--text)}
@@ -320,18 +321,21 @@ async function ensureSubjects() {
   try { SUBJ = new Map(Object.entries(await load('subjects.json')).map(([k, v]) => [skey(k), v])); } catch {}
 }
 const trName = (n) => { const h = lang !== 'uz' && SUBJ && SUBJ.get(skey(n)); return (h && h[lang === 'ru' ? 0 : 1]) || n; };
+// translated name + the original Uzbek one beside it (only when the translation really differs)
+const withOrig = (raw, extra) => { const name = trName(raw); return { name, orig: skey(name) === skey(raw) ? null : String(raw || '').trim(), ...extra }; };
+const nameHtml = (st) => esc(st.name) + (st.orig ? ` <span class="orig">/ ${esc(st.orig)}</span>` : '');
 
 function splitType(subject) {
   const m = /^(.*?)\s*\(([^()]+)\)\s*$/.exec(subject || '');
-  if (!m) return { name: trName(subject), type: null, cls: 'other' };
+  if (!m) return withOrig(subject, { type: null, cls: 'other' });
   const t = m[2].toLowerCase();
   let type = null, cls = 'other';
   if (/^(ma|ma'ruza|лек|лекция|lek|lec)/.test(t)) { type = L.lecture; cls = 'lecture'; }
   else if (/^(sem|сем)/.test(t)) { type = L.seminar; cls = 'seminar'; }
   else if (/^(lab|лаб)/.test(t)) { type = L.lab; cls = 'lab'; }
   else if (/^(amal|пр|prac)/.test(t)) { type = L.practice; cls = 'practice'; }
-  else return { name: trName(subject), type: null, cls: 'other' };
-  return { name: trName(m[1]), type, cls };
+  else return withOrig(subject, { type: null, cls: 'other' });
+  return withOrig(m[1], { type, cls });
 }
 
 // ---------------------------------------------------------------- entities & search index
@@ -505,8 +509,8 @@ async function renderTimetable() {
     const whenS = `${dm(when)} ${String(when.getUTCHours()).padStart(2, '0')}:${String(when.getUTCMinutes()).padStart(2, '0')}`;
     const lines = [];
     for (const dd of c.days) {
-      for (const l of dd.removed) lines.push(`<div class="rm">➖ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${esc(splitType(l.s).name)}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
-      for (const l of dd.added) lines.push(`<div>➕ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${esc(splitType(l.s).name)}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
+      for (const l of dd.removed) lines.push(`<div class="rm">➖ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${nameHtml(splitType(l.s))}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
+      for (const l of dd.added) lines.push(`<div>➕ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${nameHtml(splitType(l.s))}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
     }
     banner = `<div class="banner"><details><summary>⚠️ <b>${esc(c.newTT ? L.newTT : L.changed)}</b> · <span class="muted small">${esc(L.changedAt(whenS))}</span> ▾</summary><div class="diff">${lines.slice(0, 30).join('')}</div></details></div>`;
   }
@@ -665,7 +669,7 @@ function lessonHtml(l, t, cls, state, v, isNew, par) {
   }
   return `<div class="lesson t-${st.cls} ${cls}">
     <div class="time"><div class="a">${esc(t.a)}</div><div class="b">${esc(t.b)}</div><div class="n">${l.p}-${esc(L.pairShort)}</div></div>
-    <div class="body">${state ? `<div>${state}</div>` : ''}${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}<div class="subj">${esc(st.name)}</div>
+    <div class="body">${state ? `<div>${state}</div>` : ''}${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}<div class="subj">${nameHtml(st)}</div>
     <div class="meta">${meta.join('')}</div></div></div>`;
 }
 
@@ -702,7 +706,7 @@ function showLesson(l, v, par) {
   if (l.t) for (const x of l.t.split(', ')) rows.push(`<div class="kv"><div class="k">👤</div><div class="v"><button data-open="t:${esc(x)}">${esc(x)}</button></div></div>`);
   if (l.gr) rows.push(`<div class="kv"><div class="k">👥</div><div class="v">${l.gr.split(', ').map(g => `<button data-open="g:${esc(g)}">${esc(g)}</button>`).join(', ')}</div></div>`);
   if (l.g) rows.push(`<div class="kv"><div class="k">🔹</div><div class="v">${esc(l.g)}</div></div>`);
-  openSheet(`<h3>${esc(st.name)}</h3>${rows.join('')}`);
+  openSheet(`<h3>${nameHtml(st)}</h3>${rows.join('')}`);
   $('#sheet').querySelectorAll('[data-open]').forEach(b => b.onclick = () => {
     const [type, name] = [b.dataset.open[0], b.dataset.open.slice(2)];
     const e = type === 'g' ? ALL.find(x => x.type === 'g' && x.name === name) : idOfName[type + ':' + name];
