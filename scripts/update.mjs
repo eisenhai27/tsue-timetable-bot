@@ -1,5 +1,5 @@
 // Downloads the TSUE timetable from EduPage, rebuilds the data files in docs/data,
-// and writes .out/changes.json with every group whose timetable changed.
+// and writes .out/changes.json with every group / teacher whose timetable changed.
 //
 //   node scripts/update.mjs                 (normal run)
 //   node scripts/update.mjs --raw file.json  (use a saved regulartt response instead of downloading)
@@ -7,7 +7,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { buildAll, diffLessons, pickTimetable, groupId } from '../src/build.mjs';
-import { tashkentNow, addDays, ymd } from '../src/shared.mjs';
+import { tashkentNow, addDays, ymd, parseSubject, setSubjects, hasSubject } from '../src/shared.mjs';
 
 const BASE = process.env.EDUPAGE_URL || 'https://tsue.edupage.org';
 const DATA = path.resolve('docs/data');
@@ -99,6 +99,21 @@ async function main() {
   }
   const firstRun = !oldIndex;
 
+  // Subject names without a Russian / English translation are shown in Uzbek until they are added to
+  // docs/data/subjects.json — say so in the log so a new subject doesn't go unnoticed.
+  const subjects = await readJson(path.join(DATA, 'subjects.json'));
+  if (subjects) {
+    setSubjects(subjects);
+    const missing = new Set();
+    for (const e of [...Object.values(built.groups), ...Object.values(built.teachers)]) {
+      for (const l of e.lessons) {
+        const n = parseSubject(l.s).name;
+        if (n && !hasSubject(n)) missing.add(n);
+      }
+    }
+    if (missing.size) console.log(`::warning::${missing.size} subject name(s) have no ru/en translation yet (add them to docs/data/subjects.json): ${[...missing].slice(0, 15).join(' | ')}`);
+  }
+
   const changes = [];
   const nowIso = new Date().toISOString();
   let written = 0;
@@ -111,7 +126,7 @@ async function main() {
       const days = diffLessons(old.lessons, g.lessons);
       if (days.length) {
         const newTT = old.tt?.num !== tt.num;
-        changes.push({ id, newTT, days });
+        changes.push({ kind: 'g', id, newTT, days });
         history = [{ at: nowIso, newTT, days }, ...history].slice(0, KEEP_CHANGES);
       }
     }
@@ -122,7 +137,18 @@ async function main() {
     const v = groupId(JSON.stringify(g.lessons) + g.tt.num);
     if (await writeIfChanged(file, { ...g, v, changes: history })) written++;
   }
-  for (const [id, t] of Object.entries(built.teachers)) if (await writeIfChanged(path.join(DATA, 't', `${id}.json`), t)) written++;
+  // Teachers get the same treatment as groups: diff against the previous file so teachers who use the
+  // bot are told when their own timetable changes. (No history list in the file — only the alert.)
+  for (const [id, t] of Object.entries(built.teachers)) {
+    const file = path.join(DATA, 't', `${id}.json`);
+    const old = await readJson(file);
+    if (old && !firstRun) {
+      const days = diffLessons(old.lessons, t.lessons);
+      if (days.length) changes.push({ kind: 't', id, newTT: old.tt?.num !== tt.num, days });
+    }
+    const v = groupId(JSON.stringify(t.lessons) + t.tt.num); // changes the weekly picture URL (Telegram caches by URL)
+    if (await writeIfChanged(file, { ...t, v })) written++;
+  }
   for (const [id, r] of Object.entries(built.rooms)) if (await writeIfChanged(path.join(DATA, 'r', `${id}.json`), r)) written++;
   await writeIfChanged(path.join(DATA, 'people.json'), built.people);
   await writeIfChanged(path.join(DATA, 'busy.json'), built.busy);
@@ -131,7 +157,8 @@ async function main() {
 
   await fs.mkdir(OUT, { recursive: true });
   await fs.writeFile(path.join(OUT, 'changes.json'), JSON.stringify(changes));
-  console.log(`${written} files updated, ${changes.length} groups changed${firstRun ? ' (first run: no alerts)' : ''}.`);
+  const nG = changes.filter((c) => c.kind === 'g').length;
+  console.log(`${written} files updated, ${nG} groups and ${changes.length - nG} teachers changed${firstRun ? ' (first run: no alerts)' : ''}.`);
   if (process.env.GITHUB_OUTPUT) {
     await fs.appendFile(process.env.GITHUB_OUTPUT, `written=${written}\nchanged=${changes.length}\n`);
   }

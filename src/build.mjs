@@ -244,7 +244,7 @@ export function buildAll(raw, tt, opts = {}) {
 }
 
 export function lessonKey(l) {
-  return [l.d, l.p, l.w || '', l.g || '', l.s, l.t, l.r, l.n].join('|');
+  return [l.d, l.p, l.w || '', l.g || '', l.s, l.t, l.r, l.n, l.gr || ''].join('|'); // gr = groups of a teacher's lesson
 }
 
 function dedupe(list) {

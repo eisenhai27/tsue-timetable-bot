@@ -12,11 +12,16 @@ const res = await fetch(`${WORKER_URL.replace(/\/+$/, '')}/internal/stats`, {
 if (!res.ok) throw new Error(`HTTP ${res.status}: ${await res.text()}`);
 const { stats, feedback } = await res.json();
 
-const labels = { private: 'Shaxsiy chatlar (talabalar)', group: 'Guruh chatlari' };
+const labels = {
+  'private/student': 'Shaxsiy chatlar — talabalar',
+  'private/teacher': "Shaxsiy chatlar — o'qituvchilar",
+  'group/student': 'Guruh chatlari',
+};
 console.log('--- Foydalanuvchilar statistikasi ---');
 let total = 0;
 for (const s of stats) {
-  console.log(`${labels[s.kind] || s.kind}: ${s.n} ta (guruhini tanlagan: ${s.with_group})`);
+  const label = labels[`${s.kind}/${s.role || 'student'}`] || `${s.kind}/${s.role}`;
+  console.log(`${label}: ${s.n} ta (guruhini/o'qituvchisini tanlagan: ${s.with_group})`);
   total += s.n;
 }
 console.log(`Jami: ${total} ta chat`);

@@ -1,16 +1,18 @@
-// Draws the weekly timetable of every group as a PNG picture (like the grid on tsue.edupage.org),
-// in the TDIU Jadval style. Output: docs/img/g/<groupId>.png — sent by the bot for "Week".
+// Draws the weekly timetable of every group and every teacher as a PNG picture (like the grid on
+// tsue.edupage.org), in the TDIU Jadval style.
+// Output: docs/img/g/<groupId>.png and docs/img/t/<teacherId>.png — sent by the bot for "Week".
 //
-//   node scripts/render.mjs              (all groups)
-//   node scripts/render.mjs 1thm8e1 ...   (only these groups, for testing)
+//   node scripts/render.mjs                  (all groups + all teachers)
+//   node scripts/render.mjs 1thm8e1 t1o0h5yi  (only these groups / teachers, for testing)
 
 import fs from 'node:fs/promises';
+import fsSync from 'node:fs';
 import path from 'node:path';
 import { Resvg } from '@resvg/resvg-js';
 import { parseSubject } from '../src/shared.mjs';
 
 const DATA = path.resolve('docs/data');
-const OUT = path.resolve('docs/img/g');
+const OUT = { g: path.resolve('docs/img/g'), t: path.resolve('docs/img/t') };
 const FONTS = ['Manrope_400Regular.ttf', 'Manrope_600SemiBold.ttf', 'Manrope_800ExtraBold.ttf'].map((f) => path.resolve('fonts', f));
 // Fallback for letters Manrope doesn't have (e.g. Uzbek Cyrillic Ў, Қ): DejaVu is preinstalled on GitHub's Ubuntu runners
 for (const f of ['/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf', '/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf']) {
@@ -55,6 +57,7 @@ const shortTeacher = (t) => String(t || '').split(', ').map((n) => {
 
 export function renderSvg(group, index, logoDataUri) {
   const lessons = group.lessons || [];
+  const isT = group.kind === 't'; // a teacher's timetable: cells show the groups instead of the teacher
   const W = 1400;
   const M = 28; // outer margin
   const HEAD = 150;
@@ -89,7 +92,7 @@ export function renderSvg(group, index, logoDataUri) {
   }
   const tx = M + (logoDataUri ? 116 : 0);
   o.push(`<text x="${tx}" y="78" font-size="46" font-weight="800" fill="${C.white}">${x(group.name)}</text>`);
-  const sub = [group.fac, group.course ? `${group.course}-kurs` : ''].filter(Boolean).join(' · ');
+  const sub = isT ? 'O‘qituvchi' : [group.fac, group.course ? `${group.course}-kurs` : ''].filter(Boolean).join(' · ');
   o.push(`<text x="${tx}" y="114" font-size="22" font-weight="600" fill="#A9C8F2">Haftalik dars jadvali${sub ? ' · ' + x(sub) : ''}</text>`);
   o.push(`<text x="${W - M}" y="72" font-size="30" font-weight="800" fill="${C.white}" text-anchor="end">TDIU Jadval</text>`);
   o.push(`<text x="${W - M}" y="106" font-size="20" font-weight="600" fill="#CFE2FB" text-anchor="end">@tdiujadval_bot</text>`);
@@ -144,11 +147,19 @@ export function renderSvg(group, index, logoDataUri) {
           o.push(`<text x="${cx + 16}" y="${ty}" font-size="${fs}" font-weight="800" fill="${C.ink}">${x(line)}</text>`);
           ty += fs + 4;
         }
-        const meta = [l.r, shortTeacher(l.t)].filter(Boolean).join('  ·  ');
         const metaFs = small ? 13 : 15;
         const metaMax = Math.floor((cw - 26) / (metaFs * 0.55));
-        const metaText = (small && tags ? tags + '  ·  ' : '') + meta;
-        o.push(`<text x="${cx + 16}" y="${Math.min(ty + 2, cy + ch - 10)}" font-size="${metaFs}" font-weight="600" fill="${C.mute}">${x(metaText.length > metaMax ? metaText.slice(0, metaMax - 1) + '…' : metaText)}</text>`);
+        const cut = (t, max) => (t.length > max ? t.slice(0, max - 1) + '…' : t);
+        if (isT && !small) {
+          // teacher: groups (the important part) on one line, the room under it
+          const grMax = Math.floor((cw - 26) / (14 * 0.58));
+          if (l.gr) o.push(`<text x="${cx + 16}" y="${cy + ch - 30}" font-size="14" font-weight="800" fill="${C.ink}">${x(cut(l.gr, grMax))}</text>`);
+          if (l.r) o.push(`<text x="${cx + 16}" y="${cy + ch - 10}" font-size="${metaFs}" font-weight="600" fill="${C.mute}">${x(cut(l.r, metaMax))}</text>`);
+        } else {
+          const meta = (isT ? [l.r, l.gr] : [l.r, shortTeacher(l.t)]).filter(Boolean).join('  ·  ');
+          const metaText = (small && tags ? tags + '  ·  ' : '') + meta;
+          o.push(`<text x="${cx + 16}" y="${Math.min(ty + 2, cy + ch - 10)}" font-size="${metaFs}" font-weight="600" fill="${C.mute}">${x(cut(metaText, metaMax))}</text>`);
+        }
       });
     }
   });
@@ -171,19 +182,21 @@ export function renderPng(svg) {
 
 async function main() {
   const index = JSON.parse(await fs.readFile(path.join(DATA, 'index.json'), 'utf8'));
-  let ids = process.argv.slice(2);
-  if (!ids.length) ids = (await fs.readdir(path.join(DATA, 'g'))).filter((f) => f.endsWith('.json')).map((f) => f.replace(/\.json$/, ''));
+  const ls = async (k) => (await fs.readdir(path.join(DATA, k))).filter((f) => f.endsWith('.json')).map((f) => [k, f.replace(/\.json$/, '')]);
+  let jobs = process.argv.slice(2).map((id) => [id.startsWith('t') && !fsSync.existsSync(path.join(DATA, 'g', `${id}.json`)) ? 't' : 'g', id]);
+  if (!jobs.length) jobs = [...(await ls('g')), ...(await ls('t'))];
   let logo = null;
   try { logo = 'data:image/png;base64,' + (await fs.readFile(path.resolve('docs/icon-192.png'))).toString('base64'); } catch {}
-  await fs.mkdir(OUT, { recursive: true });
+  await fs.mkdir(OUT.g, { recursive: true });
+  await fs.mkdir(OUT.t, { recursive: true });
   const t0 = Date.now();
   let n = 0;
-  for (const id of ids) {
-    const g = JSON.parse(await fs.readFile(path.join(DATA, 'g', `${id}.json`), 'utf8'));
-    await fs.writeFile(path.join(OUT, `${id}.png`), renderPng(renderSvg(g, index, logo)));
+  for (const [k, id] of jobs) {
+    const obj = JSON.parse(await fs.readFile(path.join(DATA, k, `${id}.json`), 'utf8'));
+    await fs.writeFile(path.join(OUT[k], `${id}.png`), renderPng(renderSvg(k === 't' ? { ...obj, kind: 't' } : obj, index, logo)));
     n++;
   }
-  console.log(`Rendered ${n} weekly pictures in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
+  console.log(`Rendered ${n} weekly pictures (groups + teachers) in ${((Date.now() - t0) / 1000).toFixed(1)}s`);
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) main().catch((e) => { console.error(e); process.exit(1); });

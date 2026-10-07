@@ -19,7 +19,16 @@ check('rejects wrong secret', (await fetch(W + '/tg', { method: 'POST', headers:
 
 await reset(); await post(msg('/start'));
 let l = await log();
-check('new user → welcome in Uzbek (default) + faculty list', l.some((c) => /Assalomu alaykum/.test(c.data.text || '')) && l.some((c) => /Fakultetni tanlang/.test(c.data.text || '')), texts(l));
+check('new user → welcome in Uzbek (default) + "who are you?" (student / teacher)', l.some((c) => /Assalomu alaykum/.test(c.data.text || '')) && l.some((c) => /Siz kimsiz/.test(c.data.text || '')), texts(l));
+const roleKb = l.find((c) => /Siz kimsiz/.test(c.data.text || ''))?.data.reply_markup.inline_keyboard;
+check('role keyboard: student / teacher + language row', roleKb?.[0]?.[0]?.callback_data === 'R:111:s' && roleKb?.[0]?.[1]?.callback_data === 'R:111:t' && roleKb?.at(-1)?.[0]?.callback_data === 'lang:uz:role:111', roleKb);
+await reset(); await post(cb('lang:en:role:111'));
+l = await log();
+check('language switch on the role screen redraws it', l.some((c) => c.method === 'editMessageText' && /Who are you/.test(c.data.text || '')), texts(l));
+await post(cb('lang:uz:role:111'));
+await reset(); await post(cb('R:111:s'));
+l = await log();
+check('pick "student" → faculty list', l.some((c) => c.method === 'editMessageText' && /Fakultetni tanlang/.test(c.data.text || '')), texts(l));
 const pickKb = l.find((c) => /Fakultetni/.test(c.data.text || ''))?.data.reply_markup.inline_keyboard;
 check('language row under faculty list, Uzbek first and selected', pickKb?.at(-1)?.[0]?.callback_data === 'lang:uz:pick:111' && /✓/.test(pickKb.at(-1)[0].text), pickKb?.at(-1));
 
@@ -48,7 +57,7 @@ check("someone else's menu is refused", l.some((c) => c.method === 'answerCallba
 
 await reset(); await post(msg('🗓 Неделя'));
 l = await log();
-check('week button (RU) → weekly picture with caption', l.some((c) => c.method === 'sendPhoto' && /\/img\/g\/.+\.png/.test(c.data.photo) && /расписание на неделю/.test(c.data.caption)), texts(l));
+check('week button (RU) → text week with Russian subject names (picture is Uzbek-only)', !l.some((c) => c.method === 'sendPhoto') && l.some((c) => c.method === 'sendMessage' && /Расписание на неделю/i.test(c.data.text || '') && /[А-Яа-я]{4}/.test((c.data.text || '').replace(/Расписание на неделю/gi, ''))), texts(l));
 
 await reset(); await post(msg('/tomorrow'));
 l = await log();
@@ -144,11 +153,126 @@ l = await log();
 check('/feedback with text is accepted', l.some((c) => /Rahmat! Xabaringiz qabul qilindi/.test(c.data.text || '')), texts(l));
 check('/feedback is forwarded to ADMIN_CHAT_ID as a DM', l.some((c) => c.method === 'sendMessage' && String(c.data.chat_id) === '999999' && /Xona nomi/.test(c.data.text || '')), texts(l));
 
+// ---- group chats: daily "tomorrow's classes" reminder (default 21:00, admin can change the time)
+await post(cb('lang:uz:chat', grp)); // the group was switched to Russian above — back to Uzbek
+await reset(); await post(msg('/setgroup', grp)); await post(cb('g:111:1thm8e1', grp));
+l = await log();
+check('group link message announces the daily reminder at 21:00 and /time', l.some((c) => /ulandi/.test(c.data.text || '') && /21:00/.test(c.data.text) && /\/time/.test(c.data.text)), texts(l));
+await reset(); await post(msg('/time', grp, { id: 333, first_name: 'Vali' }));
+l = await log();
+check('non-admin /time refused in a group', l.some((c) => /Faqat chat adminlari/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/time', grp));
+l = await log();
+const timeKb = l.find((c) => /Ertangi darslar eslatmasi/.test(c.data.text || ''))?.data.reply_markup?.inline_keyboard;
+check('/time shows the time picker with 21:00 selected', timeKb && timeKb.flat().some((b) => b.callback_data === 'rt:1260' && /✓/.test(b.text)) && timeKb.flat().some((b) => b.callback_data === 'rt:-1'), l);
+await reset(); await post(cb('rt:1200', grp));
+l = await log();
+check('picking 20:00 saves it and confirms', l.some((c) => c.method === 'editMessageText' && /20:00/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/time 21.30', grp));
+l = await log();
+check('/time 21.30 → 21:30', l.some((c) => /21:30/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/time abc', grp));
+l = await log();
+check('/time with garbage → format hint', l.some((c) => /<code>\/time 21:00<\/code>/.test(c.data.text || '')), texts(l));
+const rowsAt = async (from, to) => (await (await fetch(`${W}/internal/subs?mode=tomorrow&from=${from}&to=${to}`, { headers: { 'x-admin-key': 'secretkey' } })).json()).rows;
+check('reminder window (21:15–21:45] includes the group (21:30)', (await rowsAt(1275, 1305)).some((r) => r.chat_id === -100500));
+check('reminder window (21:30–22:00] excludes it (window is open at the start)', !(await rowsAt(1290, 1320)).some((r) => r.chat_id === -100500));
+check('reminder window (20:00–21:00] excludes it too', !(await rowsAt(1200, 1260)).some((r) => r.chat_id === -100500));
+await post(msg('/time off', grp));
+check('/time off → group is no longer in any reminder window', !(await rowsAt(-1, 1439)).some((r) => r.chat_id === -100500));
+const allTmr = await (await fetch(W + '/internal/subs?mode=tomorrow', { headers: { 'x-admin-key': 'secretkey' } })).json();
+check('mode=tomorrow without a window = everyone who has it on (not the group, it is off)', allTmr.rows.length >= 2 && !allTmr.rows.some((r) => r.chat_id === -100500), allTmr);
+await post(msg('/time 21:00', grp));
+check('back to 21:00 → in the (20:55–21:05] window', (await rowsAt(1255, 1265)).some((r) => r.chat_id === -100500));
+await reset(); await post(msg('/time 20:30', priv2, user2));
+l = await log();
+check('private chats can set their own reminder time too', l.some((c) => /20:30/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/settings', priv2, user2));
+l = await log();
+check('settings shows the reminder time + a button for it', l.some((c) => /20:30/.test(c.data.text || '') && c.data.reply_markup?.inline_keyboard?.flat().some((b) => b.callback_data === 's:time')), texts(l));
+await reset(); await post(cb('s:time', priv2, user2));
+l = await log();
+check('settings → reminder button opens the picker', l.some((c) => c.method === 'editMessageText' && c.data.reply_markup?.inline_keyboard?.flat().some((b) => b.callback_data === 'rt:1260')), texts(l));
+await post(msg('/time 21:00', priv2, user2));
+
+// ---- teachers
+const tUser = { id: 777, first_name: 'Dilshod', language_code: 'uz' };
+const tPriv = { id: 777, type: 'private' };
+await reset(); await post(msg('/start', tPriv, tUser));
+await post(cb('R:777:t', tPriv, tUser));
+l = await log();
+const letterKb = l.find((c) => c.method === 'editMessageText' && /O'qituvchini tanlang/.test(c.data.text || ''))?.data.reply_markup.inline_keyboard;
+check('teacher role → letter picker', letterKb && letterKb.flat().some((b) => b.callback_data === 'tl:777:K:0'), texts(l));
+await reset(); await post(cb('tl:777:K:0', tPriv, tUser));
+l = await log();
+const tKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check('letter K → teachers whose surname starts with K', tKb && tKb.flat().some((b) => /Karimov Dilshod/.test(b.text) && b.callback_data === 'tp:777:thf5rej'), texts(l));
+await reset(); await post(cb('tp:777:thf5rej', tPriv, tUser));
+l = await log();
+check('teacher picked → saved + today/tomorrow-style schedule + main keyboard', l.some((c) => /O'qituvchi saqlandi/.test(c.data.text || '') && /Karimov Dilshod/.test(c.data.text)) && l.some((c) => /👤 Karimov Dilshod/.test(c.data.text || '') && c.data.reply_markup?.keyboard), texts(l));
+check('teacher gets the "alerts will come here" tip once', l.some((c) => /jadvalingiz o'zgarsa/i.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/week', tPriv, tUser));
+l = await log();
+check('teacher /week → picture from /img/t/<id>.png', l.some((c) => c.method === 'sendPhoto' && /\/img\/t\/thf5rej\.png/.test(c.data.photo)), texts(l));
+await reset(); await post(msg('/today', tPriv, tUser));
+l = await log();
+check('teacher /today shows 👤 header and which groups attend', l.some((c) => /👤 Karimov Dilshod/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('karimov fax', tPriv, tUser));
+l = await log();
+check('teacher types a surname → search buttons', l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Karimov Faxriddin/.test(b.text) && b.callback_data === 'tp:777:t1c51c9b')), texts(l));
+await reset(); await post(msg('Каримов', tPriv, tUser));
+l = await log();
+check('Cyrillic query is transliterated (Каримов → Karimov)', l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Karimov/.test(b.text))), texts(l));
+await reset(); await post(msg('/settings', tPriv, tUser));
+l = await log();
+check('settings shows the teacher + role switch button', l.some((c) => /O'qituvchi: Karimov Dilshod/.test(c.data.text || '') && c.data.reply_markup?.inline_keyboard?.flat().some((b) => b.callback_data === 's:role')), texts(l));
+const subsT = await (await fetch(W + '/internal/subs?mode=alerts', { headers: { 'x-admin-key': 'secretkey' } })).json();
+check('internal subs marks the teacher (role=teacher, group_id=teacher id)', subsT.rows.some((r) => r.chat_id === 777 && r.role === 'teacher' && r.group_id === 'thf5rej'), subsT);
+await reset(); await post(cb('s:role', tPriv, tUser));
+await post(cb('R:777:s', tPriv, tUser));
+l = await log();
+check('switching to "student" clears the teacher and asks for a faculty', l.some((c) => c.method === 'editMessageText' && /Fakultetni tanlang/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/today', tPriv, tUser));
+l = await log();
+check('after the switch there is no timetable yet (asks to choose a group)', l.some((c) => /guruh tanlamagansiz/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/teacher karimov dil', tPriv, tUser));
+l = await log();
+check('/teacher <surname> searches directly', l.some((c) => c.data.reply_markup?.inline_keyboard?.flat().some((b) => b.callback_data === 'tp:777:thf5rej')), texts(l));
+await post(cb('tp:777:thf5rej', tPriv, tUser));
+
+// ---- the admin answers feedback: Reply to the forwarded DM → goes to that user, in their language
+await reset(); await post(msg('/feedback Salom, jadvalda xato bor', priv2, user2));
+l = await log();
+const fwd = l.find((c) => c.method === 'sendMessage' && String(c.data.chat_id) === '999999' && /jadvalda xato/.test(c.data.text || ''));
+check('feedback DM tells the admin how to reply', fwd && /Reply/.test(fwd.data.text), texts(l));
+const admin = { id: 999999, first_name: 'Admin' };
+const adminChat = { id: 999999, type: 'private' };
+await reset();
+await post({ message: { message_id: 7, date: 0, chat: adminChat, from: admin, text: 'Rahmat, tuzatdik!', reply_to_message: { message_id: fwd.result.message_id } } });
+l = await log();
+check('admin Reply → the user receives the answer', l.some((c) => c.method === 'sendMessage' && c.data.chat_id === 555 && /Rahmat, tuzatdik!/.test(c.data.text) && /TDIU Jadval jamoasidan javob/.test(c.data.text)), texts(l));
+check('admin gets a delivery confirmation', l.some((c) => String(c.data.chat_id) === '999999' && /Javob yuborildi/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/reply 555 /reply orqali javob', adminChat, admin));
+l = await log();
+check('/reply <chat_id> text works as a fallback', l.some((c) => c.data.chat_id === 555 && /\/reply orqali javob/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/reply xato', adminChat, admin));
+l = await log();
+check('/reply without an id shows the format', l.some((c) => /Format: <code>\/reply/.test(c.data.text || '')), texts(l));
+await reset(); await post({ message: { message_id: 8, date: 0, chat: priv2, from: user2, text: 'men ham yozaman', reply_to_message: { message_id: fwd.result.message_id } } });
+l = await log();
+check("an ordinary user's reply is NOT relayed to anyone", !l.some((c) => c.data.chat_id === 555 && /jamoasidan javob/.test(c.data.text || '')) && !l.some((c) => String(c.data.chat_id) === '999999' && /men ham yozaman/.test(c.data.text || '')), texts(l));
+await post(cb('lang:ru:start', priv2, user2)); // chat 555 → Russian: the answer must arrive in Russian
+await reset();
+await post({ message: { message_id: 9, date: 0, chat: adminChat, from: admin, text: 'Исправили', reply_to_message: { message_id: fwd.result.message_id } } });
+l = await log();
+check('the answer arrives in the user’s own language (RU)', l.some((c) => c.data.chat_id === 555 && /Ответ команды/.test(c.data.text || '')), texts(l));
+await post(cb('lang:uz:start', priv2, user2));
+
 // ---- internal API
 const subs = await (await fetch(W + '/internal/subs?mode=weekly', { headers: { 'x-admin-key': 'secretkey' } })).json();
 check('internal subs (weekly) lists the group chat', subs.rows.some((r) => r.chat_id === -100500 && r.group_id === '1thm8e1'), subs);
 const subsA = await (await fetch(W + '/internal/subs?mode=alerts', { headers: { 'x-admin-key': 'secretkey' } })).json();
-check('internal subs (alerts) has both private users + the group', subsA.rows.length === 3 && subsA.rows.some((r) => r.chat_id === 111) && subsA.rows.some((r) => r.chat_id === 555) && subsA.rows.some((r) => r.chat_id === -100500), subsA);
+check('internal subs (alerts) has both private users + the group (+ the teacher)', subsA.rows.length === 4 && subsA.rows.some((r) => r.chat_id === 111) && subsA.rows.some((r) => r.chat_id === 555) && subsA.rows.some((r) => r.chat_id === -100500), subsA);
 check('internal API needs key', (await fetch(W + '/internal/subs?mode=alerts')).status === 403);
 const st = await (await fetch(W + '/internal/stats', { headers: { 'x-admin-key': 'secretkey' } })).json();
 console.log('   stats:', JSON.stringify(st));

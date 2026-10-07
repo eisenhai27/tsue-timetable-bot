@@ -311,22 +311,33 @@ const norm = (s) => String(s || '').toUpperCase().replace(/[‘’ʻʼ`']/g, '')
 const haptic = (k = 'light') => { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(k); } catch {} };
 const idOfName = {}; // name → entity (for tapping teacher/room chips)
 
+// Subject names come from EduPage in Uzbek; Russian / English readers get them from data/subjects.json
+// ({ "<Uzbek name>": [ru, en] }). Matching ignores case, spaces and punctuation; unknown names stay as they are.
+let SUBJ = null;
+const skey = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+async function ensureSubjects() {
+  if (lang === 'uz' || SUBJ) return;
+  try { SUBJ = new Map(Object.entries(await load('subjects.json')).map(([k, v]) => [skey(k), v])); } catch {}
+}
+const trName = (n) => { const h = lang !== 'uz' && SUBJ && SUBJ.get(skey(n)); return (h && h[lang === 'ru' ? 0 : 1]) || n; };
+
 function splitType(subject) {
   const m = /^(.*?)\s*\(([^()]+)\)\s*$/.exec(subject || '');
-  if (!m) return { name: subject, type: null, cls: 'other' };
+  if (!m) return { name: trName(subject), type: null, cls: 'other' };
   const t = m[2].toLowerCase();
   let type = null, cls = 'other';
   if (/^(ma|ma'ruza|лек|лекция|lek|lec)/.test(t)) { type = L.lecture; cls = 'lecture'; }
   else if (/^(sem|сем)/.test(t)) { type = L.seminar; cls = 'seminar'; }
   else if (/^(lab|лаб)/.test(t)) { type = L.lab; cls = 'lab'; }
   else if (/^(amal|пр|prac)/.test(t)) { type = L.practice; cls = 'practice'; }
-  else return { name: subject, type: null, cls: 'other' };
-  return { name: m[1], type, cls };
+  else return { name: trName(subject), type: null, cls: 'other' };
+  return { name: trName(m[1]), type, cls };
 }
 
 // ---------------------------------------------------------------- entities & search index
 let INDEX = null, PEOPLE = null, ALL = [];
 async function ensureIndex() {
+  await ensureSubjects();
   if (INDEX) return;
   INDEX = await load('index.json');
   ALL = [];
@@ -870,7 +881,8 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
       const type = hash.get('g') ? 'g' : hash.get('t') ? 't' : 'r';
       if (type !== 'g') await ensurePeople();
       const e = ALL.find(x => x.type === type && x.id === gid);
-      if (e) { if (type === 'g') { S.mine = { type, id: e.id, name: e.name }; store.set('mine', S.mine); } S.view = { type, id: e.id, name: e.name }; remember(e); }
+      if (e) { if (type === 'g' || type === 't') { S.mine = { type, id: e.id, name: e.name }; store.set('mine', S.mine); } // a link from the bot (#g= for students, #t= for teachers) is the user's own timetable
+         S.view = { type, id: e.id, name: e.name }; remember(e); }
     } catch {}
   }
   render();
