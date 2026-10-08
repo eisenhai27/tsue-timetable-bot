@@ -135,9 +135,6 @@ async function sendChanges(index) {
   if (!changes.length) { console.log('No changes, nothing to send.'); return; }
   const byKey = new Map(changes.map((c) => [`${c.kind || 'g'}:${c.id}`, c]));
   for await (const sub of subscribers('alerts')) {
-    // Group chats get exactly ONE message a day (the evening "tomorrow's classes" list), not an alert for every
-    // EduPage edit — one group could otherwise be pinged 3-5 times in a day. Private chats keep the instant alerts.
-    if (sub.kind !== 'private') continue;
     const c = byKey.get(`${kindOf(sub)}:${sub.group_id}`);
     if (!c) continue;
     const g = await loadGroup(sub);
@@ -163,8 +160,8 @@ async function sendWeekly(index) {
  * The daily "tomorrow's classes" message. Every chat has its own time (chats.remind_at, default 21:00,
  * changed with /time); `window` = [from, to] in minutes after midnight limits it to the chats whose time
  * fell inside that window since the last run (no window = everyone who has it on, for a manual send).
- * Group chats get the full list of tomorrow's classes; private chats a short "first class" ping.
- * Free days stay silent.
+ * Group chats get the full list of tomorrow's classes — but only when their timetable changed in the last 24 h;
+ * private chats a short "first class" ping every day. Free days stay silent.
  */
 async function sendTomorrow(index, window) {
   const now = tashkentNow();
@@ -179,6 +176,10 @@ async function sendTomorrow(index, window) {
     if (skip.has(sub.chat_id)) continue;
     const g = await loadGroup(sub);
     if (!g) continue;
+    // Group chats only hear from the bot when something changed: the evening list goes to a group only if its
+    // timetable was edited in the last 24 h (a follow-up to the instant alert: "so tomorrow looks like this").
+    // No change → no message. A manual force-send (no window) still goes to everyone who has it on.
+    if (window && sub.kind !== 'private' && !(g.changes || []).some((c) => Date.parse(c.at) > Date.now() - 24 * 3600e3)) continue;
     const text = sub.kind === 'private' ? fmtTomorrow(g, index, tomorrow, sub.lang) : fmtTomorrowFull(g, index, tomorrow, sub.lang);
     if (!text) continue;
     await send(sub.chat_id, text, await keyboard(sub, g.id));
