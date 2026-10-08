@@ -409,8 +409,11 @@ function subjectName(name, lang) {
 }
 function parseSubject(s, lang) {
   const r = parseSubjectRaw(s);
-  return lang ? { name: subjectName(r.name, lang), type: r.type } : r;
+  if (!lang) return r;
+  const name = subjectName(r.name, lang);
+  return { name, orig: subjKey(name) === subjKey(r.name) ? null : r.name, type: r.type };
 }
+var subjHtml = (sub, bold) => (bold ? `<b>${esc(sub.name)}</b>` : esc(sub.name)) + (sub.orig ? ` / <i>${esc(sub.orig)}</i>` : "");
 function parseSubjectRaw(s) {
   const m = /^(.*?)\s*\(([^()]+)\)\s*$/.exec(String(s || "").trim());
   if (!m) return { name: String(s || "").trim(), type: null };
@@ -452,7 +455,7 @@ function fmtLesson(l, periods, lang, parity, state) {
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
   const head = `${state ? state + "\n" : ""}<b>${t.a} \u2013 ${t.b}</b>  \xB7  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
-  const lines = [head, `\u{1F4D8} <b>${esc(sub.name)}</b>${sub.type ? ` \u2014 ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`];
+  const lines = [head, `\u{1F4D8} ${subjHtml(sub, true)}${sub.type ? ` \u2014 ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`];
   if (l.r) lines.push(`\u{1F4CD} ${esc(roomLabel(l.r, lang))}`);
   if (l.t) lines.push(`\u{1F464} ${esc(l.t)}`);
   if (l.gr) lines.push(`\u{1F465} ${esc(l.gr)}`);
@@ -461,7 +464,7 @@ function fmtLesson(l, periods, lang, parity, state) {
 function fmtLessonShort(l, periods, lang, parity) {
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
-  let s = `<b>${t.a}</b> ${esc(sub.name)}`;
+  let s = `<b>${t.a}</b> ${subjHtml(sub)}`;
   if (sub.type) s += ` <i>(${typeLabel(sub.type, lang).toLowerCase()})</i>`;
   if (l.g) s += ` <i>[${esc(l.g)}]</i>`;
   if (l.gr) s += ` <i>[${esc(l.gr)}]</i>`;
@@ -666,12 +669,19 @@ async function db(env) {
         created_at INTEGER)`)
     ]);
     const cols = (await env.DB.prepare("PRAGMA table_info(chats)").all()).results || [];
+    const addColumn = async (sql, after) => {
+      try {
+        await env.DB.prepare(sql).run();
+        if (after) await env.DB.prepare(after).run();
+      } catch (e) {
+        if (!/duplicate column/i.test(String(e?.message))) throw e;
+      }
+    };
     if (!cols.some((c) => c.name === "role")) {
-      await env.DB.prepare("ALTER TABLE chats ADD COLUMN role TEXT NOT NULL DEFAULT 'student'").run();
+      await addColumn("ALTER TABLE chats ADD COLUMN role TEXT NOT NULL DEFAULT 'student'");
     }
     if (!cols.some((c) => c.name === "remind_at")) {
-      await env.DB.prepare("ALTER TABLE chats ADD COLUMN remind_at INTEGER NOT NULL DEFAULT 1260").run();
-      await env.DB.prepare("UPDATE chats SET remind_at = -1 WHERE alerts = 0").run();
+      await addColumn("ALTER TABLE chats ADD COLUMN remind_at INTEGER NOT NULL DEFAULT 1260", "UPDATE chats SET remind_at = -1 WHERE alerts = 0");
     }
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)").run();
     schemaReady = true;
@@ -704,6 +714,16 @@ async function updateChat(env, chatId, fields) {
   const keys = Object.keys(fields);
   const sql = `UPDATE chats SET ${keys.map((k) => `${k} = ?`).join(", ")}, updated_at = ? WHERE chat_id = ?`;
   await (await db(env)).prepare(sql).bind(...keys.map((k) => fields[k]), Date.now(), chatId).run();
+  if (chatId > 0 && siteUrl(env) && ("lang" in fields || "group_id" in fields || "role" in fields)) await syncMenu(env, chatId);
+}
+async function syncMenu(env, chatId) {
+  try {
+    const row = await getChat(env, chatId);
+    if (!row) return;
+    const text = { uz: "\u{1F4C5} Jadval", ru: "\u{1F4C5} \u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435", en: "\u{1F4C5} Timetable" }[row.lang] || "\u{1F4C5} Jadval";
+    await tg(env, "setChatMenuButton", { chat_id: chatId, menu_button: { type: "web_app", text, web_app: { url: appUrl(env, row.group_id, row.lang, row.role) } } });
+  } catch {
+  }
 }
 async function setRole(env, chatId, row, role) {
   if ((row.role || "student") === role) return row;
@@ -907,6 +927,9 @@ async function onPrivate(env, msg, command) {
   if (action === "start") {
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
     if (m) return chooseGroup(env, msg.chat, uid, m[1], null, lang);
+    const mt = /^t_([a-z0-9]+)$/.exec(command.arg);
+    if (mt) return chooseTeacher(env, msg.chat, uid, mt[1], null, lang);
+    if (siteUrl(env)) await syncMenu(env, msg.chat.id);
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
     if (!row.group_id) return askRole(env, msg.chat.id, uid, lang, null, row.role);
     return;

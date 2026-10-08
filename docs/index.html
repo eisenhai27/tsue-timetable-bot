@@ -51,7 +51,7 @@ input{font:inherit;color:inherit}
 .htitle{flex:1;min-width:0;text-align:left}
 .htitle .t1{font-weight:800;font-size:22px;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .htitle .t1 small{font-size:14px;opacity:.7;margin-left:4px}
-.htitle .t2{font-size:13px;color:#A9C8F2;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.htitle .t2{font-size:13px;color:#A9C8F2;font-weight:600;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;line-height:1.3}
 .star{font-size:24px;padding:6px;color:#A9C8F2}
 .star.on{color:var(--bolt)}
 .summary{position:relative;z-index:1;margin-top:14px;display:flex;align-items:center;gap:10px;font-weight:700;font-size:14px}
@@ -200,6 +200,68 @@ html.dark .nav button.on{color:#fff}
 .sig{display:inline-flex;align-items:center;gap:6px}
 .spin{width:30px;height:30px;border:3px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:s .8s linear infinite;margin:40px auto}
 @keyframes s{to{transform:rotate(360deg)}}
+/* ---- v2: language button, role cards, view switch, week view, chips */
+.hero{padding-top:calc(22px + env(safe-area-inset-top))}
+html.tg .rings{top:-2px}
+button.mark{border:0}
+button.htitle{display:block;color:inherit;text-align:left;font:inherit}
+.langbtn{flex:none;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:6px 10px;font-weight:800;font-size:12.5px;letter-spacing:.02em;white-space:nowrap}
+.langbtn:active{background:rgba(255,255,255,.26)}
+.hero .star{padding:6px 2px}
+.pillrow{display:flex;flex-wrap:wrap;gap:8px;margin:14px 2px 0}
+.pillrow .pill{font-size:13px}
+.vm{display:flex;margin:14px 0 0;padding:4px;background:var(--card);border-radius:14px;box-shadow:var(--shadow);gap:4px}
+.vm button{flex:1;padding:9px 6px;border-radius:11px;font-weight:800;font-size:14px;color:var(--hint);transition:background .2s,color .2s}
+.vm button.on{background:var(--navy);color:#fff}
+html.dark .vm button.on{background:var(--blue)}
+.who{margin:22px 0 4px}
+.who h2{margin:0 2px 12px;font-size:24px;font-weight:800;letter-spacing:-.01em}
+.rolecard{display:flex;align-items:center;gap:14px;width:100%;text-align:left;background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:10px;box-shadow:var(--shadow);transition:transform .12s}
+.rolecard:active{transform:scale(.985)}
+.rolecard .re{width:52px;height:52px;border-radius:16px;background:var(--soft);display:grid;place-items:center;font-size:27px;flex:none}
+.rolecard .rt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.rolecard .rt b{font-size:18px;font-weight:800}
+.rolecard .rt small{font-size:13.5px;color:var(--hint);font-weight:600}
+.rolecard .chev{font-size:26px;color:var(--hint)}
+.lets{display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;margin:12px 0 10px;padding-bottom:2px}
+.lets::-webkit-scrollbar{display:none}
+.lets .pill{flex:none;min-width:38px;text-align:center}
+.meta button.ln{width:100%;text-align:left;padding:0}
+.meta .ln.grp{align-items:flex-start}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--soft);color:var(--link);border-radius:9px;padding:3px 9px;font-weight:800;font-size:12.5px}
+.chip:active{opacity:.7}
+.list.wk{gap:6px;margin-top:10px}
+.dayh{display:flex;align-items:baseline;gap:8px;margin:14px 2px 2px;font-size:15px}
+.dayh b{font-weight:800}
+.dayh span{color:var(--hint);font-weight:700;font-size:13px}
+.dayh em{margin-left:auto;font-style:normal;color:var(--hint);font-weight:700;font-size:12px}
+.dayh.today b{color:var(--blue)}
+.dayh.today::before{content:"";width:8px;height:8px;border-radius:50%;background:var(--bolt);align-self:center}
+.noday{padding:2px 4px 4px;color:var(--hint);font-size:13px;font-weight:600;opacity:.8}
+.ml{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;background:var(--card);border-radius:14px;padding:10px 12px 10px 14px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+.ml::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--oth)}
+.ml.t-lecture::before{background:var(--lec)} .ml.t-seminar::before{background:var(--sem)} .ml.t-lab::before,.ml.t-practice::before{background:var(--lab)}
+.ml .mt{flex:none;width:44px;display:flex;flex-direction:column;line-height:1.2}
+.ml .mt b{font-weight:800;font-size:15px}
+.ml .mt small{font-size:12px;color:var(--hint);font-weight:600}
+.ml .mb{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.ml .ms{font-weight:800;font-size:14.5px;line-height:1.3}
+.ml .mk{display:flex;flex-wrap:wrap;gap:6px;font-size:10.5px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--bar,var(--oth))}
+.ml.t-lecture{--bar:var(--lec)} .ml.t-seminar{--bar:var(--sem)} .ml.t-lab,.ml.t-practice{--bar:var(--lab)}
+.ml .mk .wk{color:var(--hint)}
+.ml .mk .new{color:#fff;background:var(--warn);border-radius:5px;padding:0 5px}
+.ml .mm{font-size:12.5px;color:var(--hint);font-weight:600;word-break:break-word}
+.picmiss{margin-top:10px;text-align:center}
+.langopt{display:flex;width:100%;text-align:left;font-size:16px}
+.langopt.on .v{color:var(--blue);font-weight:800}
+.sheet{max-height:88vh;max-height:88dvh;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.sheet-bg{touch-action:none}
+.sheet .chips{margin:2px 0}
+html,body{overscroll-behavior-y:none}
+.lesson{cursor:pointer;text-align:left}
+.lesson:focus-visible,.ml:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
 <body>
@@ -214,40 +276,113 @@ html.dark .nav button.on{color:#fff}
 <script>
 (() => {
 'use strict';
+const html = document.documentElement;
+
+// ---------------------------------------------------------------- Telegram
+// Opened from a keyboard "web_app" button Telegram gives NO initData, so "initData is empty" must not mean
+// "not Telegram" — the platform field tells the truth. (Before, those launches skipped ready()/expand()/BackButton.)
 const tg = window.Telegram && window.Telegram.WebApp;
-const inTg = !!(tg && tg.initData);
-if (inTg) { document.documentElement.classList.add('tg'); tg.ready(); tg.expand(); try { tg.setHeaderColor('#0B3F7A'); tg.setBackgroundColor(tg.colorScheme === 'dark' ? '#0A1424' : '#F2F5FA'); } catch {} }
-const isDark = inTg ? tg.colorScheme === 'dark' : (window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches);
-if (isDark) document.documentElement.classList.add('dark');
+const inTg = !!(tg && (tg.initData || (tg.platform && tg.platform !== 'unknown')));
+const darkNow = () => (inTg && tg.colorScheme ? tg.colorScheme === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches));
+function paintTg() {
+  if (!inTg) return;
+  try { tg.setHeaderColor('#0B3F7A'); } catch {}
+  try { tg.setBackgroundColor(html.classList.contains('dark') ? '#0A1424' : '#F2F5FA'); } catch {}
+  try { tg.setBottomBarColor && tg.setBottomBarColor(html.classList.contains('dark') ? '#122036' : '#FFFFFF'); } catch {}
+}
+if (inTg) {
+  html.classList.add('tg');
+  try { tg.ready(); } catch {}
+  try { tg.expand(); } catch {}
+  try { tg.disableVerticalSwipes && tg.disableVerticalSwipes(); } catch {} // a swipe down must not close the app while the list is being scrolled
+  try { tg.onEvent && tg.onEvent('themeChanged', () => { html.classList.toggle('dark', darkNow()); paintTg(); }); } catch {}
+}
+html.classList.toggle('dark', darkNow());
+paintTg();
 
 // ---------------------------------------------------------------- i18n
+const plRu = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && h !== 11 ? a : (m >= 2 && m <= 4 && (h < 10 || h >= 20)) ? b : c; };
 const dur = (m, h, mi) => m >= 60 ? `${Math.floor(m / 60)} ${h}${m % 60 ? ' ' + (m % 60) + ' ' + mi : ''}` : `${m} ${mi}`;
 const I = {
   uz: { days:['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'], dShort:['Du','Se','Ch','Pa','Ju','Sh','Ya'],
-    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`, lessonsN:(n)=>`${n} ta dars`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling", weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun', months:['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'], goToday:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi', tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'A hafta', weekB:'B hafta',
-    now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", sunday:'Yakshanba — dam olish kuni 😌', searchPh:'Guruh, o\'qituvchi yoki xona…',
+    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`,
+    lessonsN:(n)=>`${n} ta dars`, groupsN:(n)=>`${n} ta guruh`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling",
+    weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun',
+    months:['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'],
+    monthsG:['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'],
+    dateF:(d,m)=>`${d}-${m}`, goToday:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi',
+    tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'A hafta', weekB:'B hafta',
+    now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", noDay:"Dars yo'q", searchPh:"Guruh, o'qituvchi, xona…", teacherPh:'Familiya…',
     all:'Hammasi', groups:'Guruhlar', teachers:"O'qituvchilar", rooms:'Xonalar', recent:"So'nggi", favs:'Sevimlilar', browse:"Fakultet bo'yicha",
-    pick:'Guruhingizni tanlang', pickSub:'Qidiruvga guruh nomini yozing, masalan 901', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
-    changedAt:(d)=>`${d} da yangilandi`, show:'Batafsil', newTT:"Yangi jadval e'lon qilindi", lecture:"Ma'ruza", seminar:'Seminar', lab:'Laboratoriya', practice:'Amaliy',
-    free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…', teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar',
-    time:'Vaqt', week:'Hafta', open:'Ochish', course:(n)=>n?`${n}-kurs`:'Boshqa', validity:'Amal qiladi', lang:'Til', breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi', inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${m} daq qoldi` },
+    searchSub:"Guruh, o'qituvchi yoki xona qidiring", pick:'Guruhingizni tanlang', pickSub:'Guruh nomini yozing, masalan 901',
+    pickT:"O'zingizni tanlang", pickTSub:'Familiyangizni yozing, masalan Karimov', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
+    changedAt:(d)=>`${d} da yangilandi`, newTT:"Yangi jadval e'lon qilindi", lecture:"Ma'ruza", seminar:'Seminar', lab:'Laboratoriya', practice:'Amaliy',
+    free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…',
+    teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar', validity:'Amal qiladi', lang:'Til', langTitle:'Tilni tanlang',
+    breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi',
+    inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${m} daq qoldi`,
+    whoAreYou:'Siz kimsiz?', whoSub:'Jadvalingiz har safar bir bosishda ochiladi', iStudent:'Talaba', iStudentSub:'Guruhimning jadvali', iTeacher:"O'qituvchi", iTeacherSub:"O'z dars jadvalim",
+    mine:'Mening jadvalim', makeMine:'Meniki qilish', backMine:'Mening jadvalim', vDay:'Kun', vWeek:'Hafta', noRoom:"xona ko'rsatilmagan",
+    teacherSub:(g,n)=>`${g} ta guruh · ${n} ta dars`, changeRole:'Rolni almashtirish', cancel:'Bekor qilish', picMissing:'Rasm hali tayyor emas',
+    shareText:'dars jadvali (TDIU Jadval)', weekN:'hafta', ofWord:'dan' },
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`, lessonsN:(n)=>`${n} пар(ы)`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте', weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня', months:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'], goToday:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все', tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Неделя A', weekB:'Неделя B',
-    now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', sunday:'Воскресенье — выходной 😌', searchPh:'Группа, преподаватель или аудитория…',
+    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
+    lessonsN:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, groupsN:(n)=>`${n} ${plRu(n,'группа','группы','групп')}`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте',
+    weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня',
+    months:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+    monthsG:['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
+    dateF:(d,m)=>`${d} ${m}`, goToday:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все',
+    tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Неделя A', weekB:'Неделя B',
+    now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', noDay:'Пар нет', searchPh:'Группа, преподаватель, ауд.…', teacherPh:'Фамилия…',
     all:'Все', groups:'Группы', teachers:'Преподаватели', rooms:'Аудитории', recent:'Недавние', favs:'Избранное', browse:'По факультетам',
-    pick:'Выберите группу', pickSub:'Введите название группы, например 901', nothing:'Ничего не найдено', changed:'Расписание изменилось',
-    changedAt:(d)=>`обновлено ${d}`, show:'Подробнее', newTT:'Опубликовано новое расписание', lecture:'Лекция', seminar:'Семинар', lab:'Лаб.', practice:'Практика',
-    free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} свободных`, filterRoom:'Номер аудитории…', teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы',
-    time:'Время', week:'Неделя', open:'Открыть', course:(n)=>n?`${n} курс`:'Другое', validity:'Действует', lang:'Язык', breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое', inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${m} мин` },
+    searchSub:'Ищите группу, преподавателя или аудиторию', pick:'Выберите группу', pickSub:'Введите название группы, например 901',
+    pickT:'Выберите себя', pickTSub:'Введите фамилию, например Karimov или Каримов', nothing:'Ничего не найдено', changed:'Расписание изменилось',
+    changedAt:(d)=>`обновлено ${d}`, newTT:'Опубликовано новое расписание', lecture:'Лекция', seminar:'Семинар', lab:'Лаб.', practice:'Практика',
+    free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} ${plRu(n,'свободная аудитория','свободные аудитории','свободных аудиторий')}`, filterRoom:'Номер аудитории…',
+    teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы', validity:'Действует', lang:'Язык', langTitle:'Выберите язык',
+    breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое',
+    inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${m} мин`,
+    whoAreYou:'Кто вы?', whoSub:'Ваше расписание будет открываться одним касанием', iStudent:'Студент', iStudentSub:'Расписание моей группы', iTeacher:'Преподаватель', iTeacherSub:'Моё расписание занятий',
+    mine:'Моё расписание', makeMine:'Сделать моим', backMine:'Моё расписание', vDay:'День', vWeek:'Неделя', noRoom:'аудитория не указана',
+    teacherSub:(g,n)=>`${g} ${plRu(g,'группа','группы','групп')} · ${n} ${plRu(n,'пара','пары','пар')}`, changeRole:'Сменить роль', cancel:'Отмена', picMissing:'Картинка ещё не готова',
+    shareText:'расписание (TDIU Jadval)', weekN:'неделя', ofWord:'из' },
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`, lessonsN:(n)=>`${n} classes`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy', weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today', months:['January','February','March','April','May','June','July','August','September','October','November','December'], goToday:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All', tillEnd:'rest of the day', pairShort:'per.', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Week A', weekB:'Week B',
-    now:'Now', next:'Next', noLessons:'No classes this day', sunday:'Sunday — day off 😌', searchPh:'Group, teacher or room…',
+    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
+    lessonsN:(n)=>`${n} class${n === 1 ? '' : 'es'}`, groupsN:(n)=>`${n} group${n === 1 ? '' : 's'}`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy',
+    weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today',
+    months:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    monthsG:['January','February','March','April','May','June','July','August','September','October','November','December'],
+    dateF:(d,m)=>`${m} ${d}`, goToday:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All',
+    tillEnd:'rest of the day', pairShort:'period', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Week A', weekB:'Week B',
+    now:'Now', next:'Next', noLessons:'No classes this day', noDay:'No classes', searchPh:'Group, teacher, room…', teacherPh:'Surname…',
     all:'All', groups:'Groups', teachers:'Teachers', rooms:'Rooms', recent:'Recent', favs:'Favorites', browse:'By faculty',
-    pick:'Pick your group', pickSub:'Type your group name, e.g. 901', nothing:'Nothing found', changed:'Timetable changed',
-    changedAt:(d)=>`updated ${d}`, show:'Details', newTT:'New timetable published', lecture:'Lecture', seminar:'Seminar', lab:'Lab', practice:'Practice',
-    free:'Free rooms', freeFor:(d,p)=>`${d}, pair ${p}`, freeCount:(n)=>`${n} free rooms`, filterRoom:'Room number…', teacher:'Teacher', room:'Room', groupsL:'Groups',
-    time:'Time', week:'Week', open:'Open', course:(n)=>n?`Year ${n}`:'Other', validity:'Valid', lang:'Language', breakMin:(m)=>`${m} min break`, error:"Couldn't load data. Check your connection and try again.", retry:'Retry', new:'New', inMin:(m)=>`in ${dur(m,'h','min')}`, left:(m)=>`${m} min left` },
+    searchSub:'Search a group, teacher or room', pick:'Pick your group', pickSub:'Type your group name, e.g. 901',
+    pickT:'Pick yourself', pickTSub:'Type your surname, e.g. Karimov', nothing:'Nothing found', changed:'Timetable changed',
+    changedAt:(d)=>`updated ${d}`, newTT:'New timetable published', lecture:'Lecture', seminar:'Seminar', lab:'Lab', practice:'Practice',
+    free:'Free rooms', freeFor:(d,p)=>`${d}, period ${p}`, freeCount:(n)=>`${n} free room${n === 1 ? '' : 's'}`, filterRoom:'Room number…',
+    teacher:'Teacher', room:'Room', groupsL:'Groups', validity:'Valid', lang:'Language', langTitle:'Choose language',
+    breakMin:(m)=>`${m} min break`, error:"Couldn't load data. Check your connection and try again.", retry:'Retry', new:'New',
+    inMin:(m)=>`in ${dur(m,'h','min')}`, left:(m)=>`${m} min left`,
+    whoAreYou:'Who are you?', whoSub:'Your timetable will open in one tap', iStudent:'Student', iStudentSub:"My group's timetable", iTeacher:'Teacher', iTeacherSub:'My teaching timetable',
+    mine:'My timetable', makeMine:'Make it mine', backMine:'My timetable', vDay:'Day', vWeek:'Week', noRoom:'no room given',
+    teacherSub:(g,n)=>`${g} group${g === 1 ? '' : 's'} · ${n} class${n === 1 ? '' : 'es'}`, changeRole:'Change role', cancel:'Cancel', picMissing:'Picture is not ready yet',
+    shareText:'timetable (TDIU Jadval)', weekN:'week', ofWord:'of' },
 };
+// Faculty names come from EduPage in Uzbek: [ru, en] for the readers who switched language (unknown names stay as they are).
+const FAC = {
+  'Menejment fakulteti': ['Факультет менеджмента', 'Faculty of Management'], 'Iqtisodiyot': ['Экономика', 'Economics'],
+  'Raqamli iqt': ['Цифровая экономика', 'Digital Economy'], 'Turizm': ['Туризм', 'Tourism'], 'Moliya': ['Финансы', 'Finance'],
+  'Buxgalteriya fakulteti': ['Факультет бухгалтерского учёта', 'Faculty of Accounting'], 'Soliq fakulteti': ['Налоговый факультет', 'Faculty of Taxation'],
+  'Bank ishi': ['Банковское дело', 'Banking'], 'Polotskiy': ['Полоцкий', 'Polotsk'], 'Magistratura': ['Магистратура', "Master's"],
+  'Магистратура': ['Магистратура', "Master's"], 'Масофавий': ['Дистанционное', 'Distance learning'], 'Magistratura masofaviy': ['Магистратура (дистанционная)', "Master's (distance)"],
+  'Davlat auditi': ['Государственный аудит', 'State Audit'], 'Kechki': ['Вечернее', 'Evening'], 'Masofaviy fakulteti': ['Факультет дистанционного обучения', 'Distance Learning Faculty'],
+  'Sirtqi': ['Заочное', 'Part-time (correspondence)'],
+};
+const FAC_UZ = { 'Масофавий': 'Masofaviy' }; // one name arrives in Cyrillic Uzbek
+const skey = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+const FACK = new Map(Object.entries(FAC).map(([k, v]) => [skey(k), v]));
+const facName = (n) => { if (lang === 'uz') return FAC_UZ[n] || n; const h = FACK.get(skey(n)); return (h && h[lang === 'ru' ? 0 : 1]) || n; };
+const courseName = (n) => L.course ? L.course(n) : (n ? (lang === 'ru' ? `${n} курс` : lang === 'en' ? `Year ${n}` : `${n}-kurs`) : (lang === 'ru' ? 'Другое' : lang === 'en' ? 'Other' : 'Boshqa'));
 
 // ---------------------------------------------------------------- state
 const hash = new URLSearchParams(location.hash.slice(1));
@@ -258,25 +393,37 @@ const store = {
     try { if (inTg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) tg.CloudStorage.setItem(k, JSON.stringify(v)); } catch {}
   },
 };
-const userLang = (inTg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.language_code) || navigator.language || 'uz';
-let lang = hash.get('l') || store.get('lang', null) || 'uz'; // Uzbek by default
-if (!I[lang]) lang = 'uz';
-let L = I[lang];
+// Language: the bot passes its own (#l=). It wins only when the bot's language CHANGED since we last saw it, so a language picked
+// inside the app survives re-opening, while switching the language in the bot is followed by the app.
+const valid = (x) => x && I[x];
+let lang = 'uz', L = I.uz;
+function decideLang() {
+  const fromBot = hash.get('l'), botSeen = store.get('botLang', null), saved = store.get('lang', null);
+  if (valid(fromBot)) {
+    if (fromBot !== botSeen) { lang = fromBot; store.set('lang', lang); store.set('botLang', fromBot); }
+    else lang = valid(saved) ? saved : fromBot;
+  } else lang = valid(saved) ? saved : 'uz';
+  L = I[lang];
+  html.lang = lang;
+}
+decideLang();
 
 const S = {
   tab: 'tt',
-  mine: store.get('mine', null),         // {type:'g'|'t'|'r', id, name}
+  mine: store.get('mine', null),         // {type:'g'|'t', id, name} — the user's own timetable
   view: null,                            // entity currently shown in the timetable tab
-  stack: [],                             // navigation history (for Telegram back button)
+  stack: [],                             // drill-down history (Telegram back button)
   weekOffset: 0,
   day: null,
-  q: '',
-  filter: 'all',
+  vm: store.get('vm', 'day'),            // 'day' | 'week'
+  q: '', filter: 'all', picking: null,   // picking: 'g' | 't' while the user chooses who he is
+  onboard: false, tLetter: null,
   recent: store.get('recent', []),
   favs: store.get('favs', []),
   freeDay: null, freeP: null, freeQ: '',
   browseFac: null,
 };
+let seq = 0; // render sequence: a slower, older render never paints over a newer one
 
 // ---------------------------------------------------------------- data
 const cache = {};
@@ -298,6 +445,7 @@ const addD = (d, n) => new Date(d.getTime() + n * DAY);
 const sameDay = (a, b) => a.toISOString().slice(0, 10) === b.toISOString().slice(0, 10);
 const mins = (hhmm) => { const [h, m] = hhmm.split(':').map(Number); return h * 60 + m; };
 const dm = (d) => `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+const fmtDate = (d) => L.dateF(d.getUTCDate(), L.monthsG[d.getUTCMonth()]);
 function parity(weekA, d) {
   if (!weekA) return null;
   const base = monday(new Date(weekA + 'T00:00:00Z'));
@@ -309,13 +457,17 @@ function parity(weekA, d) {
 const $ = (s, r = document) => r.querySelector(s);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const norm = (s) => String(s || '').toUpperCase().replace(/[‘’ʻʼ`']/g, '').replace(/[^0-9A-ZА-ЯЁЎҚҒҲ]/g, '');
+// teachers are written in Latin: let "Каримов" find "Karimov"
+const CYR = { а:'a', б:'b', в:'v', г:'g', д:'d', е:'e', ё:'yo', ж:'j', з:'z', и:'i', й:'y', к:'k', л:'l', м:'m', н:'n', о:'o', п:'p', р:'r', с:'s', т:'t', у:'u', ф:'f', х:'x', ц:'ts', ч:'ch', ш:'sh', щ:'sh', ъ:'', ы:'i', ь:'', э:'e', ю:'yu', я:'ya', ў:'o', қ:'q', ғ:'g', ҳ:'h' };
+const normT = (s) => String(s || '').toLowerCase().replace(/[а-яёўқғҳ]/g, c => CYR[c] ?? c).toUpperCase().replace(/[^A-Z0-9]/g, '');
 const haptic = (k = 'light') => { try { tg && tg.HapticFeedback && tg.HapticFeedback.impactOccurred(k); } catch {} };
-const idOfName = {}; // name → entity (for tapping teacher/room chips)
+const idOfName = {}; // "t:Name" | "r:Name" → entity (for tapping teacher/room chips)
+const groupByName = (name) => ALL.find(x => x.type === 'g' && x.name === name);
+const entityOf = (code) => { const type = code[0], name = code.slice(2); return type === 'g' ? groupByName(name) : idOfName[type + ':' + name]; };
 
 // Subject names come from EduPage in Uzbek; Russian / English readers get them from data/subjects.json
 // ({ "<Uzbek name>": [ru, en] }). Matching ignores case, spaces and punctuation; unknown names stay as they are.
 let SUBJ = null;
-const skey = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
 async function ensureSubjects() {
   if (lang === 'uz' || SUBJ) return;
   try { SUBJ = new Map(Object.entries(await load('subjects.json')).map(([k, v]) => [skey(k), v])); } catch {}
@@ -339,36 +491,40 @@ function splitType(subject) {
 }
 
 // ---------------------------------------------------------------- entities & search index
-let INDEX = null, PEOPLE = null, ALL = [];
+let INDEX = null, PEOPLE = null, ALL = [], ALLLANG = null;
+const realName = (n) => /[A-Za-zА-Яа-яЎўҚқҒғҲҳ]{3,}/.test(n || '');
+function buildAll() {
+  ALL = []; ALLLANG = lang;
+  for (const f of INDEX.faculties) for (const c of f.courses) for (const [id, name] of c.groups) {
+    ALL.push({ type: 'g', id, name, sub: `${facName(f.name)} · ${courseName(c.name)}`, n: norm(name), nt: normT(name) });
+  }
+  if (PEOPLE) {
+    for (const [id, name] of PEOPLE.teachers) { if (!realName(name)) continue; const e = { type: 't', id, name, sub: L.teacher, n: norm(name), nt: normT(name) }; ALL.push(e); idOfName['t:' + name] = e; }
+    for (const [id, name] of PEOPLE.rooms) { const e = { type: 'r', id, name, sub: L.room, n: norm(name), nt: normT(name) }; ALL.push(e); idOfName['r:' + name] = e; }
+  }
+}
 async function ensureIndex() {
   await ensureSubjects();
-  if (INDEX) return;
-  INDEX = await load('index.json');
-  ALL = [];
-  for (const f of INDEX.faculties) for (const c of f.courses) for (const [id, name] of c.groups) {
-    ALL.push({ type: 'g', id, name, sub: `${f.name} · ${L.course(c.name)}`, n: norm(name) });
-  }
+  if (!INDEX) { INDEX = await load('index.json'); ALLLANG = null; }
+  if (ALLLANG !== lang) buildAll();
 }
 async function ensurePeople() {
   if (PEOPLE) return;
-  try {
-    PEOPLE = await load('people.json');
-    for (const [id, name] of PEOPLE.teachers) { const e = { type: 't', id, name, sub: L.teacher, n: norm(name) }; ALL.push(e); idOfName['t:' + name] = e; }
-    for (const [id, name] of PEOPLE.rooms) { const e = { type: 'r', id, name, sub: L.room, n: norm(name) }; ALL.push(e); idOfName['r:' + name] = e; }
-  } catch { PEOPLE = { teachers: [], rooms: [] }; }
+  try { PEOPLE = await load('people.json'); } catch { PEOPLE = { teachers: [], rooms: [] }; }
+  if (INDEX) buildAll();
 }
 
 function search(q, filter) {
-  const nq = norm(q);
-  if (!nq) return [];
+  const nq = norm(q), nqt = normT(q);
+  if (!nq && !nqt) return [];
   const words = String(q).toUpperCase().split(/\s+/).map(norm).filter(Boolean);
   const out = [];
   for (const e of ALL) {
     if (filter !== 'all' && filter !== e.type) continue;
     let score;
-    if (e.n === nq) score = 0;
-    else if (e.n.startsWith(nq)) score = 1;
-    else if (e.n.includes(nq)) score = 2;
+    if (e.n === nq || (nqt && e.nt === nqt)) score = 0;
+    else if (e.n.startsWith(nq) || (nqt && e.nt.startsWith(nqt))) score = 1;
+    else if (e.n.includes(nq) || (nqt && e.nt.includes(nqt))) score = 2;
     else if (words.length > 1 && words.every(w => e.n.includes(w))) score = 3;
     else {
       // "901" should find "MO-901/26": compare against digits-only too
@@ -399,16 +555,21 @@ function remember(e) {
   S.recent = [item, ...S.recent.filter(x => !(x.type === e.type && x.id === e.id))].slice(0, 8);
   store.set('recent', S.recent);
 }
+const isMine = (v) => !!(S.mine && v && S.mine.type === v.type && S.mine.id === v.id);
+function setMine(e) { S.mine = { type: e.type, id: e.id, name: e.name }; store.set('mine', S.mine); }
+/** Open an entity's timetable. `asMine` is set only when the user is choosing who he is (never by merely looking someone up). */
 function openEntity(e, { asMine = false, push = true } = {}) {
   haptic();
-  if (push && S.view) S.stack.push({ tab: S.tab, view: S.view });
-  if (asMine || !S.mine) { S.mine = { type: e.type, id: e.id, name: e.name }; store.set('mine', S.mine); }
+  if (push && S.view && !S.picking) S.stack.push({ tab: S.tab, view: S.view });
+  if (asMine) { setMine(e); S.stack = []; S.picking = null; S.onboard = false; }
   S.view = { type: e.type, id: e.id, name: e.name };
   remember(e);
-  S.tab = 'tt'; S.day = null; S.weekOffset = 0;
+  S.tab = 'tt'; S.day = null; S.weekOffset = 0; S.calOpen = false; S.calMonth = null;
   render();
 }
+const sheetOpen = () => !!($('#sheet') && $('#sheet').firstChild);
 function goBack() {
+  if (sheetOpen()) { closeSheet(); return; }
   const prev = S.stack.pop();
   if (!prev) return;
   S.tab = prev.tab; S.view = prev.view; S.day = null;
@@ -416,9 +577,23 @@ function goBack() {
 }
 function syncBack() {
   if (!inTg || !tg.BackButton) return;
-  if (S.stack.length) tg.BackButton.show(); else tg.BackButton.hide();
+  try { if (S.stack.length || sheetOpen()) tg.BackButton.show(); else tg.BackButton.hide(); } catch {}
 }
-if (inTg && tg.BackButton) tg.BackButton.onClick(() => { closeSheet(); goBack(); });
+if (inTg && tg.BackButton) try { tg.BackButton.onClick(goBack); } catch {}
+
+// ---------------------------------------------------------------- language
+function setLang(l) {
+  if (!valid(l) || l === lang) { closeSheet(); return; }
+  lang = l; L = I[l]; html.lang = l;
+  store.set('lang', l);
+  closeSheet();
+  ensureIndex().then(render);
+}
+function langSheet() {
+  haptic();
+  openSheet(`<h3>🌐 ${esc(L.langTitle)}</h3>${['uz', 'ru', 'en'].map(l => `<button class="kv langopt ${l === lang ? 'on' : ''}" data-l="${l}"><span class="k">${l === 'uz' ? '🇺🇿' : l === 'ru' ? '🇷🇺' : '🇬🇧'}</span><span class="v">${{ uz: "O'zbekcha", ru: 'Русский', en: 'English' }[l]}</span><span>${l === lang ? '✓' : ''}</span></button>`).join('')}`);
+  $('#sheet').querySelectorAll('[data-l]').forEach(b => b.onclick = () => { haptic(); setLang(b.dataset.l); });
+}
 
 // ---------------------------------------------------------------- render
 const app = $('#app');
@@ -428,41 +603,154 @@ function setNav() {
 }
 document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click', () => {
   haptic();
-  if (b.dataset.tab !== S.tab) { S.stack.push({ tab: S.tab, view: S.view }); S.tab = b.dataset.tab; }
-  if (S.tab === 'tt' && S.mine && (!S.view || b.dataset.tab === 'tt')) S.view = S.view || S.mine;
+  closeSheet();
+  if (b.dataset.tab !== S.tab) { S.stack = []; S.tab = b.dataset.tab; }
+  S.picking = null;
   render();
   window.scrollTo(0, 0);
 }));
 
+function showError() {
+  app.innerHTML = `<div class="wrap"><div class="empty"><div class="big">📡</div><p>${esc(L.error)}</p><button class="pill on" id="retry">${esc(L.retry)}</button></div></div>`;
+  $('#retry').onclick = () => { for (const k in cache) delete cache[k]; INDEX = null; PEOPLE = null; render(); };
+}
+const safe = (fn) => async (...a) => { const my = seq; try { return await fn(...a); } catch (e) { console.error(e); if (my === seq) showError(); } };
+
 async function render() {
+  const my = ++seq;
   setNav(); syncBack();
   try {
     await ensureIndex();
+    if (my !== seq) return;
+    if (S.picking) return renderSearch();
     if (S.tab === 'search') return renderSearch();
-    if (S.tab === 'free') return renderFree();
+    if (S.tab === 'free') return await renderFree();
     if (!S.view) S.view = S.mine;
-    if (!S.view) { S.tab = 'search'; setNav(); return renderSearch(); }
-    return renderTimetable();
+    if (!S.view || S.onboard) return renderOnboarding();
+    return await renderTimetable();
   } catch (e) {
     console.error(e);
-    app.innerHTML = `<div class="wrap"><div class="empty"><div class="big">📡</div><p>${esc(L.error)}</p><button class="pill on" id="retry">${esc(L.retry)}</button></div></div>`;
-    $('#retry').onclick = () => { for (const k in cache) delete cache[k]; INDEX = null; render(); };
+    if (my === seq) showError();
   }
 }
 
+// ---- first run: who are you?
+function renderOnboarding() {
+  seq++;
+  const back = S.mine ? `<div class="pillrow"><button class="pill" id="obCancel">← ${esc(L.cancel)}</button></div>` : '';
+  app.innerHTML = `<div class="wrap">
+    <div class="hero"><div class="rings"><i></i><i></i></div>
+      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">TDIU Jadval</div><div class="t2">${esc(L.whoSub)}</div></div>
+      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div></div>
+    <div class="who"><h2>${esc(L.whoAreYou)}</h2>
+      <button class="rolecard" data-role="g"><span class="re">🎓</span><span class="rt"><b>${esc(L.iStudent)}</b><small>${esc(L.iStudentSub)}</small></span><span class="chev">›</span></button>
+      <button class="rolecard" data-role="t"><span class="re">👨‍🏫</span><span class="rt"><b>${esc(L.iTeacher)}</b><small>${esc(L.iTeacherSub)}</small></span><span class="chev">›</span></button>
+      ${back}</div>
+    ${footHtml('')}</div>`;
+  $('#langBtn').onclick = langSheet;
+  app.querySelectorAll('[data-role]').forEach(b => b.onclick = () => { haptic(); S.picking = b.dataset.role; S.filter = b.dataset.role; S.q = ''; S.tLetter = null; S.browseFac = null; render(); });
+  const c = $('#obCancel'); if (c) c.onclick = () => { S.onboard = false; S.view = S.mine; render(); };
+}
+
 // ---- timetable tab
-async function renderTimetable() {
+function validityText(tt) {
+  if (!tt) return '';
+  const m = /\(([^)]*)\)\s*$/.exec(tt.label || '');
+  return (m && m[1].replace(/\s+/g, ' ').trim()) || tt.label || '';
+}
+function heroHtml(v, sub, extra) {
+  const fav = v && S.favs.some(f => f.type === v.type && f.id === v.id);
+  const pin = v && isMine(v) ? '📌 ' : '';
+  return `<div class="hero"><div class="rings"><i></i><i></i></div>
+    <div class="hrow"><button class="mark" id="goSearch" aria-label="search"><img src="icon-192.png" alt=""></button>
+    <button class="htitle" id="goSearch2"><div class="t1">${esc(v ? v.name : 'TDIU Jadval')}${v ? ' <small>▾</small>' : ''}</div><div class="t2">${pin}${esc(sub || 'TDIU Jadval')}</div></button>
+    <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button>
+    ${v && !isMine(v) ? `<button class="star ${fav ? 'on' : ''}" id="favBtn" aria-label="favorite">${fav ? '★' : '☆'}</button>` : ''}</div>${extra || ''}</div>`;
+}
+function footHtml(label) {
+  return `<div class="foot">${label ? esc(L.validity) + ': ' + esc(label) + '<br>' : ''}<span class="sig">⚡ <b>TDIU Jadval</b> · @tdiujadval_bot</span><br>${esc(L.madeBy)} <a class="author" href="https://t.me/Eisenhai" target="_blank" rel="noopener">@Eisenhai</a></div>`;
+}
+function bindHero() {
+  const go = () => { haptic(); S.stack.push({ tab: S.tab, view: S.view }); S.tab = 'search'; S.picking = null; render(); };
+  const a = $('#goSearch'), b = $('#goSearch2'), f = $('#favBtn'), lb = $('#langBtn');
+  if (a) a.onclick = go; if (b) b.onclick = go;
+  if (lb) lb.onclick = langSheet;
+  if (f) f.onclick = () => {
+    haptic('medium');
+    const v = S.view;
+    const i = S.favs.findIndex(x => x.type === v.type && x.id === v.id);
+    if (i >= 0) S.favs.splice(i, 1); else S.favs.unshift({ type: v.type, id: v.id, name: v.name });
+    store.set('favs', S.favs);
+    f.classList.toggle('on', i < 0); f.textContent = i < 0 ? '★' : '☆';
+  };
+}
+
+const key = (l) => [l.d, l.p, l.w || '', l.g || '', l.s, l.t, l.r, l.n].join('|');
+function timeOf(l) {
+  const a = INDEX.periods.find(p => p.p === l.p);
+  const b = INDEX.periods.find(p => p.p === l.p + (l.n || 1) - 1) || a;
+  return { a: a ? a.start : '', b: b ? b.end : '' };
+}
+/** "8-310-30" → "8-bino, 310-xona" */
+function roomLabel(r) {
+  const m = /^(\d{1,2})\s*[-/]+\s*(\d{2,4}[A-Za-zА-Яа-я]?)(?:\s*-\s*\d+)?$/.exec(String(r).trim());
+  return m ? `${L.bld(m[1])}, ${L.roomW(m[2])}` : r;
+}
+const splitList = (s) => String(s || '').split(', ').map(x => x.trim()).filter(Boolean);
+const chipBtn = (code, label, cls = '') => `<button class="chip ${cls}" data-open="${esc(code)}">${esc(label)}</button>`;
+
+function lessonHtml(l, t, cls, state, v, isNew, par) {
+  const st = splitType(l.s);
+  const tags = [];
+  if (st.type) tags.push(`<span class="tag">${esc(st.type)}</span>`);
+  if (l.w && !par) tags.push(`<span class="tag wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>`);
+  if (l.g) tags.push(`<span class="tag wk">${esc(l.g)}</span>`);
+  if (isNew) tags.push(`<span class="tag new">${esc(L.new)}</span>`);
+  const meta = [];
+  if (v.type !== 'r') {
+    if (l.r) for (const r of splitList(l.r)) meta.push(`<button class="ln" data-open="r:${esc(r)}">📍 <span>${esc(roomLabel(r))}</span></button>`);
+    else meta.push(`<div class="ln">📍 <span class="muted">${esc(L.noRoom)}</span></div>`);
+  }
+  if (v.type !== 't' && l.t) for (const t2 of splitList(l.t)) meta.push(`<button class="ln" data-open="t:${esc(t2)}">👤 <span>${esc(t2)}</span></button>`);
+  if (l.gr) { // which groups attend — tappable chips (the teacher's own timetable is mostly about these)
+    const gs = splitList(l.gr);
+    meta.push(`<div class="ln grp">👥 <div class="chips">${gs.map(g => chipBtn('g:' + g, g)).join('')}</div></div>`);
+  }
+  return `<div class="lesson t-${st.cls} ${cls}" role="button" tabindex="0">
+    <div class="time"><div class="a">${esc(t.a)}</div><div class="b">${esc(t.b)}</div><div class="n">${l.p} ${esc(L.pairShort)}</div></div>
+    <div class="body">${state ? `<div>${state}</div>` : ''}${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}<div class="subj">${nameHtml(st)}</div>
+    <div class="meta">${meta.join('')}</div></div></div>`;
+}
+/** compact row of the week view */
+function miniHtml(l, v, par, k, isNew) {
+  const st = splitType(l.s), t = timeOf(l);
+  const bits = [];
+  if (v.type !== 'r' && l.r) bits.push('📍 ' + esc(splitList(l.r).map(roomLabel).join(' / ')));
+  if (v.type !== 't' && l.t) bits.push('👤 ' + esc(l.t));
+  if (l.gr) bits.push('👥 ' + esc(splitList(l.gr).join(', ')));
+  const tags = [];
+  if (st.type) tags.push(`<span>${esc(st.type)}</span>`);
+  if (l.w && !par) tags.push(`<span class="wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>`);
+  if (l.g) tags.push(`<span class="wk">${esc(l.g)}</span>`);
+  if (isNew) tags.push(`<span class="new">${esc(L.new)}</span>`);
+  return `<button class="ml t-${st.cls}" data-k="${k}"><span class="mt"><b>${esc(t.a)}</b><small>${esc(t.b)}</small></span>
+    <span class="mb">${tags.length ? `<span class="mk">${tags.join('')}</span>` : ''}<span class="ms">${nameHtml(st)}</span>
+    <span class="mm">${bits.join(' · ')}</span></span></button>`;
+}
+
+const renderTimetable = safe(async function () {
+  const my = ++seq;
   const v = S.view;
-  const icon = v.type === 'g' ? '👥' : v.type === 't' ? '👤' : '🚪';
   app.innerHTML = `<div class="wrap">${heroHtml(v, '', '')}<div class="spin"></div></div>`;
-  bindTitle();
+  bindHero();
   let data;
   try { data = await load(fileOf(v)); } catch (e) {
-    if (String(e.message) === '404') { app.innerHTML = `<div class="wrap">${heroHtml(v, '', '')}<div class="empty">${esc(L.nothing)}</div></div>`; bindTitle(); return; }
+    if (my !== seq) return;
+    if (String(e.message) === '404') { app.innerHTML = `<div class="wrap">${heroHtml(v, '', '')}<div class="empty">${esc(L.nothing)}</div></div>`; bindHero(); return; }
     throw e;
   }
-  if (v.type !== 'g') await ensurePeople(); else ensurePeople().then(() => {}).catch(() => {});
-  const sub = v.type === 'g' ? (data.fac + (data.course ? ' · ' + L.course(data.course) : '')) : (v.type === 't' ? L.teacher : L.room);
+  if (v.type !== 'g') await ensurePeople(); else ensurePeople();
+  if (my !== seq) return;
 
   const now = nowT();
   const baseMon = monday(wd(now) === 6 ? addD(now, 1) : now);
@@ -470,6 +758,15 @@ async function renderTimetable() {
   const par = parity(INDEX.weekA, mon);
   if (S.day == null) S.day = (S.weekOffset === 0 && wd(now) < 6) ? wd(now) : 0;
   const lessonsOf = (d) => (data.lessons || []).filter(l => l.d === d && (!par || !l.w || l.w === par));
+
+  // subtitle: a group → faculty · course; a teacher → how much he teaches this week
+  let sub;
+  if (v.type === 'g') sub = facName(data.fac || '') + (data.course ? ' · ' + courseName(data.course) : '');
+  else if (v.type === 't') {
+    const gs = new Set(); let n = 0;
+    for (let d = 0; d < 6; d++) for (const l of lessonsOf(d)) { n++; splitList(l.gr).forEach(g => gs.add(g)); }
+    sub = '👨‍🏫 ' + L.teacherSub(gs.size, n);
+  } else sub = L.room;
 
   // recently changed lessons — shown for 1 day, or until the user has opened this view once,
   // whichever comes first (store a per-entity "seen" marker so it doesn't come back on next visit)
@@ -485,7 +782,8 @@ async function renderTimetable() {
   const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
   let summary = '';
   if (wd(now) < 6) {
-    const todays = (data.lessons || []).filter(l => l.d === wd(now) && (!parity(INDEX.weekA, now) || !l.w || l.w === parity(INDEX.weekA, now)));
+    const pn = parity(INDEX.weekA, now);
+    const todays = (data.lessons || []).filter(l => l.d === wd(now) && (!pn || !l.w || l.w === pn));
     if (todays.length) {
       const start = mins(timeOf(todays[0]).a), end = Math.max(...todays.map(l => mins(timeOf(l).b)));
       const endS = `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
@@ -494,14 +792,6 @@ async function renderTimetable() {
     } else summary = `<div class="summary"><span class="bolt">☀️</span><span>${esc(L.dayOff)}</span></div>`;
   }
 
-  const dayBtns = [0, 1, 2, 3, 4, 5].map(d => {
-    const date = addD(mon, d);
-    const has = lessonsOf(d).length;
-    return `<button class="day ${d === S.day ? 'sel' : ''} ${sameDay(date, now) ? 'today' : ''}" data-d="${d}">
-      <div class="dn">${L.dShort[d]}</div><div class="dd">${date.getUTCDate()}</div>
-      ${has ? '<span class="dot"></span>' : ''}${changedDays.has(d) && S.weekOffset === 0 ? '<span class="chg"></span>' : ''}</button>`;
-  }).join('');
-
   let banner = '';
   if (recentChanges.length) {
     const c = recentChanges[0];
@@ -509,53 +799,98 @@ async function renderTimetable() {
     const whenS = `${dm(when)} ${String(when.getUTCHours()).padStart(2, '0')}:${String(when.getUTCMinutes()).padStart(2, '0')}`;
     const lines = [];
     for (const dd of c.days) {
-      for (const l of dd.removed) lines.push(`<div class="rm">➖ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${nameHtml(splitType(l.s))}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
-      for (const l of dd.added) lines.push(`<div>➕ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${nameHtml(splitType(l.s))}${l.r ? ' · ' + esc(l.r) : ''}</div>`);
+      for (const l of dd.removed) lines.push(`<div class="rm">➖ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${nameHtml(splitType(l.s))}${l.r ? ' · ' + esc(l.r) : ''}${l.gr ? ' · ' + esc(l.gr) : ''}</div>`);
+      for (const l of dd.added) lines.push(`<div>➕ ${esc(L.dShort[dd.d])} ${esc(timeOf(l).a)} ${nameHtml(splitType(l.s))}${l.r ? ' · ' + esc(l.r) : ''}${l.gr ? ' · ' + esc(l.gr) : ''}</div>`);
     }
     banner = `<div class="banner"><details><summary>⚠️ <b>${esc(c.newTT ? L.newTT : L.changed)}</b> · <span class="muted small">${esc(L.changedAt(whenS))}</span> ▾</summary><div class="diff">${lines.slice(0, 30).join('')}</div></details></div>`;
   }
 
+  // who is this? (your own / somebody else's) → shortcuts back to "mine"
+  let mineBar = '';
+  if (!isMine(v)) {
+    if (S.mine) mineBar += `<button class="pill" id="goMine">← ${esc(L.backMine)}</button>`;
+    if (v.type !== 'r') mineBar += `<button class="pill" id="makeMine">📌 ${esc(L.makeMine)}</button>`;
+  }
+  const mineRow = mineBar ? `<div class="pillrow">${mineBar}</div>` : '';
+
+  const week = S.vm === 'week';
   const date = addD(mon, S.day);
-  const list = lessonsOf(S.day);
+  const parLbl = par ? ` · ${par === 'A' ? L.weekA : L.weekB}` : '';
+  const flat = []; // lessons in the order they are drawn (the click handlers map back to them)
   let body = '';
-  if (!list.length) body = `<div class="empty"><div class="big">🎉</div>${esc(L.noLessons)}</div>`;
-  else {
-    const isToday = sameDay(date, now);
-    let nextMarked = false;
-    let prevEnd = null;
-    body = list.map(l => {
-      const t = timeOf(l);
-      let cls = '', state = '';
-      if (isToday) {
-        const a = mins(t.a), b = mins(t.b);
-        if (nm >= a && nm < b) { cls = 'now'; state = `<span class="state">● ${esc(L.now)} · ${esc(L.left(b - nm))}</span>`; }
-        else if (nm >= b) cls = 'past';
-        else if (!nextMarked) { nextMarked = true; state = `<span class="state next">${esc(L.next)} · ${esc(L.inMin(a - nm))}</span>`; }
-      }
-      let gap = '';
-      if (prevEnd != null) { const g = mins(t.a) - prevEnd; if (g >= 30) gap = `<div class="gap">☕ ${esc(L.breakMin(g))}</div>`; }
-      prevEnd = mins(t.b);
-      return gap + lessonHtml(l, t, cls, state, v, newKeys.has(key(l)) && S.weekOffset === 0, par);
-    }).join('');
+  if (week) {
+    const parts = [];
+    for (let d = 0; d < 6; d++) {
+      const dt = addD(mon, d), ls = lessonsOf(d), isT = sameDay(dt, now);
+      parts.push(`<div class="dayh ${isT ? 'today' : ''}"><b>${esc(L.days[d])}</b><span>${esc(fmtDate(dt))}</span>${ls.length ? `<em>${esc(L.lessonsN(ls.length))}</em>` : ''}</div>`);
+      if (!ls.length) parts.push(`<div class="noday">${esc(L.noDay)}</div>`);
+      for (const l of ls) { flat.push(l); parts.push(miniHtml(l, v, par, flat.length - 1, newKeys.has(key(l)) && S.weekOffset === 0)); }
+    }
+    body = parts.join('');
+  } else {
+    const list = lessonsOf(S.day);
+    if (!list.length) body = `<div class="empty"><div class="big">🎉</div>${esc(L.noLessons)}</div>`;
+    else {
+      const isToday = sameDay(date, now);
+      let nextMarked = false, prevEnd = null;
+      body = list.map(l => {
+        const t = timeOf(l);
+        let cls = '', state = '';
+        if (isToday) {
+          const a = mins(t.a), b = mins(t.b);
+          if (nm >= a && nm < b) { cls = 'now'; state = `<span class="state">● ${esc(L.now)} · ${esc(L.left(b - nm))}</span>`; }
+          else if (nm >= b) cls = 'past';
+          else if (!nextMarked) { nextMarked = true; state = `<span class="state next">${esc(L.next)} · ${esc(L.inMin(a - nm))}</span>`; }
+        }
+        let gap = '';
+        if (prevEnd != null) { const g = mins(t.a) - prevEnd; if (g >= 30) gap = `<div class="gap">☕ ${esc(L.breakMin(g))}</div>`; }
+        prevEnd = mins(t.b);
+        flat.push(l);
+        return gap + lessonHtml(l, t, cls, state, v, newKeys.has(key(l)) && S.weekOffset === 0, par);
+      }).join('');
+    }
   }
 
-  const parLbl = par ? ` · ${par === 'A' ? L.weekA : L.weekB}` : '';
-  const actions = v.type === 'g'
-    ? `<div class="actions"><button class="act" id="weekPic">🖼 ${esc(L.weekPic)}</button><button class="act" id="shareBtn">↗ ${esc(L.share)}</button></div>` : '';
+  const dayBtns = [0, 1, 2, 3, 4, 5].map(d => {
+    const dt = addD(mon, d);
+    const has = lessonsOf(d).length;
+    return `<button class="day ${d === S.day ? 'sel' : ''} ${sameDay(dt, now) ? 'today' : ''}" data-d="${d}">
+      <div class="dn">${L.dShort[d]}</div><div class="dd">${dt.getUTCDate()}</div>
+      ${has ? '<span class="dot"></span>' : ''}${changedDays.has(d) && S.weekOffset === 0 ? '<span class="chg"></span>' : ''}</button>`;
+  }).join('');
+
+  const calBtn = `<button class="pill calbtn ${S.calOpen ? 'on' : ''}" id="calBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> ${esc(L.months[date.getUTCMonth()])} <span class="chev ${S.calOpen ? 'up' : ''}">▾</span></button>`;
+  const wkLabel = S.weekOffset === 0 ? L.thisWeek : S.weekOffset === 1 ? L.nextWeek : `${dm(mon)} – ${dm(addD(mon, 5))}`;
+  const bar = week
+    ? `<div class="weekbar"><div class="lbl">${esc(dm(mon))} – ${esc(dm(addD(mon, 5)))}<span class="muted small">${esc(parLbl)}</span></div>
+        <div style="display:flex;gap:6px"><button class="pill" id="wPrev" aria-label="prev">‹</button><span class="pill on">${esc(wkLabel)}</span><button class="pill" id="wNext" aria-label="next">›</button></div></div>`
+    : `<div class="weekbar"><div class="lbl">${esc(L.days[S.day])}, ${esc(fmtDate(date))}<span class="muted small">${esc(parLbl)}</span></div>
+        <div style="display:flex;gap:6px">${sameDay(date, now) ? '' : `<button class="pill" id="goToday">↺ ${esc(L.goToday)}</button>`}${calBtn}</div></div>
+      <div class="cal ${S.calOpen ? 'open' : ''}" id="cal"><div class="cal-in" id="calIn"></div></div>
+      <div class="days">${dayBtns}</div>`;
+
+  const vm = `<div class="vm" role="tablist"><button class="${week ? '' : 'on'}" data-vm="day">📅 ${esc(L.vDay)}</button><button class="${week ? 'on' : ''}" data-vm="week">🗓 ${esc(L.vWeek)}</button></div>`;
+  const pic = (v.type !== 'r' && lang === 'uz') ? `<button class="act" id="weekPic">🖼 ${esc(L.weekPic)}</button>` : '';
+  const shr = v.type !== 'r' ? `<button class="act" id="shareBtn">↗ ${esc(L.share)}</button>` : '';
+  const actions = (pic || shr) ? `<div class="actions">${pic}${shr}</div>` : '';
+
   app.innerHTML = `<div class="wrap">
     ${heroHtml(v, sub, S.weekOffset === 0 ? summary : '')}
-    <div class="weekbar"><div class="lbl">${esc(L.days[S.day])}, ${dm(date)}<span class="muted small">${esc(parLbl)}</span></div>
-      <div style="display:flex;gap:6px">${sameDay(date, now) ? '' : `<button class="pill" id="goToday">↺ ${esc(L.goToday)}</button>`}<button class="pill calbtn ${S.calOpen ? 'on' : ''}" id="calBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> ${esc(L.months[date.getUTCMonth()])} <span class="chev ${S.calOpen ? 'up' : ''}">▾</span></button></div></div>
-    <div class="cal ${S.calOpen ? 'open' : ''}" id="cal"><div class="cal-in" id="calIn"></div></div>
-    <div class="days">${dayBtns}</div>
+    ${mineRow}${vm}
+    ${bar}
     ${banner}
-    <div class="list ${S.anim || ''}" id="list">${body}</div>
+    <div class="list ${week ? 'wk' : ''} ${S.anim || ''}" id="list">${body}</div>
     ${actions}
-    ${footHtml((data.tt && data.tt.label) || '')}
+    ${footHtml(validityText(data.tt))}
   </div>`;
-  bindTitle();
-  app.querySelectorAll('.day').forEach(b => b.onclick = () => { haptic(); const nd = Number(b.dataset.d); S.anim = nd > S.day ? 'in-right' : nd < S.day ? 'in-left' : ''; S.day = nd; renderTimetable(); });
+  bindHero();
   S.anim = '';
+
+  const gm = $('#goMine'); if (gm) gm.onclick = () => { haptic(); S.view = S.mine; S.stack = []; S.day = null; S.weekOffset = 0; render(); };
+  const mm = $('#makeMine'); if (mm) mm.onclick = () => { haptic('medium'); setMine(v); S.stack = []; render(); };
+  app.querySelectorAll('[data-vm]').forEach(b => b.onclick = () => { haptic(); S.vm = b.dataset.vm; store.set('vm', S.vm); S.calOpen = false; S.anim = 'in-fade'; renderTimetable(); });
+  app.querySelectorAll('.day').forEach(b => b.onclick = () => { haptic(); const nd = Number(b.dataset.d); S.anim = nd > S.day ? 'in-right' : nd < S.day ? 'in-left' : ''; S.day = nd; renderTimetable(); });
+
   // ---- calendar dropdown (animated), today button, swipe between days
   const goDate = (dt, dir) => {
     S.weekOffset = Math.round((monday(dt) - baseMon) / (7 * DAY));
@@ -563,49 +898,54 @@ async function renderTimetable() {
     S.anim = dir > 0 ? 'in-right' : dir < 0 ? 'in-left' : 'in-fade';
     renderTimetable();
   };
-  const todayBtn = $('#goToday');
-  if (todayBtn) todayBtn.onclick = () => { haptic(); S.calOpen = false; S.calMonth = null; goDate(wd(now) === 6 ? addD(now, 1) : now, date < now ? 1 : -1); };
-  const calIn = $('#calIn');
-  if (!S.calMonth) S.calMonth = { y: date.getUTCFullYear(), m: date.getUTCMonth() };
-  const drawCal = (slide) => {
-    const { y, m } = S.calMonth;
-    const first = new Date(Date.UTC(y, m, 1));
-    const daysIn = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
-    const lead = wd(first);
-    const cells = [];
-    for (let i = 0; i < lead; i++) cells.push('<span></span>');
-    for (let dd = 1; dd <= daysIn; dd++) {
-      const dt = new Date(Date.UTC(y, m, dd));
-      const w = wd(dt);
-      const pr = parity(INDEX.weekA, dt);
-      const has = w < 6 && (data.lessons || []).some(l => l.d === w && (!pr || !l.w || l.w === pr));
-      const cls = [w === 6 ? 'off' : '', sameDay(dt, now) ? 'today' : '', sameDay(dt, date) ? 'sel' : '', has ? 'has' : ''].join(' ');
-      cells.push(`<button class="cd ${cls}" data-cd="${dd}" ${w === 6 ? 'disabled' : ''}>${dd}</button>`);
-    }
-    calIn.innerHTML = `<div class="cal-head"><button class="cal-nav" data-cm="-1" aria-label="prev">‹</button><b>${esc(L.months[m])} ${y}</b><button class="cal-nav" data-cm="1" aria-label="next">›</button></div>
-      <div class="cal-grid ${slide || ''}">${L.dShort.map(x => `<i>${esc(x)}</i>`).join('')}${cells.join('')}</div>`;
-    calIn.querySelectorAll('[data-cm]').forEach(b => b.onclick = () => {
-      haptic(); const k = Number(b.dataset.cm); let nm2 = S.calMonth.m + k, ny = S.calMonth.y;
-      if (nm2 < 0) { nm2 = 11; ny--; } if (nm2 > 11) { nm2 = 0; ny++; }
-      S.calMonth = { y: ny, m: nm2 }; drawCal(k > 0 ? 'in-right' : 'in-left');
-    });
-    calIn.querySelectorAll('[data-cd]').forEach(b => b.onclick = () => {
-      haptic('medium');
-      const dt = new Date(Date.UTC(S.calMonth.y, S.calMonth.m, Number(b.dataset.cd)));
-      S.calOpen = false; S.calMonth = null;
-      goDate(dt, dt > date ? 1 : dt < date ? -1 : 0);
-    });
-  };
-  drawCal('');
-  $('#calBtn').onclick = () => {
-    haptic();
-    S.calOpen = !S.calOpen;
-    if (S.calOpen) { S.calMonth = { y: date.getUTCFullYear(), m: date.getUTCMonth() }; drawCal(''); }
-    $('#cal').classList.toggle('open', S.calOpen);
-    $('#calBtn').classList.toggle('on', S.calOpen);
-    $('#calBtn .chev').classList.toggle('up', S.calOpen);
-  };
-  // swipe left/right on the lessons to move between days
+  if (week) {
+    const jump = (k) => { haptic(); S.weekOffset += k; S.anim = k > 0 ? 'in-right' : 'in-left'; renderTimetable(); };
+    $('#wPrev').onclick = () => jump(-1); $('#wNext').onclick = () => jump(1);
+  } else {
+    const todayBtn = $('#goToday');
+    if (todayBtn) todayBtn.onclick = () => { haptic(); S.calOpen = false; S.calMonth = null; goDate(wd(now) === 6 ? addD(now, 1) : now, date < now ? 1 : -1); };
+    const calIn = $('#calIn');
+    if (!S.calMonth) S.calMonth = { y: date.getUTCFullYear(), m: date.getUTCMonth() };
+    const drawCal = (slide) => {
+      const { y, m } = S.calMonth;
+      const first = new Date(Date.UTC(y, m, 1));
+      const daysIn = new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+      const lead = wd(first);
+      const cells = [];
+      for (let i = 0; i < lead; i++) cells.push('<span></span>');
+      for (let dd = 1; dd <= daysIn; dd++) {
+        const dt = new Date(Date.UTC(y, m, dd));
+        const w = wd(dt);
+        const pr = parity(INDEX.weekA, dt);
+        const has = w < 6 && (data.lessons || []).some(l => l.d === w && (!pr || !l.w || l.w === pr));
+        const cls = [w === 6 ? 'off' : '', sameDay(dt, now) ? 'today' : '', sameDay(dt, date) ? 'sel' : '', has ? 'has' : ''].join(' ');
+        cells.push(`<button class="cd ${cls}" data-cd="${dd}" ${w === 6 ? 'disabled' : ''}>${dd}</button>`);
+      }
+      calIn.innerHTML = `<div class="cal-head"><button class="cal-nav" data-cm="-1" aria-label="prev">‹</button><b>${esc(L.months[m])} ${y}</b><button class="cal-nav" data-cm="1" aria-label="next">›</button></div>
+        <div class="cal-grid ${slide || ''}">${L.dShort.map(x => `<i>${esc(x)}</i>`).join('')}${cells.join('')}</div>`;
+      calIn.querySelectorAll('[data-cm]').forEach(b => b.onclick = () => {
+        haptic(); const k = Number(b.dataset.cm); let nm2 = S.calMonth.m + k, ny = S.calMonth.y;
+        if (nm2 < 0) { nm2 = 11; ny--; } if (nm2 > 11) { nm2 = 0; ny++; }
+        S.calMonth = { y: ny, m: nm2 }; drawCal(k > 0 ? 'in-right' : 'in-left');
+      });
+      calIn.querySelectorAll('[data-cd]').forEach(b => b.onclick = () => {
+        haptic('medium');
+        const dt = new Date(Date.UTC(S.calMonth.y, S.calMonth.m, Number(b.dataset.cd)));
+        S.calOpen = false; S.calMonth = null;
+        goDate(dt, dt > date ? 1 : dt < date ? -1 : 0);
+      });
+    };
+    drawCal('');
+    $('#calBtn').onclick = () => {
+      haptic();
+      S.calOpen = !S.calOpen;
+      if (S.calOpen) { S.calMonth = { y: date.getUTCFullYear(), m: date.getUTCMonth() }; drawCal(''); }
+      $('#cal').classList.toggle('open', S.calOpen);
+      $('#calBtn').classList.toggle('on', S.calOpen);
+      $('#calBtn .chev').classList.toggle('up', S.calOpen);
+    };
+  }
+  // swipe left/right on the lessons: day view → previous/next day, week view → previous/next week
   const lst = $('#list');
   let sx = null, sy = null;
   lst.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, { passive: true });
@@ -614,110 +954,55 @@ async function renderTimetable() {
     const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
     sx = null;
     if (Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    haptic();
+    if (week) { S.weekOffset += dx < 0 ? 1 : -1; S.anim = dx < 0 ? 'in-right' : 'in-left'; renderTimetable(); return; }
     let dt = addD(date, dx < 0 ? 1 : -1);
     if (wd(dt) === 6) dt = addD(dt, dx < 0 ? 1 : -1);
-    haptic(); goDate(dt, dx < 0 ? 1 : -1);
+    goDate(dt, dx < 0 ? 1 : -1);
   }, { passive: true });
-  app.querySelectorAll('[data-open]').forEach(b => b.onclick = (ev) => {
-    ev.stopPropagation();
-    const [type, name] = [b.dataset.open[0], b.dataset.open.slice(2)];
-    const e = type === 'g' ? ALL.find(x => x.type === 'g' && x.name === name) : idOfName[type + ':' + name];
-    if (e) openEntity(e);
-  });
-  app.querySelectorAll('.lesson').forEach((el, i) => el.onclick = () => showLesson(list[i], v, par));
+
+  // tap on a room / teacher / group chip → that timetable; tap on the card → details
+  app.querySelectorAll('[data-open]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); const e = entityOf(b.dataset.open); if (e) openEntity(e); });
+  const onCard = (el, i) => { el.onclick = () => showLesson(flat[i], v, par); el.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); showLesson(flat[i], v, par); } }; };
+  if (week) app.querySelectorAll('.ml').forEach(el => onCard(el, Number(el.dataset.k)));
+  else app.querySelectorAll('.lesson').forEach((el, i) => onCard(el, i));
+
   const wp = $('#weekPic');
   if (wp) wp.onclick = () => {
     haptic();
-    const src = `img/g/${v.id}.png?v=${data.v || ''}`;
-    openSheet(`<h3>${esc(v.name)} — ${esc(L.weekPic)}</h3><a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${esc(v.name)}"></a>`);
+    const src = `img/${v.type}/${v.id}.png?v=${data.v || ''}`;
+    openSheet(`<h3>${esc(v.name)} — ${esc(L.weekPic)}</h3><a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${esc(v.name)}"></a><div class="muted small picmiss" hidden>${esc(L.picMissing)}</div>`);
+    const im = $('#sheet img'); if (im) im.onerror = () => { im.hidden = true; $('#sheet .picmiss').hidden = false; };
   };
   const sh = $('#shareBtn');
   if (sh) sh.onclick = () => {
     haptic();
-    const url = `https://t.me/tdiujadval_bot?start=g_${v.id}`;
-    const text = `${v.name} — dars jadvali (TDIU Jadval)`;
+    const url = `https://t.me/tdiujadval_bot?start=${v.type === 't' ? 't' : 'g'}_${v.id}`;
+    const text = `${v.name} — ${L.shareText}`;
     const link = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`;
     if (inTg && tg.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank');
   };
-}
-
-const key = (l) => [l.d, l.p, l.w || '', l.g || '', l.s, l.t, l.r, l.n].join('|');
-function timeOf(l) {
-  const a = INDEX.periods.find(p => p.p === l.p);
-  const b = INDEX.periods.find(p => p.p === l.p + (l.n || 1) - 1) || a;
-  return { a: a ? a.start : '', b: b ? b.end : '' };
-}
-/** "8-310-30" → "8-bino, 310-xona" */
-function roomLabel(r) {
-  const m = /^(\d{1,2})\s*[-/]+\s*(\d{2,4}[A-Za-zА-Яа-я]?)(?:\s*-\s*\d+)?$/.exec(String(r).trim());
-  return m ? `${L.bld(m[1])}, ${L.roomW(m[2])}` : r;
-}
-
-function lessonHtml(l, t, cls, state, v, isNew, par) {
-  const st = splitType(l.s);
-  const tags = [];
-  if (st.type) tags.push(`<span class="tag">${esc(st.type)}</span>`);
-  if (l.w && !par) tags.push(`<span class="tag wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>`);
-  if (l.g) tags.push(`<span class="tag wk">${esc(l.g)}</span>`);
-  if (isNew) tags.push(`<span class="tag new">${esc(L.new)}</span>`);
-  const meta = [];
-  if (v.type !== 'r' && l.r) for (const r of l.r.split(', ')) meta.push(`<button class="ln" data-open="r:${esc(r)}">📍 <span>${esc(roomLabel(r))}</span></button>`);
-  if (v.type !== 't' && l.t) for (const t2 of l.t.split(', ')) meta.push(`<button class="ln" data-open="t:${esc(t2)}">👤 <span>${esc(t2)}</span></button>`);
-  if (l.gr) {
-    const gs = l.gr.split(', ');
-    meta.push(`<div class="ln">👥 <span>${esc(gs.slice(0, 4).join(', '))}${gs.length > 4 ? ' +' + (gs.length - 4) : ''}</span></div>`);
-  }
-  return `<div class="lesson t-${st.cls} ${cls}">
-    <div class="time"><div class="a">${esc(t.a)}</div><div class="b">${esc(t.b)}</div><div class="n">${l.p}-${esc(L.pairShort)}</div></div>
-    <div class="body">${state ? `<div>${state}</div>` : ''}${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}<div class="subj">${nameHtml(st)}</div>
-    <div class="meta">${meta.join('')}</div></div></div>`;
-}
-
-function heroHtml(v, sub, extra, compact) {
-  const fav = v && S.favs.some(f => f.type === v.type && f.id === v.id);
-  return `<div class="hero"><div class="rings"><i></i><i></i></div>
-    <div class="hrow"><button class="mark" id="goSearch" aria-label="search"><img src="icon-192.png" alt=""></button>
-    <button class="htitle" id="goSearch2"><div class="t1">${esc(v ? v.name : 'TDIU Jadval')}${v ? ' <small>▾</small>' : ''}</div><div class="t2">${esc(sub || 'TDIU Jadval')}</div></button>
-    ${v ? `<button class="star ${fav ? 'on' : ''}" id="favBtn" aria-label="favorite">${fav ? '★' : '☆'}</button>` : ''}</div>${extra || ''}</div>`;
-}
-function footHtml(label) {
-  return `<div class="foot">${label ? esc(L.validity) + ': ' + esc(label) + '<br>' : ''}<span class="sig">⚡ <b>TDIU Jadval</b> · @tdiujadval_bot</span><br>${esc(L.madeBy)} <a class="author" href="https://t.me/Eisenhai" target="_blank" rel="noopener">@Eisenhai</a></div>`;
-}
-function bindTitle() {
-  const go = () => { haptic(); S.stack.push({ tab: S.tab, view: S.view }); S.tab = 'search'; render(); };
-  const a = $('#goSearch'), b = $('#goSearch2'), f = $('#favBtn');
-  if (a) a.onclick = go; if (b) b.onclick = go;
-  if (f) f.onclick = () => {
-    haptic('medium');
-    const v = S.view;
-    const i = S.favs.findIndex(x => x.type === v.type && x.id === v.id);
-    if (i >= 0) S.favs.splice(i, 1); else S.favs.unshift({ type: v.type, id: v.id, name: v.name });
-    store.set('favs', S.favs);
-    f.classList.toggle('on', i < 0); f.textContent = i < 0 ? '★' : '☆';
-  };
-}
+});
 
 function showLesson(l, v, par) {
   const st = splitType(l.s); const t = timeOf(l);
   const rows = [];
-  rows.push(`<div class="kv"><div class="k">🕘</div><div class="v">${esc(L.days[l.d])}, ${l.p} · ${esc(t.a)}–${esc(t.b)}${l.w ? ` · ${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}` : ''}</div></div>`);
+  rows.push(`<div class="kv"><div class="k">🕘</div><div class="v">${esc(L.days[l.d])}, ${l.p} ${esc(L.pairShort)} · ${esc(t.a)}–${esc(t.b)}${l.w ? ` · ${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}` : ''}</div></div>`);
   if (st.type) rows.push(`<div class="kv"><div class="k">📘</div><div class="v">${esc(st.type)}</div></div>`);
-  if (l.r) for (const r of l.r.split(', ')) rows.push(`<div class="kv"><div class="k">🚪</div><div class="v"><button data-open="r:${esc(r)}">${esc(r)}</button></div></div>`);
-  if (l.t) for (const x of l.t.split(', ')) rows.push(`<div class="kv"><div class="k">👤</div><div class="v"><button data-open="t:${esc(x)}">${esc(x)}</button></div></div>`);
-  if (l.gr) rows.push(`<div class="kv"><div class="k">👥</div><div class="v">${l.gr.split(', ').map(g => `<button data-open="g:${esc(g)}">${esc(g)}</button>`).join(', ')}</div></div>`);
+  if (l.r) for (const r of splitList(l.r)) rows.push(`<div class="kv"><div class="k">🚪</div><div class="v"><button data-open="r:${esc(r)}">${esc(roomLabel(r))}</button></div></div>`);
+  else if (v.type !== 'r') rows.push(`<div class="kv"><div class="k">🚪</div><div class="v muted">${esc(L.noRoom)}</div></div>`);
+  if (l.t) for (const x of splitList(l.t)) rows.push(`<div class="kv"><div class="k">👤</div><div class="v"><button data-open="t:${esc(x)}">${esc(x)}</button></div></div>`);
+  if (l.gr) rows.push(`<div class="kv"><div class="k">👥</div><div class="v"><div class="chips">${splitList(l.gr).map(g => chipBtn('g:' + g, g)).join('')}</div></div></div>`);
   if (l.g) rows.push(`<div class="kv"><div class="k">🔹</div><div class="v">${esc(l.g)}</div></div>`);
   openSheet(`<h3>${nameHtml(st)}</h3>${rows.join('')}`);
-  $('#sheet').querySelectorAll('[data-open]').forEach(b => b.onclick = () => {
-    const [type, name] = [b.dataset.open[0], b.dataset.open.slice(2)];
-    const e = type === 'g' ? ALL.find(x => x.type === 'g' && x.name === name) : idOfName[type + ':' + name];
-    closeSheet(); if (e) openEntity(e);
-  });
+  $('#sheet').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const e = entityOf(b.dataset.open); closeSheet(); if (e) openEntity(e); });
 }
-function openSheet(html) {
-  $('#sheet').innerHTML = `<div class="sheet-bg"></div><div class="sheet">${html}</div>`;
-  $('#sheet .sheet-bg').onclick = closeSheet;
+function openSheet(htmlStr) {
+  $('#sheet').innerHTML = `<div class="sheet-bg"></div><div class="sheet">${htmlStr}</div>`;
+  $('#sheet .sheet-bg').onclick = () => { closeSheet(); };
+  syncBack();
 }
-function closeSheet() { $('#sheet').innerHTML = ''; }
+function closeSheet() { const s = $('#sheet'); if (s) s.innerHTML = ''; syncBack(); }
 
 // ---- search tab
 function entityRow(e, q) {
@@ -725,55 +1010,80 @@ function entityRow(e, q) {
   const sub = e.sub || (e.type === 'g' ? '' : e.type === 't' ? L.teacher : L.room);
   return `<button class="row" data-type="${e.type}" data-id="${esc(e.id)}"><span class="ri">${icon}</span><span class="rt"><div>${highlight(e.name, q)}</div><div class="rs">${esc(sub)}</div></span><span class="chev">›</span></button>`;
 }
-async function renderSearch() {
-  ensurePeople().then(() => { if (S.tab === 'search' && S.q) drawResults(); });
+function renderSearch() {
+  seq++;
+  const p = S.picking;
+  if (p) S.filter = p;
+  ensurePeople().then(() => { if ((S.tab === 'search' || S.picking) && $('#res')) drawResults(); });
+  const sub = p === 'g' ? L.pickSub : p === 't' ? L.pickTSub : L.searchSub;
+  const title = p === 'g' ? L.pick : p === 't' ? L.pickT : 'TDIU Jadval';
+  const seg = p ? '' : `<div class="seg">${['all', 'g', 't', 'r'].map(f => `<button class="pill ${S.filter === f ? 'on' : ''}" data-f="${f}">${esc(f === 'all' ? L.all : f === 'g' ? L.groups : f === 't' ? L.teachers : L.rooms)}</button>`).join('')}</div>`;
+  const backRow = p ? `<div class="pillrow"><button class="pill" id="pickBack">← ${esc(L.changeRole)}</button></div>` : '';
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
-      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">TDIU Jadval</div><div class="t2">${esc(L.pickSub)}</div></div></div>
-      <label class="search">🔎<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(L.searchPh)}" value="${esc(S.q)}"></label></div>
-      <div class="seg">${['all', 'g', 't', 'r'].map(f => `<button class="pill ${S.filter === f ? 'on' : ''}" data-f="${f}">${esc(f === 'all' ? L.all : f === 'g' ? L.groups : f === 't' ? L.teachers : L.rooms)}</button>`).join('')}</div>
+      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(title)}</div><div class="t2">${esc(sub)}</div></div>
+      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
+      <label class="search">🔎<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(p === 't' ? L.teacherPh : L.searchPh)}" value="${esc(S.q)}"></label></div>
+      ${backRow}${seg}
     <div id="res"></div>
-    <div class="foot"><span class="muted">${esc(L.lang)}:</span> ${['uz', 'ru', 'en'].map(l => `<button class="pill ${l === lang ? 'on' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`).join(' ')}</div>${footHtml('')}</div>`;
+    <div class="foot"><span class="muted">${esc(L.lang)}:</span> ${['uz', 'ru', 'en'].map(l => `<button class="pill ${l === lang ? 'on' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`).join(' ')}${S.mine && !p ? `<br><button class="pill" id="roleBtn" style="margin-top:10px">🔄 ${esc(L.changeRole)}</button>` : ''}</div>${footHtml('')}</div>`;
   const inp = $('#q');
   inp.oninput = () => { S.q = inp.value; drawResults(); };
-  if (!S.mine || S.q) setTimeout(() => inp.focus(), 50);
+  if (!S.mine || S.q || p) setTimeout(() => inp.focus(), 50);
+  $('#langBtn').onclick = langSheet;
+  const pb = $('#pickBack'); if (pb) pb.onclick = () => { S.picking = null; S.onboard = true; S.tab = 'tt'; S.q = ''; render(); };
+  const rb = $('#roleBtn'); if (rb) rb.onclick = () => { S.onboard = true; S.tab = 'tt'; render(); };
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { haptic(); S.filter = b.dataset.f; app.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); drawResults(); });
-  app.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => { lang = b.dataset.lang; L = I[lang]; store.set('lang', lang); INDEX = null; PEOPLE = null; render(); });
+  app.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => setLang(b.dataset.lang));
   drawResults();
 }
 function bindRows(root) {
   root.querySelectorAll('.row[data-type]').forEach(b => b.onclick = () => {
     const e = ALL.find(x => x.type === b.dataset.type && x.id === b.dataset.id) || S.recent.concat(S.favs).find(x => x.type === b.dataset.type && x.id === b.dataset.id);
-    if (e) openEntity(e, { asMine: !S.mine && e.type === 'g' });
+    if (e) openEntity(e, { asMine: !!S.picking });
   });
 }
 function drawResults() {
   const res = $('#res'); if (!res) return;
+  const p = S.picking;
   if (S.q.trim()) {
     const hits = search(S.q, S.filter);
     res.innerHTML = hits.length ? `<div class="rows" style="margin-top:6px">${hits.map(e => entityRow(e, S.q)).join('')}</div>` : `<div class="empty"><div class="big">🤷</div>${esc(L.nothing)}</div>`;
     bindRows(res);
     return;
   }
-  let html = '';
-  if (!S.mine) html += `<div class="empty" style="padding:24px 10px"><div class="big">👋</div><b>${esc(L.pick)}</b><br><span class="small">${esc(L.pickSub)}</span></div>`;
-  if (S.favs.length) html += `<div class="sec">⭐ ${esc(L.favs)}</div><div class="rows">${S.favs.map(e => entityRow(e, '')).join('')}</div>`;
-  const rec = S.recent.filter(r => !S.favs.some(f => f.type === r.type && f.id === r.id));
-  if (rec.length) html += `<div class="sec">🕘 ${esc(L.recent)}</div><div class="rows">${rec.map(e => entityRow(e, '')).join('')}</div>`;
+  let html2 = '';
+  if (p === 't') { // teachers: A–Z chips, then the list of that letter
+    const list = (PEOPLE ? PEOPLE.teachers : []).filter(([, n]) => realName(n));
+    const letter = (n) => (normT(n).charAt(0) || '#');
+    const letters = [...new Set(list.map(([, n]) => letter(n)))].sort();
+    if (!S.tLetter || !letters.includes(S.tLetter)) S.tLetter = letters[0];
+    html2 += `<div class="lets">${letters.map(c => `<button class="pill ${c === S.tLetter ? 'on' : ''}" data-let="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
+    const rows = list.filter(([, n]) => letter(n) === S.tLetter).sort((a, b) => a[1].localeCompare(b[1]));
+    html2 += rows.length ? `<div class="rows">${rows.map(([id, name]) => entityRow({ type: 't', id, name, sub: L.teacher }, '')).join('')}</div>` : (PEOPLE ? '' : '<div class="spin"></div>');
+    res.innerHTML = html2;
+    bindRows(res);
+    res.querySelectorAll('[data-let]').forEach(b => b.onclick = () => { haptic(); S.tLetter = b.dataset.let; drawResults(); });
+    return;
+  }
+  if (S.mine && !p) html2 += `<div class="sec">📌 ${esc(L.mine)}</div><div class="rows">${entityRow({ ...S.mine, sub: S.mine.type === 't' ? L.teacher : '' }, '')}</div>`;
+  if (!p && S.favs.length) html2 += `<div class="sec">⭐ ${esc(L.favs)}</div><div class="rows">${S.favs.map(e => entityRow(e, '')).join('')}</div>`;
+  const rec = S.recent.filter(r => !S.favs.some(f => f.type === r.type && f.id === r.id) && !isMine(r));
+  if (!p && rec.length) html2 += `<div class="sec">🕘 ${esc(L.recent)}</div><div class="rows">${rec.map(e => entityRow(e, '')).join('')}</div>`;
   // browse by faculty
-  html += `<div class="sec">🏛 ${esc(L.browse)}</div>`;
+  html2 += `<div class="sec">🏛 ${esc(L.browse)}</div>`;
   if (S.browseFac == null) {
-    html += `<div class="rows">${INDEX.faculties.map((f, i) => `<button class="row" data-fac="${i}"><span class="ri">🏛</span><span class="rt"><div>${esc(f.name)}</div><div class="rs">${f.courses.reduce((n, c) => n + c.groups.length, 0)} ${esc(L.groups.toLowerCase())}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
+    html2 += `<div class="rows">${INDEX.faculties.map((f, i) => `<button class="row" data-fac="${i}"><span class="ri">🏛</span><span class="rt"><div>${esc(facName(f.name))}</div><div class="rs">${esc(L.groupsN(f.courses.reduce((n, c) => n + c.groups.length, 0)))}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
   } else {
     const f = INDEX.faculties[S.browseFac];
-    html += `<div class="rows"><button class="row" data-fac="-1"><span class="ri">⬅️</span><span class="rt"><div>${esc(f.name)}</div></span></button></div>`;
+    html2 += `<div class="rows"><button class="row" data-fac="-1"><span class="ri">⬅️</span><span class="rt"><div>${esc(facName(f.name))}</div></span></button></div>`;
     for (const c of f.courses) {
-      html += `<div class="sec">${esc(L.course(c.name))}</div><div class="grid">${c.groups.map(([id, name]) => `<button class="gbtn" data-gid="${esc(id)}">${esc(name)}</button>`).join('')}</div>`;
+      html2 += `<div class="sec">${esc(courseName(c.name))}</div><div class="grid">${c.groups.map(([id, name]) => `<button class="gbtn" data-gid="${esc(id)}">${esc(name)}</button>`).join('')}</div>`;
     }
   }
-  res.innerHTML = html;
+  res.innerHTML = html2;
   bindRows(res);
-  res.querySelectorAll('[data-fac]').forEach(b => b.onclick = () => { haptic(); const i = Number(b.dataset.fac); S.browseFac = i < 0 ? null : i; drawResults(); });
-  res.querySelectorAll('[data-gid]').forEach(b => b.onclick = () => { const e = ALL.find(x => x.type === 'g' && x.id === b.dataset.gid); if (e) openEntity(e, { asMine: !S.mine }); });
+  res.querySelectorAll('[data-fac]').forEach(b => b.onclick = () => { haptic(); const i = Number(b.dataset.fac); S.browseFac = i < 0 ? null : i; drawResults(); window.scrollTo(0, 0); });
+  res.querySelectorAll('[data-gid]').forEach(b => b.onclick = () => { const e = ALL.find(x => x.type === 'g' && x.id === b.dataset.gid); if (e) openEntity(e, { asMine: !!S.picking }); });
 }
 
 // ---- free rooms tab
@@ -791,9 +1101,11 @@ function currentSlot() {
   return { day: d === 5 ? 0 : d + 1, p: P[0].p, mode: 'next' };
 }
 
-async function renderFree() {
+const renderFree = safe(async function () {
+  const my = ++seq;
   app.innerHTML = `<div class="wrap"><div class="spin"></div></div>`;
   const [busy] = await Promise.all([load('busy.json'), ensurePeople()]);
+  if (my !== seq) return;
   const now = nowT();
   const cs = currentSlot();
   if (S.freeDay == null) { S.freeDay = cs.day; S.freeP = cs.p; }
@@ -831,23 +1143,25 @@ async function renderFree() {
   const bName = (k) => /^\d+$/.test(k) ? L.bld(k) : k;
   const head = isNow ? (cs.mode === 'now' ? L.freeNowT : L.freeNextT) : L.free;
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
-      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(head)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)}</div></div></div>
+      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(head)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)}</div></div>
+      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
       <div class="summary"><span class="bolt">🟢</span><span>${esc(L.freeCount(free.length))}</span></div></div>
-    <div class="slotbar"><button class="pill now ${isNow ? 'on' : ''}" id="fNow">⚡ ${esc(L.nowBtn)}</button>${[0, 1, 2, 3, 4, 5].map(d => `<button class="pill ${d === S.freeDay && !isNow ? 'on' : ''}" data-fd="${d}">${esc(L.dShort[d])}</button>`).join('')}</div>
+    <div class="slotbar"><button class="pill now ${isNow ? 'on' : ''}" id="fNow">${isNow ? '' : '⚡ '}${esc(L.nowBtn)}</button>${[0, 1, 2, 3, 4, 5].map(d => `<button class="pill ${d === S.freeDay && !isNow ? 'on' : ''}" data-fd="${d}">${esc(L.dShort[d])}</button>`).join('')}</div>
     <div class="slotbar">${INDEX.periods.map(p => `<button class="pill ${p.p === S.freeP && !isNow ? 'on' : ''}" data-fp="${p.p}">${p.p} · ${esc(p.start)}</button>`).join('')}</div>
     <div class="slotbar"><button class="pill ${S.freeBld === 'all' ? 'on' : ''}" data-fb="all">🏢 ${esc(L.allB)}</button>${blds.map(k => `<button class="pill ${S.freeBld === k ? 'on' : ''}" data-fb="${esc(k)}">${esc(bName(k))} <span class="muted">${bCount[k]}</span></button>`).join('')}</div>
     <label class="search">🔎<input id="fq" type="search" placeholder="${esc(L.filterRoom)}" value="${esc(S.freeQ)}"></label>
     ${keys.map(k => `<div class="bld"><h4>${esc(bName(k))} · ${groups[k].length}</h4><div class="rooms">${groups[k].map(r => `<button class="room" data-room="${esc(r.name)}">${esc(r.name)}<small>${esc(r.until ? L.until(r.until) : L.tillEnd)}</small></button>`).join('')}</div></div>`).join('') || `<div class="empty">${esc(L.nothing)}</div>`}
     ${footHtml('')}
   </div>`;
+  $('#langBtn').onclick = langSheet;
   $('#fNow').onclick = () => { haptic(); const c = currentSlot(); S.freeDay = c.day; S.freeP = c.p; renderFree(); };
   app.querySelectorAll('[data-fd]').forEach(b => b.onclick = () => { haptic(); S.freeDay = Number(b.dataset.fd); renderFree(); });
   app.querySelectorAll('[data-fp]').forEach(b => b.onclick = () => { haptic(); S.freeP = Number(b.dataset.fp); renderFree(); });
   app.querySelectorAll('[data-fb]').forEach(b => b.onclick = () => { haptic(); S.freeBld = b.dataset.fb; store.set('fbld', S.freeBld); renderFree(); });
   app.querySelectorAll('[data-room]').forEach(b => b.onclick = () => { const e = idOfName['r:' + b.dataset.room]; if (e) openEntity(e); });
   const fqi = $('#fq');
-  fqi.oninput = () => { S.freeQ = fqi.value; const pos = fqi.selectionStart; renderFree().then(() => { const n = $('#fq'); n.focus(); try { n.setSelectionRange(pos, pos); } catch {} }); };
-}
+  fqi.oninput = () => { S.freeQ = fqi.value; const pos = fqi.selectionStart; renderFree().then(() => { const n = $('#fq'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch {} } }); };
+});
 
 // Author link: inside Telegram open the profile natively instead of a browser page
 document.addEventListener('click', (e) => {
@@ -859,24 +1173,28 @@ document.addEventListener('click', (e) => {
 // ---------------------------------------------------------------- start
 if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch {} }
 (async () => {
-  document.documentElement.lang = lang;
-  if (hash.get('l')) store.set('lang', lang);
-  // Telegram CloudStorage keeps favourites across the user's devices
+  // Telegram CloudStorage keeps the user's own timetable, favourites and language across his devices
   if (inTg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) {
     await new Promise(res => {
-      tg.CloudStorage.getItems(['mine', 'favs', 'recent'], (err, v) => {
-        try {
-          if (!err && v) {
-            if (v.mine && !S.mine) S.mine = JSON.parse(v.mine);
-            if (v.favs && !S.favs.length) S.favs = JSON.parse(v.favs);
-            if (v.recent && !S.recent.length) S.recent = JSON.parse(v.recent);
-          }
-        } catch {}
-        res();
-      });
+      try {
+        tg.CloudStorage.getItems(['mine', 'favs', 'recent', 'lang', 'botLang', 'vm'], (err, v) => {
+          try {
+            if (!err && v) {
+              if (v.mine && !S.mine) S.mine = JSON.parse(v.mine);
+              if (v.favs && !S.favs.length) S.favs = JSON.parse(v.favs);
+              if (v.recent && !S.recent.length) S.recent = JSON.parse(v.recent);
+              if (v.vm && store.get('vm', null) == null) S.vm = JSON.parse(v.vm);
+              try { if (v.lang && store.get('lang', null) == null) localStorage.setItem('tt_lang', v.lang); } catch {}
+              try { if (v.botLang && store.get('botLang', null) == null) localStorage.setItem('tt_botLang', v.botLang); } catch {}
+            }
+          } catch {}
+          res();
+        });
+      } catch { res(); }
       setTimeout(res, 800);
     });
   }
+  decideLang();
   if (hash.get('tab') === 'free') S.tab = 'free';
   const gid = hash.get('g') || hash.get('t') || hash.get('r');
   if (gid) {
@@ -885,8 +1203,11 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
       const type = hash.get('g') ? 'g' : hash.get('t') ? 't' : 'r';
       if (type !== 'g') await ensurePeople();
       const e = ALL.find(x => x.type === type && x.id === gid);
-      if (e) { if (type === 'g' || type === 't') { S.mine = { type, id: e.id, name: e.name }; store.set('mine', S.mine); } // a link from the bot (#g= for students, #t= for teachers) is the user's own timetable
-         S.view = { type, id: e.id, name: e.name }; remember(e); }
+      if (e) {
+        // a link from the bot (#g= for students, #t= for teachers) is the user's own timetable
+        if (type === 'g' || type === 't') setMine(e);
+        S.view = { type, id: e.id, name: e.name }; remember(e);
+      }
     } catch {}
   }
   render();

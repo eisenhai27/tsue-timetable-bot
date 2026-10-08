@@ -91,6 +91,8 @@ await post(cb('s:alerts'));
 await reset(); await post({ message: { message_id: 1, chat: priv, from: user, text: '/start g_fcrgrf' } });
 l = await log();
 check('deep link /start g_<id> sets group BHA-80/25', l.some((c) => /BHA-80\/25/.test(c.data.text || '')), texts(l));
+const menuOf = (l, id) => l.filter((c) => c.method === 'setChatMenuButton' && c.data.chat_id === id).at(-1)?.data.menu_button;
+check("choosing a group re-points this chat's menu button (#g=…&l=…)", /#g=fcrgrf&l=\w\w$/.test(menuOf(l, 111)?.web_app?.url || ''), menuOf(l, 111));
 
 // ---- group chat
 const grp = { id: -100500, type: 'supergroup', title: 'MO-901' };
@@ -210,7 +212,17 @@ check('letter K → teachers whose surname starts with K', tKb && tKb.flat().som
 await reset(); await post(cb('tp:777:thf5rej', tPriv, tUser));
 l = await log();
 check('teacher picked → saved + today/tomorrow-style schedule + main keyboard', l.some((c) => /O'qituvchi saqlandi/.test(c.data.text || '') && /Karimov Dilshod/.test(c.data.text)) && l.some((c) => /👤 Karimov Dilshod/.test(c.data.text || '') && c.data.reply_markup?.keyboard), texts(l));
+check("choosing a teacher re-points the menu button (#t=…)", /#t=thf5rej&l=uz$/.test(menuOf(l, 777)?.web_app?.url || ''), menuOf(l, 777));
 check('teacher gets the "alerts will come here" tip once', l.some((c) => /jadvalingiz o'zgarsa/i.test(c.data.text || '')), texts(l));
+await reset(); await post(cb('lang:ru:start', tPriv, tUser));
+l = await log();
+check('language change → menu button text + link follow (Russian)', /Расписание/.test(menuOf(l, 777)?.text || '') && /l=ru$/.test(menuOf(l, 777)?.web_app?.url || ''), menuOf(l, 777));
+await post(cb('lang:uz:start', tPriv, tUser));
+const tUser2 = { id: 778, first_name: 'Sevara', language_code: 'uz' };
+const tPriv2 = { id: 778, type: 'private' };
+await reset(); await post({ message: { message_id: 1, chat: tPriv2, from: tUser2, text: '/start t_thf5rej' } });
+l = await log();
+check('shared teacher link /start t_<id> saves the teacher', l.some((c) => /O'qituvchi saqlandi/.test(c.data.text || '') && /Karimov Dilshod/.test(c.data.text)), texts(l));
 await reset(); await post(msg('/week', tPriv, tUser));
 l = await log();
 check('teacher /week → picture from /img/t/<id>.png', l.some((c) => c.method === 'sendPhoto' && /\/img\/t\/thf5rej\.png/.test(c.data.photo)), texts(l));
@@ -272,7 +284,7 @@ await post(cb('lang:uz:start', priv2, user2));
 const subs = await (await fetch(W + '/internal/subs?mode=weekly', { headers: { 'x-admin-key': 'secretkey' } })).json();
 check('internal subs (weekly) lists the group chat', subs.rows.some((r) => r.chat_id === -100500 && r.group_id === '1thm8e1'), subs);
 const subsA = await (await fetch(W + '/internal/subs?mode=alerts', { headers: { 'x-admin-key': 'secretkey' } })).json();
-check('internal subs (alerts) has both private users + the group (+ the teacher)', subsA.rows.length === 4 && subsA.rows.some((r) => r.chat_id === 111) && subsA.rows.some((r) => r.chat_id === 555) && subsA.rows.some((r) => r.chat_id === -100500), subsA);
+check('internal subs (alerts) has both private users + the group (+ the two teachers)', subsA.rows.length === 5 && subsA.rows.some((r) => r.chat_id === 111) && subsA.rows.some((r) => r.chat_id === 555) && subsA.rows.some((r) => r.chat_id === -100500), subsA);
 check('internal API needs key', (await fetch(W + '/internal/subs?mode=alerts')).status === 403);
 const st = await (await fetch(W + '/internal/stats', { headers: { 'x-admin-key': 'secretkey' } })).json();
 console.log('   stats:', JSON.stringify(st));

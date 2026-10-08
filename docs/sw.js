@@ -1,5 +1,5 @@
 // Offline support: the app shell is cached, timetable data is fetched fresh and cached as a fallback.
-const CACHE = 'tsue-v1';
+const CACHE = 'tsue-v2';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {

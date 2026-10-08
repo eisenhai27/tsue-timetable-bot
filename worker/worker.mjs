@@ -217,6 +217,18 @@ async function updateChat(env, chatId, fields) {
   const keys = Object.keys(fields);
   const sql = `UPDATE chats SET ${keys.map((k) => `${k} = ?`).join(', ')}, updated_at = ? WHERE chat_id = ?`;
   await (await db(env)).prepare(sql).bind(...keys.map((k) => fields[k]), Date.now(), chatId).run();
+  // the Mini App behind the menu button follows the chat's language / group / role
+  if (chatId > 0 && siteUrl(env) && ('lang' in fields || 'group_id' in fields || 'role' in fields)) await syncMenu(env, chatId);
+}
+
+/** Per-chat menu button: its link carries the chat's language and timetable (#l=…&g=…/t=…), so the app opens as the bot is set. */
+async function syncMenu(env, chatId) {
+  try {
+    const row = await getChat(env, chatId);
+    if (!row) return;
+    const text = { uz: '📅 Jadval', ru: '📅 Расписание', en: '📅 Timetable' }[row.lang] || '📅 Jadval';
+    await tg(env, 'setChatMenuButton', { chat_id: chatId, menu_button: { type: 'web_app', text, web_app: { url: appUrl(env, row.group_id, row.lang, row.role) } } });
+  } catch {}
 }
 
 /** Switch a chat between 'student' and 'teacher'. The old pick (a group / a teacher) no longer fits, so it is cleared. */
@@ -463,6 +475,9 @@ async function onPrivate(env, msg, command) {
     // Deep link from a group chat post: /start g_<groupId>
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
     if (m) return chooseGroup(env, msg.chat, uid, m[1], null, lang);
+    const mt = /^t_([a-z0-9]+)$/.exec(command.arg); // a teacher's shared link: /start t_<teacherId>
+    if (mt) return chooseTeacher(env, msg.chat, uid, mt[1], null, lang);
+    if (siteUrl(env)) await syncMenu(env, msg.chat.id);
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
     if (!row.group_id) return askRole(env, msg.chat.id, uid, lang, null, row.role); // student or teacher?
     return;
