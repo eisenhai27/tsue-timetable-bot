@@ -904,10 +904,15 @@ async function onAdminReply(env, msg, command) {
     }
     target = Number(m[1]);
     text = m[2];
-  } else if (!command && msg.reply_to_message?.message_id) {
-    const r = await (await db(env)).prepare("SELECT chat_id FROM feedback_replies WHERE admin_msg_id = ?").bind(msg.reply_to_message.message_id).first();
-    if (!r) return false;
-    target = r.chat_id;
+  } else if (!command && msg.reply_to_message?.message_id && msg.text) {
+    const rp = msg.reply_to_message;
+    const r = await (await db(env)).prepare("SELECT chat_id FROM feedback_replies WHERE admin_msg_id = ?").bind(rp.message_id).first();
+    target = r?.chat_id;
+    if (target == null && /fikr-mulohaza/i.test(rp.text || "")) {
+      const m = /\(id:\s*(-?\d+)\)/.exec(rp.text);
+      if (m) target = Number(m[1]);
+    }
+    if (target == null) return false;
     text = msg.text;
   } else {
     return false;

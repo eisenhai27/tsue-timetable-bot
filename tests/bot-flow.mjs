@@ -279,6 +279,15 @@ await post({ message: { message_id: 9, date: 0, chat: adminChat, from: admin, te
 l = await log();
 check('the answer arrives in the user’s own language (RU)', l.some((c) => c.data.chat_id === 555 && /Ответ команды/.test(c.data.text || '')), texts(l));
 await post(cb('lang:uz:start', priv2, user2));
+// an OLD feedback message (forwarded before reply tracking existed) has no DB row — the "(id: …)" in its text is enough
+await reset();
+await post({ message: { message_id: 10, date: 0, chat: adminChat, from: admin, text: 'Eski xabarga javob', reply_to_message: { message_id: 424242, from: { id: 1, is_bot: true }, text: '✍️ Yangi fikr-mulohaza\nAli (id: 555):\n\nSalom\n\n↩️ Javob berish uchun shu xabarga Reply qiling.' } } });
+l = await log();
+check('Reply to an old feedback message (no DB row) still reaches the user', l.some((c) => c.method === 'sendMessage' && c.data.chat_id === 555 && /Eski xabarga javob/.test(c.data.text)), texts(l));
+await reset();
+await post({ message: { message_id: 11, date: 0, chat: adminChat, from: admin, text: 'MO-901', reply_to_message: { message_id: 424243, from: { id: 1, is_bot: true }, text: 'Boshqa xabar' } } });
+l = await log();
+check('Reply to some other bot message is still handled normally (group search)', !l.some((c) => c.data.chat_id === 555) && l.some((c) => String(c.data.chat_id) === '999999'), texts(l));
 
 // ---- internal API
 const subs = await (await fetch(W + '/internal/subs?mode=weekly', { headers: { 'x-admin-key': 'secretkey' } })).json();
