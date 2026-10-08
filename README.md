@@ -4,7 +4,7 @@ A free Telegram bot and Mini App for TSUE students, built on the public timetabl
 
 **What it does**
 
-- **Group chats:** a group leader adds the bot and runs `/setgroup`. The bot then posts the weekly timetable every Sunday at 20:00 and a ➖/➕ alert whenever the timetable changes.
+- **Group chats:** a group leader adds the bot and runs `/setgroup`. The bot then posts one message a day: tomorrow's classes at 21:00 (on Sundays the weekly timetable post at 20:00 replaces it). Groups get no instant change alerts — the evening list already reflects any change; private chats still get them.
 - **Private chat:** students pick their group (or just type it, e.g. `mo 901`). Buttons: 📅 Today · ➡️ Tomorrow · 🗓 Week · ⚙️ Settings (change alerts, weekly post, language).
 - **Mini App** (📱 button): fast search for any group, teacher or room, ⭐ favorites, day tabs, "Now / Next" markers, highlighted changes, 🟢 free-room finder. It also works as a normal website and can be added to a phone's home screen like an app.
 - **Languages:** Uzbek, Russian and English.

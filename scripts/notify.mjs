@@ -135,6 +135,9 @@ async function sendChanges(index) {
   if (!changes.length) { console.log('No changes, nothing to send.'); return; }
   const byKey = new Map(changes.map((c) => [`${c.kind || 'g'}:${c.id}`, c]));
   for await (const sub of subscribers('alerts')) {
+    // Group chats get exactly ONE message a day (the evening "tomorrow's classes" list), not an alert for every
+    // EduPage edit — one group could otherwise be pinged 3-5 times in a day. Private chats keep the instant alerts.
+    if (sub.kind !== 'private') continue;
     const c = byKey.get(`${kindOf(sub)}:${sub.group_id}`);
     if (!c) continue;
     const g = await loadGroup(sub);
@@ -167,8 +170,13 @@ async function sendTomorrow(index, window) {
   const now = tashkentNow();
   const tomorrow = addDays(now, 1);
   const q = window ? `&from=${window[0]}&to=${window[1]}` : '';
+  // Sunday evening: groups that get the weekly timetable post (it already shows Monday) skip this list,
+  // so a group still gets one message that day, not two.
+  const skip = new Set();
+  if (window && weekday(now) === 6) for await (const s of subscribers('weekly')) if (s.kind !== 'private') skip.add(s.chat_id);
   let n = 0;
   for await (const sub of subscribers('tomorrow', q)) {
+    if (skip.has(sub.chat_id)) continue;
     const g = await loadGroup(sub);
     if (!g) continue;
     const text = sub.kind === 'private' ? fmtTomorrow(g, index, tomorrow, sub.lang) : fmtTomorrowFull(g, index, tomorrow, sub.lang);
