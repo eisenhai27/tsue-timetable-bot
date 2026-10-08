@@ -6,7 +6,8 @@
 //                                        weekly/tomorrow the first time each run reaches their
 //                                        window that day — safe to call every few minutes, since
 //                                        GitHub's own `schedule:` trigger can silently miss its
-//                                        exact minute on a quiet repo (state.json prevents resending).
+//                                        exact minute on a quiet repo (state.json prevents resending — per chat, so even
+//                                        a run that crashes half-way never makes anyone get it twice).
 //   node scripts/notify.mjs announce   → broadcasts env.ANNOUNCE_TEXT to every active chat (admin only,
 //                                        via the "Run workflow" announce field — reaches everyone with
 //                                        a group set, not just alert-subscribers)
@@ -15,6 +16,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import crypto from 'node:crypto';
 import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd } from '../src/shared.mjs';
 
 const { BOT_TOKEN, WORKER_URL, ADMIN_KEY } = process.env;
@@ -23,6 +25,18 @@ const DRY = !!process.env.DRY_RUN;
 const TG = process.env.TG_API || 'https://api.telegram.org';
 const DATA = path.resolve('docs/data');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** Network blips (ECONNRESET, timeouts, 5xx) are normal on a long send — retry a few times instead of crashing the run. */
+async function retrying(label, fn, tries = 5) {
+  for (let i = 1; ; i++) {
+    try { return await fn(); }
+    catch (e) {
+      if (i >= tries) throw e;
+      console.warn(`${label}: ${e.cause?.code || e.message} — retry ${i}/${tries - 1}`);
+      await sleep(1500 * i);
+    }
+  }
+}
 
 async function tg(method, body) {
   const res = await fetch(`${TG}/bot${BOT_TOKEN}/${method}`, {
@@ -34,13 +48,15 @@ async function tg(method, body) {
 }
 
 async function worker(pathAndQuery, body) {
-  const res = await fetch(`${WORKER_URL.replace(/\/+$/, '')}${pathAndQuery}`, {
-    method: body ? 'POST' : 'GET',
-    headers: { 'X-Admin-Key': ADMIN_KEY, 'Content-Type': 'application/json' },
-    body: body ? JSON.stringify(body) : undefined,
+  return retrying(`worker ${pathAndQuery.split('?')[0]}`, async () => {
+    const res = await fetch(`${WORKER_URL.replace(/\/+$/, '')}${pathAndQuery}`, {
+      method: body ? 'POST' : 'GET',
+      headers: { 'X-Admin-Key': ADMIN_KEY, 'Content-Type': 'application/json' },
+      body: body ? JSON.stringify(body) : undefined,
+    });
+    if (!res.ok) throw new Error(`Worker ${pathAndQuery}: HTTP ${res.status} ${await res.text()}`);
+    return res.json();
   });
-  if (!res.ok) throw new Error(`Worker ${pathAndQuery}: HTTP ${res.status} ${await res.text()}`);
-  return res.json();
 }
 
 async function* subscribers(mode, extraQuery = '') {
@@ -58,20 +74,31 @@ const removed = [];
 const migrated = [];
 let sent = 0;
 
-/** Send one message, respecting Telegram limits (~30 messages/second overall). */
+/**
+ * Send one message, respecting Telegram limits (~30 messages/second overall).
+ * Returns true when the chat is settled (delivered, or gone for good) and false when it still needs a retry later.
+ * Never throws on a network error: one dropped connection must not abort a long send half-way.
+ */
 async function send(chatId, text, replyMarkup, photo) {
   if (DRY) {
     console.log(`\n--- to ${chatId} ---\n${photo ? '[photo] ' + photo.photo + '\n' + photo.caption : text}`);
     sent++;
-    return;
+    return true;
   }
   for (let attempt = 0; attempt < 5; attempt++) {
-    let r = photo
-      ? await tg('sendPhoto', { chat_id: chatId, photo: photo.photo, caption: photo.caption, parse_mode: 'HTML', reply_markup: replyMarkup })
-      : await tg('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: replyMarkup });
+    let r;
+    try {
+      r = photo
+        ? await tg('sendPhoto', { chat_id: chatId, photo: photo.photo, caption: photo.caption, parse_mode: 'HTML', reply_markup: replyMarkup })
+        : await tg('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: replyMarkup });
+    } catch (e) {
+      console.warn(`send ${chatId}: ${e.cause?.code || e.message} — retry ${attempt + 1}/5`);
+      await sleep(2000 * (attempt + 1));
+      continue;
+    }
     // picture couldn't be fetched → fall back to the text version once
     if (!r.ok && photo && r.error_code === 400 && /photo|file|url|image/i.test(r.description || '')) { photo = null; attempt--; continue; }
-    if (r.ok) { sent++; await sleep(40); return; }
+    if (r.ok) { sent++; await sleep(40); return true; }
     const code = r.error_code;
     const desc = r.description || '';
     if (code === 429) { await sleep(((r.parameters?.retry_after || 3) + 1) * 1000); continue; }
@@ -82,11 +109,12 @@ async function send(chatId, text, replyMarkup, photo) {
     }
     if (code === 403 || /chat not found|bot was kicked|user is deactivated|have no rights/i.test(desc)) {
       removed.push(chatId);
-      return;
+      return true;
     }
     console.warn(`send ${chatId} failed: ${code} ${desc}`);
-    return;
+    return false;
   }
+  return false;
 }
 
 // A subscriber follows either a student group or a teacher (chats.role); the id lives in group_id either way.
@@ -99,7 +127,7 @@ async function keyboard(sub, groupId) {
     return { inline_keyboard: [[{ text: L.btnOpenInApp, web_app: { url: `${SITE_URL}/#${kindOf(sub)}=${groupId}&l=${sub.lang}` } }]] };
   }
   // web_app buttons are not allowed in group chats → deep link into the bot instead
-  if (!botUsername && !DRY) botUsername = (await tg('getMe', {})).result?.username;
+  if (!botUsername && !DRY) { try { botUsername = (await retrying('getMe', () => tg('getMe', {}))).result?.username; } catch {} }
   if (!botUsername) return undefined;
   return { inline_keyboard: [[{ text: L.btnOpenInApp, url: `https://t.me/${botUsername}?start=g_${groupId}` }]] };
 }
@@ -129,6 +157,22 @@ async function writeState(state) {
   await fs.writeFile(STATE_FILE, JSON.stringify(state));
 }
 
+/**
+ * Once-a-day guard for the scheduled sends (kind = 'tmr' | 'wk'). If a run dies half-way (dropped connection,
+ * killed runner) the next run covers the same window again — this per-chat record makes sure nobody is served
+ * twice that day. Chats are stored as 8-character keyed hashes, so no Telegram ids end up in the public repo.
+ */
+const hid = (chatId) => crypto.createHmac('sha256', ADMIN_KEY || '').update(String(chatId)).digest('hex').slice(0, 8);
+function guard(state, kind, today) {
+  if (state.sent?.date !== today) state.sent = { date: today };
+  const set = new Set(state.sent[kind] || []);
+  const g = { dirty: false };
+  g.has = (id) => set.has(hid(id));
+  g.add = (id) => { set.add(hid(id)); g.dirty = true; };
+  g.flush = () => { if (g.dirty) state.sent[kind] = [...set]; };
+  return g;
+}
+
 async function sendChanges(index) {
   let changes = [];
   try { changes = JSON.parse(await fs.readFile('.out/changes.json', 'utf8')); } catch {}
@@ -143,27 +187,33 @@ async function sendChanges(index) {
   }
 }
 
-async function sendWeekly(index) {
+/** `once` (a guard) = scheduled run: skip chats already served today. Returns how many chats still need a retry. */
+async function sendWeekly(index, once) {
   // Run on Sunday evening → next Monday. Any other day (a manual force-send) → this week's Monday.
   const now = tashkentNow();
   const monday = mondayOf(addDays(now, 1));
+  let failed = 0;
   for await (const sub of subscribers('weekly')) {
+    if (once?.has(sub.chat_id)) continue;
     const g = await loadGroup(sub);
     if (!g) continue;
     // the picture is drawn in Uzbek → Russian / English readers get the text version with translated subjects
     const photo = sub.lang === 'uz' ? photoUrl(sub, g, index) : null;
-    await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null);
+    if (await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null)) once?.add(sub.chat_id);
+    else failed++;
   }
+  return failed;
 }
 
 /**
- * The daily "tomorrow's classes" message. Every chat has its own time (chats.remind_at, default 21:00,
- * changed with /time); `window` = [from, to] in minutes after midnight limits it to the chats whose time
- * fell inside that window since the last run (no window = everyone who has it on, for a manual send).
- * Group chats get the full list of tomorrow's classes — but only when their timetable changed in the last 24 h;
- * private chats a short "first class" ping every day. Free days stay silent.
+ * The daily "tomorrow's classes" message — once a day, at each chat's own time (chats.remind_at, default 21:00,
+ * changed with /time). `window` = [from, to] in minutes after midnight limits it to the chats whose time fell
+ * inside that window since the last run (no window = everyone who has it on, for a manual send); `once` = the
+ * per-chat guard that stops a re-run from serving anyone twice. Group chats get the full list of tomorrow's
+ * classes, private chats a short "first class" ping. Free days stay silent.
+ * Returns { n: sent now, failed: chats that still need a retry }.
  */
-async function sendTomorrow(index, window) {
+async function sendTomorrow(index, window, once) {
   const now = tashkentNow();
   const tomorrow = addDays(now, 1);
   const q = window ? `&from=${window[0]}&to=${window[1]}` : '';
@@ -171,21 +221,17 @@ async function sendTomorrow(index, window) {
   // so a group still gets one message that day, not two.
   const skip = new Set();
   if (window && weekday(now) === 6) for await (const s of subscribers('weekly')) if (s.kind !== 'private') skip.add(s.chat_id);
-  let n = 0;
+  let n = 0, failed = 0;
   for await (const sub of subscribers('tomorrow', q)) {
-    if (skip.has(sub.chat_id)) continue;
+    if (skip.has(sub.chat_id) || once?.has(sub.chat_id)) continue;
     const g = await loadGroup(sub);
     if (!g) continue;
-    // Group chats only hear from the bot when something changed: the evening list goes to a group only if its
-    // timetable was edited in the last 24 h (a follow-up to the instant alert: "so tomorrow looks like this").
-    // No change → no message. A manual force-send (no window) still goes to everyone who has it on.
-    if (window && sub.kind !== 'private' && !(g.changes || []).some((c) => Date.parse(c.at) > Date.now() - 24 * 3600e3)) continue;
     const text = sub.kind === 'private' ? fmtTomorrow(g, index, tomorrow, sub.lang) : fmtTomorrowFull(g, index, tomorrow, sub.lang);
     if (!text) continue;
-    await send(sub.chat_id, text, await keyboard(sub, g.id));
-    n++;
+    if (await send(sub.chat_id, text, await keyboard(sub, g.id))) { once?.add(sub.chat_id); n++; }
+    else failed++;
   }
-  return n;
+  return { n, failed };
 }
 
 async function sendAnnounce() {
@@ -229,22 +275,31 @@ async function main() {
     // (minutes after midnight), so every chat is served once — even if a run or two were skipped.
     const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
     const from = state.tmr?.date === today ? state.tmr.min : -1;
-    if (nowMin > from) {
-      const n = await sendTomorrow(index, [from, nowMin]);
-      if (n > 0) {
-        console.log(`auto: sent tomorrow's reminder to ${n} chats`);
-        state.tmr = { date: today, min: nowMin }; // only saved when something went out (keeps the repo quiet)
+    const tmrOnce = guard(state, 'tmr', today);
+    const wkOnce = guard(state, 'wk', today);
+    try {
+      if (nowMin > from) {
+        const { n, failed } = await sendTomorrow(index, [from, nowMin], tmrOnce);
+        if (n > 0 || failed > 0) {
+          console.log(`auto: sent tomorrow's reminder to ${n} chats${failed ? `, ${failed} to retry` : ''}`);
+          // everyone served → move the window forward; some failed → keep its start so the next run tries them again
+          // (the per-chat guard makes sure the ones already served are not sent a second copy)
+          state.tmr = { date: today, min: failed ? from : nowMin }; // only saved when something went out (keeps the repo quiet)
+          changed = true;
+        }
+      }
+      if (weekday(now) === 6 && now.getUTCHours() >= 20 && state.weeklySent !== today) {
+        console.log('auto: sending weekly timetable');
+        const failed = await sendWeekly(index, wkOnce);
+        if (!failed) state.weeklySent = today;
         changed = true;
       }
+    } finally {
+      // Progress is always saved — even when something above threw — so a crashed run is never repeated in full.
+      tmrOnce.flush(); wkOnce.flush();
+      if (changed || tmrOnce.dirty || wkOnce.dirty) await writeState(state);
     }
-    if (weekday(now) === 6 && now.getUTCHours() >= 20 && state.weeklySent !== today) {
-      console.log('auto: sending weekly timetable');
-      await sendWeekly(index);
-      state.weeklySent = today;
-      changed = true;
-    }
-    if (changed) await writeState(state);
-    else console.log('auto: nothing due yet today');
+    if (!changed) console.log('auto: nothing due yet today');
   } else if (mode === 'announce') {
     await sendAnnounce();
   } else {

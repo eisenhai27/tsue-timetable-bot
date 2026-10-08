@@ -134,7 +134,8 @@ jobs:
         run: node scripts/stats.mjs
 
       - name: Save notification state
-        if: github.event_name != 'push'
+        # always(): even when sending hit an error half-way, what was already sent today must be saved, or the next run would send it again
+        if: always() && github.event_name != 'push'
         run: |
           git config user.name "timetable-bot"
           git config user.email "timetable-bot@users.noreply.github.com"
