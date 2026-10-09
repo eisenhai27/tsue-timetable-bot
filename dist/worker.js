@@ -666,7 +666,13 @@ async function db(env) {
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS feedback_replies (
         admin_msg_id INTEGER PRIMARY KEY,
         chat_id INTEGER NOT NULL,
-        created_at INTEGER)`)
+        created_at INTEGER)`),
+      // the admin's /stats: how often each action was used, per day (Tashkent date)
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS usage (
+        day TEXT NOT NULL,
+        k TEXT NOT NULL,
+        n INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (day, k))`)
     ]);
     const cols = (await env.DB.prepare("PRAGMA table_info(chats)").all()).results || [];
     const addColumn = async (sql, after) => {
@@ -682,6 +688,9 @@ async function db(env) {
     }
     if (!cols.some((c) => c.name === "remind_at")) {
       await addColumn("ALTER TABLE chats ADD COLUMN remind_at INTEGER NOT NULL DEFAULT 1260", "UPDATE chats SET remind_at = -1 WHERE alerts = 0");
+    }
+    if (!cols.some((c) => c.name === "last_seen")) {
+      await addColumn("ALTER TABLE chats ADD COLUMN last_seen INTEGER");
     }
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)").run();
     schemaReady = true;
@@ -841,7 +850,120 @@ async function onWebhook(request, env) {
   if (update.message) await onMessage(env, update.message);
   else if (update.callback_query) await onCallback(env, update.callback_query);
   else if (update.my_chat_member) await onMyChatMember(env, update.my_chat_member);
+  await track(env, update);
   return new Response("ok");
+}
+async function track(env, update) {
+  try {
+    const m = update.message, c = update.callback_query;
+    const chat = m?.chat || c?.message?.chat;
+    if (!chat) return;
+    let k = null;
+    if (c) k = "cb:" + String(c.data || "").split(":")[0];
+    else if (m.text) {
+      const cmd = parseCommand(m.text);
+      k = cmd ? cmd.cmd : BUTTONS[m.text.trim()] || (chat.type === "private" ? "text" : null);
+    }
+    if (!k) return;
+    const now = Date.now();
+    const D = await db(env);
+    await D.batch([
+      D.prepare("UPDATE chats SET last_seen = ? WHERE chat_id = ? AND (last_seen IS NULL OR last_seen < ?)").bind(now, chat.id, now - 6e5),
+      D.prepare("INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1").bind(ymd(tashkentNow(now)), k)
+    ]);
+  } catch (e) {
+    console.warn("track", e?.message);
+  }
+}
+var USAGE_NAMES = {
+  today: "\u{1F4C5} Bugungi darslar",
+  tomorrow: "\u27A1\uFE0F Ertangi darslar",
+  week: "\u{1F5D3} Haftalik jadval",
+  settings: "\u2699\uFE0F Sozlamalar",
+  start: "\u25B6\uFE0F /start",
+  help: "\u2753 Yordam",
+  app: "\u{1F4F1} /app",
+  group: "\u{1F465} Guruh tanlash",
+  teacher: "\u{1F468}\u200D\u{1F3EB} O'qituvchi bo'limi",
+  text: "\u{1F50E} Nom yozib qidirish",
+  feedback: "\u270D\uFE0F Fikr yuborish",
+  time: "\u23F0 Eslatma vaqti",
+  lang: "\u{1F310} Til",
+  setgroup: "\u{1F517} /setgroup (guruhda)"
+};
+async function sendStats(env, chatId, editId) {
+  const D = await db(env);
+  const now = Date.now();
+  const tn = tashkentNow(now);
+  const tz = tn.getTime() - now;
+  const today0 = Date.UTC(tn.getUTCFullYear(), tn.getUTCMonth(), tn.getUTCDate()) - tz;
+  const yday0 = today0 - 864e5, week0 = today0 - 6 * 864e5;
+  const day = ymd(tn), dayW = ymd(tashkentNow(week0));
+  const [a, top, use1, use7, fb, perDay, first] = await D.batch([
+    D.prepare(`SELECT COUNT(*) total, SUM(kind = 'private') priv, SUM(kind != 'private') grp,
+      SUM(kind = 'private' AND role = 'teacher') teachers, SUM(group_id IS NOT NULL) picked,
+      SUM(created_at >= ?) new0, SUM(created_at >= ? AND created_at < ?) new1, SUM(created_at >= ?) new7,
+      SUM(kind = 'private' AND last_seen >= ?) act0, SUM(kind = 'private' AND last_seen >= ?) act7, SUM(kind != 'private' AND last_seen >= ?) gact7,
+      SUM(lang = 'uz') uz, SUM(lang = 'ru') ru, SUM(lang = 'en') en,
+      SUM(alerts = 1) alerts, SUM(remind_at >= 0) remind, SUM(weekly = 1) weekly FROM chats`).bind(today0, yday0, today0, week0, today0, week0, week0),
+    D.prepare("SELECT group_name, COUNT(*) n FROM chats WHERE group_id IS NOT NULL AND kind = 'private' AND role != 'teacher' GROUP BY group_id ORDER BY n DESC LIMIT 5"),
+    D.prepare("SELECT k, n FROM usage WHERE day = ? ORDER BY n DESC").bind(day),
+    D.prepare("SELECT k, SUM(n) n FROM usage WHERE day >= ? GROUP BY k ORDER BY n DESC").bind(dayW),
+    D.prepare("SELECT COUNT(*) total, SUM(created_at >= ?) today FROM feedback").bind(today0),
+    D.prepare("SELECT date((created_at + ?) / 1000, 'unixepoch') d, COUNT(*) n FROM chats WHERE created_at >= ? GROUP BY d ORDER BY d").bind(tz, week0),
+    D.prepare("SELECT MIN(day) d FROM usage")
+  ]);
+  const r = a.results[0] || {};
+  const n = (v) => v || 0;
+  const dm2 = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
+  const feat = (rows) => {
+    const list = rows.filter((x) => !x.k.startsWith("cb:") && x.k !== "stats" && x.k !== "reply").slice(0, 6);
+    return list.length ? list.map((x, i) => `${i + 1}. ${USAGE_NAMES[x.k] || "/" + esc(x.k)} \u2014 <b>${x.n}</b>`).join("\n") : "\u2014";
+  };
+  const taps = (rows) => rows.filter((x) => x.k.startsWith("cb:")).reduce((s, x) => s + x.n, 0);
+  const since = first.results[0]?.d;
+  const lines = [
+    "\u{1F4CA} <b>TDIU Jadval \u2014 statistika</b>",
+    `\u{1F558} ${dm2(day)}.${day.slice(0, 4)}, ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())} (Toshkent)`,
+    "",
+    `\u{1F465} <b>Jami: ${n(r.total)}</b>`,
+    `   \u{1F464} Shaxsiy: ${n(r.priv)} \u2014 \u{1F393} ${n(r.priv) - n(r.teachers)} talaba, \u{1F468}\u200D\u{1F3EB} ${n(r.teachers)} o'qituvchi`,
+    `   \u{1F4AC} Guruh chatlari: ${n(r.grp)}`,
+    `   \u2705 Guruh/o'qituvchi tanlagan: ${n(r.picked)}`,
+    "",
+    `\u{1F195} <b>Yangi:</b> bugun ${n(r.new0)} \xB7 kecha ${n(r.new1)} \xB7 7 kunda ${n(r.new7)}`,
+    perDay.results.length ? `\u{1F4C8} ${perDay.results.map((x) => `${dm2(x.d)}: ${x.n}`).join(" \xB7 ")}` : null,
+    `\u{1F525} <b>Faol:</b> bugun ${n(r.act0)} \xB7 7 kunda ${n(r.act7)} kishi` + (n(r.gact7) ? ` (+${n(r.gact7)} guruh chati)` : ""),
+    since && since > dayW ? `<i>(faollik ${dm2(since)} dan beri hisoblanmoqda)</i>` : null,
+    "",
+    "\u2B50 <b>Eng ko'p ishlatilgan \u2014 bugun</b>",
+    feat(use1.results),
+    taps(use1.results) ? `\u{1F446} Tugmalar bosildi: ${taps(use1.results)} marta` : null,
+    "",
+    "\u2B50 <b>Eng ko'p ishlatilgan \u2014 7 kun</b>",
+    feat(use7.results),
+    "",
+    "\u{1F3C6} <b>Eng ko'p a'zoli guruhlar</b>",
+    top.results.map((x, i) => `${i + 1}. ${esc(x.group_name || "?")} \u2014 ${x.n}`).join("\n") || "\u2014",
+    "",
+    `\u{1F310} Til: \u{1F1FA}\u{1F1FF} ${n(r.uz)} \xB7 \u{1F1F7}\u{1F1FA} ${n(r.ru)} \xB7 \u{1F1EC}\u{1F1E7} ${n(r.en)}`,
+    `\u{1F514} O'zgarish xabari: ${n(r.alerts)} \xB7 \u{1F319} Kechki eslatma: ${n(r.remind)} \xB7 \u{1F5D3} Haftalik: ${n(r.weekly)}`,
+    `\u270D\uFE0F Fikr-mulohaza: jami ${n(fb.results[0]?.total)} \xB7 bugun ${n(fb.results[0]?.today)}`,
+    "",
+    "<i>Mini App ochilishlari bu yerda hisoblanmaydi (u alohida sayt).</i>"
+  ].filter((x) => x !== null);
+  const text = lines.join("\n");
+  const reply_markup = { inline_keyboard: [[{ text: "\u{1F504} Yangilash", callback_data: "adm:stats" }]] };
+  if (editId) return tg(env, "editMessageText", { chat_id: chatId, message_id: editId, text, parse_mode: "HTML", reply_markup });
+  return send(env, chatId, text, { reply_markup });
+}
+async function adminMenu(env) {
+  try {
+    const cur = await tg(env, "getMyCommands", { scope: { type: "all_private_chats" } });
+    const list = (Array.isArray(cur.result) ? cur.result : []).filter((c) => c.command !== "stats");
+    await tg(env, "setMyCommands", { scope: { type: "chat", chat_id: Number(env.ADMIN_CHAT_ID) }, commands: [{ command: "stats", description: "\u{1F4CA} Statistika (faqat siz uchun)" }, ...list] });
+  } catch {
+  }
 }
 function mainKeyboard(env, lang, groupId, role) {
   const L = tr(lang);
@@ -896,6 +1018,11 @@ var isAdminChat = (env, chatId) => !!env.ADMIN_CHAT_ID && String(chatId) === Str
 async function onAdminReply(env, msg, command) {
   let target;
   let text;
+  if (command?.cmd === "stats") {
+    await sendStats(env, msg.chat.id);
+    await adminMenu(env);
+    return true;
+  }
   if (command?.cmd === "reply") {
     const m = /^(-?\d+)\s+([\s\S]+)$/.exec(command.arg || "");
     if (!m) {
@@ -1373,6 +1500,10 @@ async function onCallback(env, cb) {
     return tg(env, "answerCallbackQuery", { callback_query_id: cb.id, text: L.onlyAdmins, show_alert: true });
   }
   tg(env, "answerCallbackQuery", { callback_query_id: cb.id });
+  if (kind === "adm") {
+    if (isAdminChat(env, chatId)) await sendStats(env, chatId, msg.message_id);
+    return;
+  }
   if (kind === "lang") {
     const newLang = LANGS.includes(parts[1]) ? parts[1] : "uz";
     await updateChat(env, chatId, { lang: newLang });

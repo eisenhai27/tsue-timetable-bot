@@ -17,6 +17,7 @@ http.createServer((req, res) => {
     if (method === 'sendMessage') result = { message_id: ++msgId, chat: { id: data.chat_id }, text: data.text };
     if (method === 'getChatMember') result = { status: data.user_id === 111 ? 'administrator' : 'member' };
     if (method === 'getMe') result = { id: 1, username: 'tsue_test_bot' };
+    if (method === 'getMyCommands') result = [{ command: 'today', description: 'Bugungi darslar' }, { command: 'help', description: 'Yordam' }];
     // simulate a blocked user
     if (method === 'sendMessage' && data.chat_id === 999) { res.end(JSON.stringify({ ok: false, error_code: 403, description: 'Forbidden: bot was blocked by the user' })); return; }
     entry.result = result;

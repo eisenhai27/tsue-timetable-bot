@@ -289,6 +289,28 @@ await post({ message: { message_id: 11, date: 0, chat: adminChat, from: admin, t
 l = await log();
 check('Reply to some other bot message is still handled normally (group search)', !l.some((c) => c.data.chat_id === 555) && l.some((c) => String(c.data.chat_id) === '999999'), texts(l));
 
+// ---- /stats: the admin's own statistics — nobody else gets them
+await reset(); await post(msg('/stats', adminChat, admin));
+l = await log();
+const stMsg = l.find((c) => c.method === 'sendMessage' && String(c.data.chat_id) === '999999' && /statistika/.test(c.data.text || ''));
+console.log('   ' + (stMsg?.data.text || '').replace(/\n/g, '\n   '));
+check('/stats from the admin → statistics', stMsg && /Jami: \d+/.test(stMsg.data.text) && /Faol:/.test(stMsg.data.text), texts(l));
+check('/stats counts what people used (today, by action)', stMsg && /Bugungi darslar — <b>\d+/.test(stMsg.data.text), stMsg?.data.text);
+check('/stats has a refresh button', stMsg?.data.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data === 'adm:stats');
+check("/stats is added to the admin's own command menu only", l.some((c) => c.method === 'setMyCommands' && c.data.scope?.type === 'chat' && String(c.data.scope.chat_id) === '999999' && c.data.commands[0].command === 'stats' && c.data.commands.length === 3), texts(l));
+await reset(); await post(cb('adm:stats', adminChat, admin));
+l = await log();
+check('refresh button edits the stats in place', l.some((c) => c.method === 'editMessageText' && /statistika/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/stats', priv2, user2));
+l = await log();
+check('/stats from anyone else → no statistics (just the help)', l.length > 0 && !l.some((c) => /statistika|Jami:/.test(c.data.text || '')), texts(l));
+await reset(); await post(cb('adm:stats', priv2, user2));
+l = await log();
+check('refresh button pressed by someone else → nothing', !l.some((c) => /statistika/.test(c.data.text || '')), texts(l));
+await reset(); await post(msg('/stats', grp, user));
+l = await log();
+check('/stats in a group chat → nothing', !l.some((c) => /statistika/.test(c.data.text || '')), texts(l));
+
 // ---- internal API
 const subs = await (await fetch(W + '/internal/subs?mode=weekly', { headers: { 'x-admin-key': 'secretkey' } })).json();
 check('internal subs (weekly) lists the group chat', subs.rows.some((r) => r.chat_id === -100500 && r.group_id === '1thm8e1'), subs);
