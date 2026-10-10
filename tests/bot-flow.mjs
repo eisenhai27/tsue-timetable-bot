@@ -332,10 +332,29 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
 // ---- "Ustoz qayerda?" (where is the teacher)
 {
   const STATUS = /Hozir darsda|Hozir dars yo'q|Bugungi dars hali boshlanmagan|Bugungi darslar tugagan|Bugun dars yo'q/;
-    await reset(); await post(msg('🔎 Ustoz qayerda?', priv2, user2));
+  // a chat that follows a group: MY teachers come first (read from the group's own timetable, the busiest first)
+  await reset(); await post(msg('🔎 Ustoz qayerda?', priv2, user2));
+  l = await log();
+  const mine = l.find((c) => c.method === 'sendMessage' && /Sizga dars beradigan ustozlar/.test(c.data.text || ''));
+  const mkb = mine?.data.reply_markup?.inline_keyboard?.flat() || [];
+  check('"Ustoz qayerda?" lists the teachers of MY group first (busiest first, 🎓), then "Boshqa ustoz"',
+    mkb[0]?.text === '🎓 Sharipov Quvondik' && mkb[0].callback_data === 'wh:t9wkk14' && mkb.filter((b) => /^wh:/.test(b.callback_data)).length === 7 && mkb.at(-1).callback_data === 'whq' && !mine.data.reply_markup.force_reply, mkb);
+  await reset(); await post(cb('wh:t9wkk14', priv2, user2));
+  l = await log();
+  const ed = l.find((c) => c.method === 'editMessageText');
+  check('tapping one of my teachers → his status in place + a "◀️ Mening ustozlarim" back button', /Sharipov Quvondik/.test(ed?.data.text || '') && STATUS.test(ed.data.text) && ed.data.reply_markup.inline_keyboard.flat().some((b) => b.callback_data === 'whm'), texts(l));
+  await reset(); await post(cb('whm', priv2, user2));
+  l = await log();
+  check('back button → the list of my teachers again', l.some((c) => c.method === 'editMessageText' && /Sizga dars beradigan ustozlar/.test(c.data.text || '')), texts(l));
+  await reset(); await post(cb('whq', priv2, user2));
   l = await log();
   const prompt = l.find((c) => c.method === 'sendMessage' && /O'qituvchining familiyasini yozing/.test(c.data.text || ''));
-  check('"Ustoz qayerda?" button asks for a surname (force reply)', !!prompt && prompt.data.reply_markup?.force_reply === true, texts(l));
+  check('"Boshqa ustoz" asks for a surname (force reply)', !!prompt && prompt.data.reply_markup?.force_reply === true, texts(l));
+  // a chat without a group yet: straight to the surname prompt
+  await reset(); await post(msg('/start', { id: 8002, type: 'private' }, { id: 8002, first_name: 'Yangi2', language_code: 'uz' }));
+  await reset(); await post(msg('🔎 Ustoz qayerda?', { id: 8002, type: 'private' }, { id: 8002, first_name: 'Yangi2', language_code: 'uz' }));
+  l = await log();
+  check('no group yet → the surname prompt right away', l.some((c) => c.method === 'sendMessage' && c.data.reply_markup?.force_reply === true && /familiyasini yozing/.test(c.data.text || '')), texts(l));
   await reset();
   await post({ message: { message_id: 7, date: 0, chat: priv2, from: user2, text: 'Abdiyeva', reply_to_message: { message_id: 6, from: { id: 1, is_bot: true }, chat: priv2, text: prompt.data.text } } });
   l = await log();
@@ -350,6 +369,8 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
   l = await log();
   const pick = l.find((c) => c.method === 'sendMessage' && c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Karimov Dilshod/.test(b.text) && b.callback_data === 'wh:thf5rej'));
   check('/where Karimov (many matches) → buttons to pick from', !!pick, texts(l));
+  const pkb = pick?.data.reply_markup.inline_keyboard.flat() || [];
+  check('… and MY teacher (Karimov Javlon) is listed first, marked 🎓', pkb[0]?.text === '🎓 Karimov Javlon' && pkb[0].callback_data === 'wh:tmqgfl4' && pkb.some((b) => b.text === '👨‍🏫 Karimov Dilshod'), pkb);
   await reset(); await post(cb('wh:thf5rej', priv2, user2));
   l = await log();
   check('picking a teacher turns the list into the answer', l.some((c) => c.method === 'editMessageText' && /Karimov Dilshod/.test(c.data.text || '') && STATUS.test(c.data.text)), texts(l));
@@ -370,7 +391,8 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
   check('/where in a group chat answers with a deep-link button (no web_app)', !!gans && gkb.some((b) => /t\.me\/.+\?start=w_t38r6gs$/.test(b.url || '')) && !gkb.some((b) => b.web_app), gkb);
   await reset(); await post(msg('/where', grp, user));
   l = await log();
-  check('/where without a name in a group → usage hint', l.some((c) => /\/where Karimov/.test(c.data.text || '')), texts(l));
+  const gl = l.find((c) => c.method === 'sendMessage' && /Guruh ustozlari/.test(c.data.text || ''));
+  check('/where without a name in a group → the group\'s teachers as buttons + usage hint', !!gl && /\/where Karimov/.test(gl.data.text) && gl.data.reply_markup.inline_keyboard.flat().some((b) => b.callback_data === 'wh:t9wkk14') && !gl.data.reply_markup.inline_keyboard.flat().some((b) => b.callback_data === 'whq'), texts(l));
   // the keyboard: new layout with the new button
   await reset(); await post(msg('/start', { id: 8001, type: 'private' }, { id: 8001, first_name: 'Yangi', language_code: 'uz' }));
   l = await log();

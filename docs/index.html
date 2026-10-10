@@ -408,7 +408,7 @@ const I = {
     whNext:'Keyingi dars', whTomorrow:'Ertaga', whPlan:'Kun tartibi', whNote:"Rasmiy jadval asosida — kutilmagan o'zgarishlar bo'lishi mumkin.", whFull:"To'liq jadval", whLoading:'Yuklanmoqda…',
     whShort:{ now:(r,t)=>`🟢 ${r} · ${t} gacha`, next:(r,t)=>`🟡 ${t} · ${r}`, off:"⚪ Bugun yo'q", nextDay:(d,t)=>`⚪ ${d}, ${t}` },
     whInline:{ now:'Hozir', next:'Keyingi' }, whAZ:'A–Z', whTips:["Ustoz hozir qaysi xonada", "Keyingi darsi qachon va qayerda", "Kun bo'yi tartibi"], whEmpty:"Ustozni qidiring yoki ro'yxatdan tanlang", whFavHint:'⭐ bosib sevimli qiling',
-    whBusyRoom:(n)=>`${n} ta dars`, whNoRoom:"xona ko'rsatilmagan", whWeekN:(s)=>`${s}`, nextWk:'Keyingi hafta', prevWk:"O'tgan hafta" },
+    myTeachers:'Mening ustozlarim', whBusyRoom:(n)=>`${n} ta dars`, whNoRoom:"xona ko'rsatilmagan", whWeekN:(s)=>`${s}`, nextWk:'Keyingi hafta', prevWk:"O'tgan hafta" },
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
     navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
     lessonsN:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, groupsN:(n)=>`${n} ${plRu(n,'группа','группы','групп')}`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте',
@@ -435,7 +435,7 @@ const I = {
     whNext:'Следующая пара', whTomorrow:'Завтра', whPlan:'План дня', whNote:'По официальному расписанию — возможны неожиданные изменения.', whFull:'Всё расписание', whLoading:'Загрузка…',
     whShort:{ now:(r,t)=>`🟢 ${r} · до ${t}`, next:(r,t)=>`🟡 ${t} · ${r}`, off:'⚪ Сегодня нет', nextDay:(d,t)=>`⚪ ${d}, ${t}` },
     whInline:{ now:'Сейчас', next:'Далее' }, whAZ:'А–Я', whTips:['В какой аудитории сейчас', 'Когда и где следующая пара', 'План на весь день'], whEmpty:'Найдите преподавателя или выберите из списка', whFavHint:'Нажмите ⭐, чтобы сохранить',
-    whBusyRoom:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, whNoRoom:'аудитория не указана', whWeekN:(s)=>`${s}`, nextWk:'Следующая неделя', prevWk:'Прошлая неделя' },
+    myTeachers:'Мои преподаватели', whBusyRoom:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, whNoRoom:'аудитория не указана', whWeekN:(s)=>`${s}`, nextWk:'Следующая неделя', prevWk:'Прошлая неделя' },
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
     navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
     lessonsN:(n)=>`${n} class${n === 1 ? '' : 'es'}`, groupsN:(n)=>`${n} group${n === 1 ? '' : 's'}`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy',
@@ -462,7 +462,7 @@ const I = {
     whNext:'Next class', whTomorrow:'Tomorrow', whPlan:'Day plan', whNote:'Based on the official timetable — unexpected changes are possible.', whFull:'Full timetable', whLoading:'Loading…',
     whShort:{ now:(r,t)=>`🟢 ${r} · until ${t}`, next:(r,t)=>`🟡 ${t} · ${r}`, off:'⚪ None today', nextDay:(d,t)=>`⚪ ${d}, ${t}` },
     whInline:{ now:'Now', next:'Next' }, whAZ:'A–Z', whTips:['Which room right now', 'When and where the next class is', 'The whole day plan'], whEmpty:'Search a teacher or pick from the list', whFavHint:'Tap ⭐ to save',
-    whBusyRoom:(n)=>`${n} class${n === 1 ? '' : 'es'}`, whNoRoom:'no room given', whWeekN:(s)=>`${s}`, nextWk:'Next week', prevWk:'Previous week' },
+    myTeachers:'My teachers', whBusyRoom:(n)=>`${n} class${n === 1 ? '' : 'es'}`, whNoRoom:'no room given', whWeekN:(s)=>`${s}`, nextWk:'Next week', prevWk:'Previous week' },
 };
 // Faculty names come from EduPage in Uzbek: [ru, en] for the readers who switched language (unknown names stay as they are).
 const FAC = {
@@ -517,6 +517,7 @@ const S = {
   recent: store.get('recent', []),
   wRecent: store.get('wrecent', []),     // teachers looked up in the "Where is the teacher?" tab
   wq: '', wLetter: null,
+  own: [],                                // teachers of my own group (Teacher tab)
   wt: null, wDate: null,                  // the teacher card open in that tab + the day shown in its timeline
   favs: store.get('favs', []),
   freeDay: null, freeP: null, freeQ: '',
@@ -1369,7 +1370,7 @@ function statusShort(ent, now) {
 }
 async function fillStatuses(root) {
   const now = nowT();
-  const els = [...root.querySelectorAll('[data-st]')].slice(0, 10);
+  const els = [...root.querySelectorAll('[data-st]')].slice(0, 16);
   await Promise.all(els.map(async (el) => {
     try {
       const ent = await swr(`t/${el.dataset.st}.json`);
@@ -1380,8 +1381,28 @@ async function fillStatuses(root) {
   }));
 }
 
-const wRow = (e, q) => `<button class="row wrow" data-wid="${esc(e.id)}"><span class="ri">👤</span><span class="rt"><div>${highlight(e.name, q)}</div><span class="st" data-st="${esc(e.id)}">&nbsp;</span></span><span class="chev">›</span></button>`;
+const wRow = (e, q, sub) => `<button class="row wrow" data-wid="${esc(e.id)}"><span class="ri">${sub ? '🎓' : '👤'}</span><span class="rt"><div>${highlight(e.name, q)}</div>${sub ? `<div class="rs">${esc(sub)}</div>` : ''}<span class="st" data-st="${esc(e.id)}">&nbsp;</span></span><span class="chev">›</span></button>`;
 const wEntity = (id) => ALL.find(x => x.type === 't' && x.id === id);
+
+/** The teachers who actually teach MY group (read from the group's own timetable), the busiest first: [{e, n, subj}]. */
+async function ownTeachers() {
+  if (!S.mine || S.mine.type !== 'g') return [];
+  let g;
+  try { g = await swr(`g/${S.mine.id}.json`); } catch { return []; }
+  const by = new Map();
+  for (const l of g.lessons || []) {
+    for (const name of splitList(l.t)) {
+      const e = idOfName['t:' + name]; if (!e) continue;
+      const o = by.get(e.id) || { e, n: 0, subj: [] };
+      o.n++;
+      const sn = splitType(l.s).name;
+      if (sn && !o.subj.includes(sn)) o.subj.push(sn);
+      by.set(e.id, o);
+    }
+  }
+  return [...by.values()].sort((a, b) => b.n - a.n || a.e.name.localeCompare(b.e.name));
+}
+const subjLine = (o) => o.subj.join(', ');
 
 function openWhere(e) {
   haptic();
@@ -1405,7 +1426,7 @@ function whereHome() {
   const inp = $('#wq');
   inp.oninput = () => { S.wq = inp.value; drawWhereList(); };
   drawWhereList();
-  if (S.wq || !(S.favs.some(f => f.type === 't') || S.wRecent.length)) setTimeout(() => { if (document.activeElement !== inp && $('#wq') === inp) inp.focus(); }, 60);
+  if (S.wq || !((S.own && S.own.length) || S.favs.some(f => f.type === 't') || S.wRecent.length)) setTimeout(() => { if (document.activeElement !== inp && $('#wq') === inp) inp.focus(); }, 60);
 }
 function drawWhereList() {
   const res = $('#wres'); if (!res) return;
@@ -1416,17 +1437,20 @@ function drawWhereList() {
     });
     fillStatuses(res);
   };
+  const ownBy = new Map((S.own || []).map(o => [o.e.id, o]));
   if (S.wq.trim()) {
     const hits = search(S.wq, 't');
-    res.innerHTML = hits.length ? `<div class="rows" style="margin-top:12px">${hits.map(e => wRow(e, S.wq)).join('')}</div>` : `<div class="empty"><div class="big">🤷</div>${esc(L.nothing)}</div>`;
+    if (ownBy.size) hits.sort((a, b) => (ownBy.has(b.id) ? 1 : 0) - (ownBy.has(a.id) ? 1 : 0)); // stable: my own teachers first, rest keep their relevance order
+    res.innerHTML = hits.length ? `<div class="rows" style="margin-top:12px">${hits.map(e => wRow(e, S.wq, ownBy.has(e.id) ? subjLine(ownBy.get(e.id)) : '')).join('')}</div>` : `<div class="empty"><div class="big">🤷</div>${esc(L.nothing)}</div>`;
     bind(); return;
   }
-  const favT = S.favs.filter(f => f.type === 't');
-  const recT = S.wRecent.filter(r => !favT.some(f => f.id === r.id));
+  const favT = S.favs.filter(f => f.type === 't' && !ownBy.has(f.id));
+  const recT = S.wRecent.filter(r => !favT.some(f => f.id === r.id) && !ownBy.has(r.id));
   let h = '';
+  if (ownBy.size) h += `<div class="sec">🎓 ${esc(L.myTeachers)} · ${esc(S.mine.name)}</div><div class="rows">${[...ownBy.values()].map(o => wRow(o.e, '', subjLine(o))).join('')}</div>`;
   if (favT.length) h += `<div class="sec">⭐ ${esc(L.favs)}</div><div class="rows">${favT.map(e => wRow(e, '')).join('')}</div>`;
   if (recT.length) h += `<div class="sec">🕘 ${esc(L.recent)}</div><div class="rows">${recT.map(e => wRow(e, '')).join('')}</div>`;
-  if (!favT.length && !recT.length) h += `<div class="wtips"><b>${esc(L.whEmpty)}</b>${L.whTips.map((t, i) => `<div><i>${['🚪', '⏭', '🗓'][i]}</i>${esc(t)}</div>`).join('')}</div>`;
+  if (!ownBy.size && !favT.length && !recT.length) h += `<div class="wtips"><b>${esc(L.whEmpty)}</b>${L.whTips.map((t, i) => `<div><i>${['🚪', '⏭', '🗓'][i]}</i>${esc(t)}</div>`).join('')}</div>`;
   // A–Z list of all teachers (no live status here — tap one to see it)
   const list = (PEOPLE ? PEOPLE.teachers : []).filter(([, n]) => realName(n));
   const letter = (n) => (normT(n).charAt(0) || '#');
@@ -1554,6 +1578,8 @@ const renderWhere = safe(async function () {
   await ensurePeople();
   if (my !== seq) return;
   if (S.wt) return await whereCard(my, soft, y);
+  S.own = await ownTeachers();
+  if (my !== seq) return;
   if (soft && $('#wres')) { fillStatuses($('#wres')); return; } // home: only the live chips change
   whereHome();
 });

@@ -355,6 +355,24 @@ try {
     ok(await s.page.locator('.day.sel[data-d="1"]').count() === 1, 'after the last class the day view opens on the next day with classes');
     await s.ctx.close();
 
+    // -- MY teachers come first: a student of group MO-901/26 sees the teachers of that group at the top of the Teacher tab
+    s = await openAt(at(during), '#g=1thm8e1&tab=where&l=uz');
+    ok(/Mening ustozlarim/i.test(await txt(s.page, '#wres .sec')) && /MO-901\/26/.test(await txt(s.page, '#wres .sec')), 'Teacher tab starts with "Mening ustozlarim · <my group>": ' + await txt(s.page, '#wres .sec'));
+    const ownRows = await s.page.locator('#wres .rows').first().locator('.wrow').allInnerTexts();
+    ok(ownRows.length === 7 && /Sharipov Quvondik/.test(ownRows[0]), 'my 7 teachers are listed, the busiest first: ' + ownRows.map((x) => x.split('\n')[0]).join(', '));
+    ok(ownRows.every((r) => r.split('\n').length >= 2), 'each row shows what he teaches my group: ' + ownRows[0].replace(/\n/g, ' | '));
+    ok((await s.page.locator('.wtips').count()) === 0, 'no tips card when my teachers are shown');
+    await settle(s.page, 500);
+    ok(/(🟢|🟡|⚪)/.test(await s.page.locator('#wres .wrow .st').first().innerText()), 'my teachers get live status chips');
+    await s.page.fill('#wq', 'Karimov'); await settle(s.page, 400);
+    const kRows = await s.page.locator('#wres .wrow').allInnerTexts();
+    ok(kRows.length >= 2 && /Karimov Javlon/.test(kRows[0]), 'search ranks my own teacher first: ' + kRows.map((x) => x.split('\n')[0]).join(', '));
+    await s.ctx.close();
+    // a chat that follows a teacher (or nobody) has no such list
+    s = await openAt(at(during), '#tab=where&l=uz');
+    ok(!/Mening ustozlarim/i.test(await txt(s.page, '#wres')), 'no group chosen → no "my teachers" section');
+    await s.ctx.close();
+
     // -- speed: second launch paints from the cache even if the network is gone
     {
       const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' });

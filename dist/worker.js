@@ -38,6 +38,10 @@ var T = {
     whereNone: "Bunday ustoz topilmadi. Familiyani tekshiring, masalan: Karimov",
     wherePick: "\u{1F50E} Topildi \u2014 qaysi ustoz?",
     whereGroupHint: "\u{1F50E} Ustoz qayerda? Familiyani yozing: <code>/where Karimov</code>",
+    whereMine: "\u{1F50E} <b>Ustoz qayerda?</b>\n\u{1F393} Sizga dars beradigan ustozlar \u2014 birini tanlang:",
+    whereMineGroup: "\u{1F50E} <b>Ustoz qayerda?</b>\n\u{1F393} Guruh ustozlari \u2014 birini tanlang (boshqasi uchun: <code>/where Karimov</code>):",
+    btnWhereOther: "\u270D\uFE0F Boshqa ustoz",
+    btnWhereBack: "\u25C0\uFE0F Mening ustozlarim",
     btnRefresh: "\u{1F504} Yangilash",
     btnWhereApp: "\u{1F4F1} Ilovada ochish",
     whatsNew: "\u{1F195} <b>Yangilik!</b>\n\n\u{1F50E} <b>Ustoz qayerda?</b> \u2014 o'qituvchining hozir qaysi xonada ekanini, keyingi darsi qachon va qayerda ekanini bilib oling.\n\nTugma pastdagi menyuga qo'shildi \u{1F447}",
@@ -139,6 +143,10 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     whereNone: "\u041F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0444\u0430\u043C\u0438\u043B\u0438\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: Karimov",
     wherePick: "\u{1F50E} \u041D\u0430\u0439\u0434\u0435\u043D\u043E \u2014 \u043A\u0430\u043A\u043E\u0439 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C?",
     whereGroupHint: "\u{1F50E} \u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? \u041D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0444\u0430\u043C\u0438\u043B\u0438\u044E: <code>/where Karimov</code>",
+    whereMine: "\u{1F50E} <b>\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C?</b>\n\u{1F393} \u0412\u0430\u0448\u0438 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u0438 \u2014 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435:",
+    whereMineGroup: "\u{1F50E} <b>\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C?</b>\n\u{1F393} \u041F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u0438 \u0433\u0440\u0443\u043F\u043F\u044B \u2014 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 (\u0434\u0440\u0443\u0433\u043E\u0439: <code>/where Karimov</code>):",
+    btnWhereOther: "\u270D\uFE0F \u0414\u0440\u0443\u0433\u043E\u0439 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C",
+    btnWhereBack: "\u25C0\uFE0F \u041C\u043E\u0438 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u0438",
     btnRefresh: "\u{1F504} \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C",
     btnWhereApp: "\u{1F4F1} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438",
     whatsNew: "\u{1F195} <b>\u041D\u043E\u0432\u0438\u043D\u043A\u0430!</b>\n\n\u{1F50E} <b>\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C?</b> \u2014 \u0443\u0437\u043D\u0430\u0439\u0442\u0435, \u0432 \u043A\u0430\u043A\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C \u0441\u0435\u0439\u0447\u0430\u0441, \u0430 \u0442\u0430\u043A\u0436\u0435 \u043A\u043E\u0433\u0434\u0430 \u0438 \u0433\u0434\u0435 \u0435\u0433\u043E \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0430\u0440\u0430.\n\n\u041A\u043D\u043E\u043F\u043A\u0430 \u043F\u043E\u044F\u0432\u0438\u043B\u0430\u0441\u044C \u0432 \u043C\u0435\u043D\u044E \u0432\u043D\u0438\u0437\u0443 \u{1F447}",
@@ -240,6 +248,10 @@ ${t}`,
     whereNone: "Teacher not found. Check the surname, e.g. Karimov",
     wherePick: "\u{1F50E} Found \u2014 which teacher?",
     whereGroupHint: "\u{1F50E} Where is the teacher? Type the surname: <code>/where Karimov</code>",
+    whereMine: "\u{1F50E} <b>Where is the teacher?</b>\n\u{1F393} Your teachers \u2014 pick one:",
+    whereMineGroup: "\u{1F50E} <b>Where is the teacher?</b>\n\u{1F393} The group's teachers \u2014 pick one (another: <code>/where Karimov</code>):",
+    btnWhereOther: "\u270D\uFE0F Another teacher",
+    btnWhereBack: "\u25C0\uFE0F My teachers",
     btnRefresh: "\u{1F504} Refresh",
     btnWhereApp: "\u{1F4F1} Open in app",
     whatsNew: "\u{1F195} <b>New!</b>\n\n\u{1F50E} <b>Find a teacher</b> \u2014 see which room a teacher is in right now, and when and where their next class is.\n\nThe button is now in the menu below \u{1F447}",
@@ -1219,7 +1231,7 @@ async function privateMain(env, msg, command, flags) {
   const L = tr(lang);
   const uid = msg.from.id;
   const action = command ? command.cmd : BUTTONS[msg.text.trim()];
-  if (!command && !action && isWherePrompt(msg.reply_to_message)) return whereSearch(env, msg.chat.id, lang, msg.text, "private");
+  if (!command && !action && isWherePrompt(msg.reply_to_message)) return whereSearch(env, msg.chat.id, lang, msg.text, "private", row);
   if (action === "start") {
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
     if (m) {
@@ -1240,7 +1252,8 @@ async function privateMain(env, msg, command, flags) {
     return;
   }
   if (action === "where" || action === "ustoz" || action === "find") {
-    if (command?.arg) return whereSearch(env, msg.chat.id, lang, command.arg, "private");
+    if (command?.arg) return whereSearch(env, msg.chat.id, lang, command.arg, "private", row);
+    if (await whereList(env, msg.chat.id, lang, row, "private")) return;
     return send(env, msg.chat.id, L.whereAsk, { reply_markup: { force_reply: true, input_field_placeholder: L.whereAskPh, selective: true } });
   }
   if (action === "help") return send(env, msg.chat.id, L.help, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
@@ -1317,8 +1330,11 @@ async function onGroupChat(env, msg, command) {
     return sendSchedule(env, msg.chat.id, row, cmd);
   }
   if (cmd === "where" || cmd === "ustoz") {
-    if (!command.arg) return send(env, msg.chat.id, L.whereGroupHint, { reply_to_message_id: msg.message_id });
-    return whereSearch(env, msg.chat.id, lang, command.arg, "group");
+    if (!command.arg) {
+      if (await whereList(env, msg.chat.id, lang, row, "group", null, msg.message_id)) return;
+      return send(env, msg.chat.id, L.whereGroupHint, { reply_to_message_id: msg.message_id });
+    }
+    return whereSearch(env, msg.chat.id, lang, command.arg, "group", row);
   }
   if (cmd === "start" || cmd === "help") return send(env, msg.chat.id, row.group_id ? L.help : L.addedToGroup);
 }
@@ -1564,7 +1580,48 @@ async function chooseTeacher(env, chat, uid, teacherId, messageId, langHint) {
   else await send(env, chat.id, L.dataError, { reply_markup: mainKeyboard(env, lang, teacherId, "teacher") });
   if (firstTime) await send(env, chat.id, L.teacherTip);
 }
-async function whereSearch(env, chatId, lang, query, kind) {
+async function myTeachers(env, row) {
+  if (!row?.group_id || isTeacher(row)) return [];
+  let g, people;
+  try {
+    [g, people] = await Promise.all([getGroup(env, row.group_id), getPeople(env)]);
+  } catch {
+    return [];
+  }
+  const idOf = new Map((people?.teachers || []).map(([id, name]) => [name, id]));
+  const by = /* @__PURE__ */ new Map();
+  for (const l of g?.lessons || []) {
+    for (const name of String(l.t || "").split(", ").map((x) => x.trim()).filter(Boolean)) {
+      const id = idOf.get(name);
+      if (!id) continue;
+      const o = by.get(id) || { id, name, n: 0 };
+      o.n++;
+      by.set(id, o);
+    }
+  }
+  return [...by.values()].sort((a, b) => b.n - a.n || a.name.localeCompare(b.name));
+}
+var teacherButtons = (list) => {
+  const kb = [];
+  for (let i = 0; i < list.length; i += 2) {
+    const pair = list.slice(i, i + 2).map((o) => ({ text: "\u{1F393} " + o.name, callback_data: `wh:${o.id}` }));
+    if (pair.length === 2 && pair.some((b) => b.text.length > 26)) kb.push([pair[0]], [pair[1]]);
+    else kb.push(pair);
+  }
+  return kb;
+};
+async function whereList(env, chatId, lang, row, kind, messageId, replyTo) {
+  const L = tr(lang);
+  const list = (await myTeachers(env, row)).slice(0, 24);
+  if (!list.length) return false;
+  const kb = teacherButtons(list);
+  if (kind === "private") kb.push([{ text: L.btnWhereOther, callback_data: "whq" }]);
+  const text = kind === "private" ? L.whereMine : L.whereMineGroup;
+  if (messageId) await tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", reply_markup: { inline_keyboard: kb } });
+  else await send(env, chatId, text, { reply_markup: { inline_keyboard: kb }, ...replyTo ? { reply_to_message_id: replyTo } : {} });
+  return true;
+}
+async function whereSearch(env, chatId, lang, query, kind, row) {
   const L = tr(lang);
   const q = normT(query);
   if (q.length < 2) return send(env, chatId, L.whereNone);
@@ -1582,13 +1639,16 @@ async function whereSearch(env, chatId, lang, query, kind) {
   }
   if (!hits.length) return send(env, chatId, L.whereNone);
   hits.sort((a, b) => a[2] - b[2] || a[1].localeCompare(b[1]));
-  if (hits.length === 1 || hits[0][2] === 0 && hits[1][2] !== 0) return showWhere(env, chatId, lang, kind, hits[0][0]);
+  const own = new Set((await myTeachers(env, row)).map((o) => o.id));
+  const back = own.size > 0;
+  if (hits.length === 1 || hits[0][2] === 0 && hits[1][2] !== 0) return showWhere(env, chatId, lang, kind, hits[0][0], null, back);
+  if (own.size) hits.sort((a, b) => (own.has(b[0]) ? 1 : 0) - (own.has(a[0]) ? 1 : 0));
   const top = hits.slice(0, 16);
   const kb = [];
-  for (let i = 0; i < top.length; i += 2) kb.push(top.slice(i, i + 2).map(([id, name]) => ({ text: "\u{1F468}\u200D\u{1F3EB} " + name, callback_data: `wh:${id}` })));
+  for (let i = 0; i < top.length; i += 2) kb.push(top.slice(i, i + 2).map(([id, name]) => ({ text: (own.has(id) ? "\u{1F393} " : "\u{1F468}\u200D\u{1F3EB} ") + name, callback_data: `wh:${id}` })));
   return send(env, chatId, L.wherePick, { reply_markup: { inline_keyboard: kb } });
 }
-async function showWhere(env, chatId, lang, kind, teacherId, messageId) {
+async function showWhere(env, chatId, lang, kind, teacherId, messageId, back) {
   const L = tr(lang);
   let index, t;
   try {
@@ -1599,6 +1659,7 @@ async function showWhere(env, chatId, lang, kind, teacherId, messageId) {
   if (!t) return send(env, chatId, L.whereNone);
   const text = fmtWhere({ ...t, kind: "t" }, index, tashkentNow(), lang);
   const rows = [[{ text: L.btnRefresh, callback_data: `wh:${teacherId}` }]];
+  if (back) rows.push([{ text: L.btnWhereBack, callback_data: "whm" }]);
   if (siteUrl(env)) {
     if (kind === "private") rows.push([{ text: L.btnWhereApp, web_app: { url: `${siteUrl(env)}/#w=${teacherId}&l=${lang}` } }]);
     else {
@@ -1756,7 +1817,12 @@ async function onCallback(env, cb) {
     await updateChat(env, chatId, { remind_at: m });
     return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: L.remindSet(m), parse_mode: "HTML" });
   }
-  if (kind === "wh") return showWhere(env, chatId, lang, isGroupChat ? "group" : "private", parts[1], msg.message_id);
+  if (kind === "wh") return showWhere(env, chatId, lang, isGroupChat ? "group" : "private", parts[1], msg.message_id, (await myTeachers(env, row)).length > 0);
+  if (kind === "whm") {
+    if (!await whereList(env, chatId, lang, row, isGroupChat ? "group" : "private", msg.message_id)) return send(env, chatId, L.whereGroupHint);
+    return;
+  }
+  if (kind === "whq") return send(env, chatId, L.whereAsk, { reply_markup: { force_reply: true, input_field_placeholder: L.whereAskPh, selective: true } });
   if (kind === "day") {
     if (!row.group_id) return;
     return onDayTab(env, row, msg, Number(parts[1]), Number(parts[2]));
