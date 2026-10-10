@@ -136,6 +136,8 @@ try {
   s = await open({ mode: 'tg', hash: `#t=${tid}&l=en` });
   ok((await txt(s.page, '.htitle .t1')).includes(tname), 'teacher hero name');
   ok(/👨‍🏫 \d+ groups? · \d+ classes?/.test(await txt(s.page, '.htitle .t2')), 'teacher subtitle: ' + (await txt(s.page, '.htitle .t2')));
+  // (the day view opens on today — on a day off, e.g. Saturday, step to a weekday that has lessons)
+  for (let d = 0; d < 6 && !(await s.page.locator('.lesson .chip').count()); d++) { await s.page.click(`[data-d="${d}"]`); await settle(s.page, 250); }
   ok((await s.page.locator('.lesson .chip').count()) > 0, 'teacher lessons show tappable group chips');
   ok(!(await s.page.locator('.lesson .meta .ln:has-text("👤")').count()), 'a teacher card does not repeat the teacher');
   ok(await s.page.evaluate(() => JSON.parse(localStorage.getItem('tt_mine') || 'null')?.type) === 't', 'bot link #t= stored as "my timetable" (teacher)');
@@ -153,6 +155,8 @@ try {
   ok((await s.page.locator('.sheet').count()) === 0, 'BackButton closes the sheet');
   // drill into a group chip
   await s.page.click('[data-vm="day"]'); await settle(s.page, 350);
+  // (the day view opens on today — on a day off, e.g. Saturday, step to a weekday that has lessons)
+  for (let d = 0; d < 6 && !(await s.page.locator('.lesson .chip').count()); d++) { await s.page.click(`[data-d="${d}"]`); await settle(s.page, 250); }
   await s.page.click('.lesson .chip >> nth=0'); await settle(s.page, 500);
   const gtitle = await txt(s.page, '.htitle .t1');
   ok(!gtitle.includes(tname), 'chip opens the group timetable: ' + gtitle);
@@ -198,6 +202,44 @@ try {
   ok((await s.page.locator('.rooms .room').count()) > 0 || (await s.page.locator('.empty').count()) > 0, 'free rooms render');
   ok(s.errs.length === 0, 'free errors ' + s.errs.join(';'));
   await s.ctx.close();
+
+  // ---------------- 9) upper/lower weeks (2026/27 calendar: Monday 31 Aug 2026 is an upper = "A" week)
+  {
+    const dir = path.join(ROOT, 'data/g');
+    let alt = null;
+    for (const f of fs.readdirSync(dir)) {
+      const g = JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8'));
+      if (g.lessons.some((l) => l.w === 'A') && g.lessons.some((l) => l.w === 'B')) { alt = { id: f.replace(/\.json$/, ''), g }; break; }
+    }
+    ok(!!alt, 'fixture data has a group with alternating-week lessons');
+    if (alt) {
+      const DAY = 864e5;
+      const tz = new Date(Date.now() + 5 * 3600e3);
+      const day0 = Date.UTC(tz.getUTCFullYear(), tz.getUTCMonth(), tz.getUTCDate());
+      const wdNow = (new Date(day0).getUTCDay() + 6) % 7;
+      const monNow = day0 - wdNow * DAY + (wdNow === 6 ? 7 * DAY : 0);
+      const parOf = (mon) => (((Math.round((mon - Date.UTC(2026, 7, 31)) / (7 * DAY)) % 2) + 2) % 2 === 0 ? 'A' : 'B');
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' });
+      await ctx.route(/data\/index\.json/, async (r) => {
+        const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/index.json'), 'utf8'));
+        j.weekA = '2026-08-31';
+        r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) });
+      });
+      s = await open({ mode: 'tg', hash: `#g=${alt.id}&l=en`, ctx });
+      await s.page.click('[data-vm="week"]'); await settle(s.page, 400);
+      for (const off of [0, 1, 2]) {
+        const mon = monNow + off * 7 * DAY, par = parOf(mon);
+        const want = alt.g.lessons.filter((l) => l.d < 6 && (!l.w || l.w === par)).length;
+        const lbl = await txt(s.page, '.weekbar .lbl');
+        ok(lbl.includes(par === 'A' ? 'Upper week' : 'Lower week'), `week +${off}: header says ${par === 'A' ? 'Upper' : 'Lower'} week (got "${lbl}")`);
+        ok((await s.page.locator('.ml').count()) === want, `week +${off}: shows ${want} lessons of its own week, got ${await s.page.locator('.ml').count()}`);
+        ok((await s.page.locator('.ml .wk, .ml .tag.wk').count()) === 0, `week +${off}: no per-lesson A/B tags once the week is known`);
+        await s.page.click('#wNext'); await settle(s.page, 350);
+      }
+      ok(s.errs.length === 0, 'upper/lower errors ' + s.errs.join(';'));
+      await s.ctx.close();
+    }
+  }
 } finally {
   await browser.close();
   server.close();

@@ -12,7 +12,12 @@ import { tashkentNow, addDays, ymd, parseSubject, setSubjects, hasSubject } from
 const BASE = process.env.EDUPAGE_URL || 'https://tsue.edupage.org';
 const DATA = path.resolve('docs/data');
 const OUT = path.resolve('.out');
-const WEEK_A = process.env.WEEK_A_MONDAY || ''; // optional, e.g. 2026-09-07 if that week is "Week A"
+// Upper/lower ("Yuqori"/"Quyi") weeks = EduPage weeks "10"/"01" = Week A/B. The university's 2026/2027
+// calendar ("O'quv yilida haftalar taqsimoti") alternates strictly every week, starting with the UPPER week
+// of 31 Aug 2026 (the first study week), so every Monday an even number of weeks away from it is Week A.
+// WEEK_A_MONDAY (a GitHub variable) overrides this, e.g. for the next academic year.
+const DEFAULT_WEEK_A = '2026-08-31';
+const DEFAULT_WEEK_A_UNTIL = '2027-08-30'; // after the 2026/27 calendar ends we no longer guess
 const KEEP_CHANGES = 10;
 
 async function post(func, file, args) {
@@ -87,7 +92,8 @@ async function main() {
   if (!tt) throw new Error('No timetable published on EduPage');
   if (!raw) raw = await post('regularttGetData', 'regulartt.js', [null, tt.num]);
 
-  const built = buildAll(raw, tt, { weekA: WEEK_A || null });
+  const weekA = process.env.WEEK_A_MONDAY || (ymd(now) < DEFAULT_WEEK_A_UNTIL ? DEFAULT_WEEK_A : null);
+  const built = buildAll(raw, tt, { weekA });
   const ids = Object.keys(built.groups);
   console.log(`Timetable ${tt.num} (${tt.label}): ${ids.length} groups, ${Object.keys(built.teachers).length} teachers, ${Object.keys(built.rooms).length} rooms`);
 

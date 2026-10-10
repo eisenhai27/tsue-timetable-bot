@@ -118,7 +118,7 @@ export function renderSvg(group, index, logoDataUri) {
       o.push(`<text x="${gridX + 16}" y="${y + ROWH / 2 + 8}" font-size="20" font-weight="600" fill="${C.mute}">Dars yo‘q</text>`);
       return;
     }
-    // group lessons that share the same start period (A/B weeks, subgroups) → split the cell
+    // group lessons that share the same start period (upper/lower weeks, subgroups) → split the cell
     const bySlot = new Map();
     for (const l of dayLessons) (bySlot.get(l.p) || bySlot.set(l.p, []).get(l.p)).push(l);
     for (const [p, list] of bySlot) {
@@ -138,7 +138,7 @@ export function renderSvg(group, index, logoDataUri) {
         const maxChars = Math.max(8, Math.floor((cw - 26) / (fs * 0.56)));
         const nameLines = wrap(sp.name, maxChars, small ? 1 : 2);
         let ty = cy + (small ? 22 : 28);
-        const tags = [st.tag, l.w ? `${l.w} HAFTA` : '', l.g ? l.g.toUpperCase() : ''].filter(Boolean).join(' · ');
+        const tags = [st.tag, l.w ? (l.w === 'A' ? 'YUQORI' : 'QUYI') : '', l.g ? l.g.toUpperCase() : ''].filter(Boolean).join(' · ');
         if (tags && !small) {
           o.push(`<text x="${cx + 16}" y="${ty - 4}" font-size="13" font-weight="800" fill="${st.bar}" letter-spacing="0.6">${x(tags)}</text>`);
           ty += 18;

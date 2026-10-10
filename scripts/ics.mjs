@@ -59,7 +59,7 @@ function buildCalendar(group, index) {
         interval = 2;
         if (weekParity(index.weekA, firstDate) !== l.w) firstDate = addDays(firstDate, 7);
       } else {
-        title += l.w === 'A' ? ' (A hafta)' : ' (B hafta)';
+        title += l.w === 'A' ? ' (Yuqori hafta)' : ' (Quyi hafta)';
       }
     }
 

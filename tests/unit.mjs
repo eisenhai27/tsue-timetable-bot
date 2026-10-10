@@ -40,6 +40,24 @@ assert.match(fmtChanges(mo, out.index, d, 'ru', false), /Расписание и
 assert.equal(weekParity('2026-09-07', new Date('2026-09-09T00:00:00Z')), 'A');
 assert.equal(weekParity('2026-09-07', new Date('2026-09-16T00:00:00Z')), 'B');
 assert.equal(weekParity(null, monday), null);
+// 2026/27 calendar (O'quv yilida haftalar taqsimoti): strictly alternating, upper (Yuqori) week = A starting 31 Aug 2026
+{
+  const UPPER = ['2026-08-31', '2026-09-14', '2026-09-28', '2026-10-12', '2026-11-09', '2026-12-07', '2027-01-04', '2027-03-29', '2027-06-21', '2027-08-16'];
+  const LOWER = ['2026-09-07', '2026-09-21', '2026-10-05', '2026-10-19', '2026-12-28', '2027-01-11', '2027-05-31', '2027-08-23'];
+  for (const m of UPPER) for (const off of [0, 3, 5]) assert.equal(weekParity('2026-08-31', new Date(Date.parse(m + 'T00:00:00Z') + off * 864e5)), 'A', m);
+  for (const m of LOWER) for (const off of [0, 3, 5]) assert.equal(weekParity('2026-08-31', new Date(Date.parse(m + 'T00:00:00Z') + off * 864e5)), 'B', m);
+  // a group that has Yuqori-only and Quyi-only lessons: each week shows just its own, with the upper/lower label
+  const idx = { periods: [{ p: 1, start: '08:00', end: '09:20' }, { p: 2, start: '09:30', end: '10:50' }], weekA: '2026-08-31' };
+  const g = { id: 'x', name: 'XX-1', kind: 'g', lessons: [
+    { d: 0, p: 1, n: 1, s: 'Math (lecture)', t: 'T1', r: '1-101', w: 'A' },
+    { d: 0, p: 2, n: 1, s: 'Physics (seminar)', t: 'T2', r: '1-102', w: 'B' },
+    { d: 0, p: 1, n: 1, s: 'Always', t: 'T3', r: '1-103', w: '' }] };
+  const upper = fmtDay(g, idx, new Date('2026-10-12T00:00:00Z'), 'uz');
+  assert.match(upper, /Yuqori hafta/); assert.match(upper, /Math/); assert.doesNotMatch(upper, /Physics/);
+  const lower = fmtDay(g, idx, new Date('2026-10-19T00:00:00Z'), 'ru');
+  assert.match(lower, /Нижняя неделя/); assert.match(lower, /Physics/); assert.doesNotMatch(lower, /Math/);
+  assert.match(fmtWeek(g, idx, new Date('2026-10-12T00:00:00Z'), 'en'), /Upper week/);
+}
 assert.equal(mondayOf(new Date('2026-09-27T10:00:00Z')).toISOString().slice(0, 10), '2026-09-21');
 
 // reminder time parsing
