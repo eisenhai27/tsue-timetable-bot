@@ -14,7 +14,8 @@
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"></noscript>
 <style>
 /* TDIU Jadval — brand: navy #0B3F7A, blue #2A7BDB, lightning yellow #FFC83D (from the logo) */
 :root{
@@ -62,7 +63,8 @@ input{font:inherit;color:inherit}
 
 /* ---- week strip */
 .weekbar{display:flex;align-items:center;justify-content:space-between;margin:16px 2px 8px;gap:8px}
-.weekbar .lbl{font-weight:800;font-size:17px}
+.weekbar .lbl{font-weight:800;font-size:17px;min-width:0;line-height:1.25}
+.weekbar .lbl .muted{display:block;font-size:12.5px;font-weight:700}
 .pill{background:var(--card);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:700;box-shadow:var(--shadow);white-space:nowrap}
 .pill.on{background:var(--navy);color:#fff}
 html.dark .pill.on{background:var(--blue)}
@@ -177,7 +179,7 @@ html.dark .pill.now{color:var(--bolt)} html.dark .pill.now.on{color:#3B2A00}
 
 /* ---- bottom nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.nav .wrap{display:grid;grid-template-columns:repeat(3,1fr)}
+.nav .wrap{display:grid;grid-template-columns:repeat(4,1fr)}
 .nav button{position:relative;padding:9px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:700;color:var(--hint)}
 .nav button svg{width:22px;height:22px}
 .nav button.on{color:var(--navy)}
@@ -261,6 +263,81 @@ html.dark .vm button.on{background:var(--blue)}
 html,body{overscroll-behavior-y:none}
 .lesson{cursor:pointer;text-align:left}
 .lesson:focus-visible,.ml:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+/* ---- v3: richer header, room pills, live dot, skeletons, 4-tab bar */
+.hero{background:linear-gradient(135deg,#0B3F7A 0%,#0F4C93 55%,#1E67BD 130%)}
+html.dark .hero{background:linear-gradient(135deg,#0B3463 0%,#0E4283 60%,#18559F 130%)}
+.nowline{position:relative;z-index:1;margin-top:10px;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.12);font-weight:700;font-size:13.5px;line-height:1.3;text-align:left}
+.nowline b{font-weight:800;white-space:nowrap}
+.nowline span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pulse{display:inline-block;width:9px;height:9px;border-radius:50%;background:#2BD576;position:relative;flex:none;vertical-align:middle;margin-right:2px}
+.pulse::after{content:"";position:absolute;inset:-4px;border-radius:50%;border:2px solid #2BD576;opacity:0;animation:pl 1.8s ease-out infinite}
+@keyframes pl{0%{transform:scale(.5);opacity:.9}100%{transform:scale(1.5);opacity:0}}
+.state .pulse{background:#3B2A00;margin-right:5px}.state .pulse::after{border-color:#3B2A00}
+.meta button.ln.rm{display:inline-flex;align-self:flex-start;width:auto;background:var(--soft);border-radius:9px;padding:3px 9px;gap:5px;align-items:center}
+.meta button.ln.rm span{font-weight:800}
+.lesson{transition:transform .12s ease}.lesson:active{transform:scale(.992)}
+.lesson.now{background:linear-gradient(0deg,var(--card),var(--card)) padding-box}
+.list.stag>*{animation:inF .32s ease both}
+.list.stag>*:nth-child(2){animation-delay:.04s}.list.stag>*:nth-child(3){animation-delay:.08s}.list.stag>*:nth-child(4){animation-delay:.12s}.list.stag>*:nth-child(n+5){animation-delay:.16s}
+.day .dots{position:absolute;bottom:5px;left:0;right:0;display:flex;justify-content:center;gap:3px}
+.day .dots i{width:4px;height:4px;border-radius:50%;background:var(--blue);opacity:.55}
+.day.sel .dots i{background:var(--bolt);opacity:1}
+.nav button{transition:color .2s}
+.nav button.on svg{transform:translateY(-1px) scale(1.06)}
+.nav button svg{transition:transform .2s}
+.nav .wrap{max-width:560px}
+/* skeleton loaders */
+.sk{border-radius:var(--r);background:linear-gradient(100deg,var(--card) 30%,var(--soft) 50%,var(--card) 70%);background-size:300% 100%;animation:sh 1.3s ease-in-out infinite;box-shadow:var(--shadow)}
+@keyframes sh{0%{background-position:100% 0}100%{background-position:0 0}}
+.sk.h1{height:44px;margin-top:14px}.sk.h2{height:86px;margin-top:10px}
+.sk.row{height:56px;margin-top:8px;border-radius:14px}
+/* ---- "Where is the teacher?" */
+.wcard{position:relative;margin-top:14px;border-radius:22px;padding:18px 18px 16px;color:#fff;overflow:hidden;background:var(--st,linear-gradient(135deg,#5B6B82,#7C8AA0));box-shadow:var(--shadow);text-align:left}
+.wcard::after{content:"";position:absolute;right:-50px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.1)}
+.wcard.st-now{--st:linear-gradient(135deg,#128346,#22B36B)}
+.wcard.st-between{--st:linear-gradient(135deg,#C46A00,#EE9A2B)}
+.wcard.st-before{--st:linear-gradient(135deg,#0F4C93,#2A7BDB)}
+.wcard.st-after,.wcard.st-off{--st:linear-gradient(135deg,#4C5B72,#74839B)}
+html.dark .wcard.st-now{--st:linear-gradient(135deg,#0E6B3A,#17935A)}
+html.dark .wcard.st-between{--st:linear-gradient(135deg,#9A5200,#C77A1C)}
+.wst{position:relative;z-index:1;display:flex;align-items:center;gap:8px;font-weight:800;font-size:14px;letter-spacing:.01em;opacity:.95}
+.wmain{position:relative;z-index:1;margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.wmain+.wmain{margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,.22)}
+.wwhen{position:relative;z-index:1;margin-top:12px;font-weight:800;font-size:15px;opacity:.95}
+.wroom{align-self:flex-start;display:inline-flex;align-items:center;gap:8px;background:#fff;color:#0B3F7A;border-radius:14px;padding:9px 14px;font-weight:800;font-size:19px;line-height:1.15;letter-spacing:-.01em;box-shadow:0 4px 14px rgba(0,0,0,.14);text-align:left}
+.wroom small{display:block;font-size:12px;font-weight:700;opacity:.65;letter-spacing:0}
+.wroom.none{font-size:15px;color:#4C5B72}
+.wsubj{font-weight:800;font-size:17px;line-height:1.3}
+.wsubj small{display:block;font-weight:700;font-size:12px;opacity:.85;margin-top:2px;text-transform:uppercase;letter-spacing:.05em}
+.wcard .chips .chip{background:rgba(255,255,255,.2);color:#fff}
+.wprog{position:relative;z-index:1;margin-top:14px;height:7px;border-radius:7px;background:rgba(255,255,255,.25);overflow:hidden}
+.wprog b{display:block;height:100%;background:#fff;border-radius:7px;transition:width .6s ease}
+.wleft{position:relative;z-index:1;margin-top:8px;font-weight:700;font-size:13.5px;opacity:.95}
+.wnote{margin:14px 4px 0;font-size:12px;color:var(--hint);font-weight:600;line-height:1.5;text-align:left}
+.wdays{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.wwk{display:flex;align-items:center;justify-content:space-between;margin:18px 2px 8px;gap:8px}
+.wwk .lbl{font-weight:800;font-size:15px}
+.wwk .lbl span{color:var(--hint);font-weight:700;font-size:12.5px;margin-left:6px}
+.tl{display:flex;flex-direction:column;gap:8px;margin-top:10px}
+.tli{position:relative;display:flex;gap:12px;background:var(--card);border-radius:16px;padding:11px 12px 11px 16px;box-shadow:var(--shadow);overflow:hidden;text-align:left}
+.tli::before{content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:var(--oth)}
+.tli.t-lecture::before{background:var(--lec)}.tli.t-seminar::before{background:var(--sem)}.tli.t-lab::before,.tli.t-practice::before{background:var(--lab)}
+.tli.now{box-shadow:0 0 0 2px var(--good),var(--shadow)}.tli.past{opacity:.5}
+.tli .tt{flex:none;width:48px;line-height:1.25}.tli .tt b{display:block;font-weight:800;font-size:15px}.tli .tt small{color:var(--hint);font-weight:600;font-size:12px}
+.tli .tb{flex:1;min-width:0;display:flex;flex-direction:column;gap:5px}
+.tli .ts{font-weight:800;font-size:14.5px;line-height:1.3}
+.tli .ts small{font-weight:700;font-size:11px;letter-spacing:.05em;text-transform:uppercase;color:var(--hint);margin-left:4px}
+.rpill{align-self:flex-start;display:inline-flex;align-items:center;gap:5px;background:var(--soft);color:var(--link);border-radius:9px;padding:3px 9px;font-weight:800;font-size:13px;text-align:left}
+.rpill:active{opacity:.7}
+.rpill.none{color:var(--hint);font-weight:700}
+.wrow .ri{position:relative}
+.wrow .st{display:block;font-size:12px;font-weight:700;color:var(--hint);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:16px}
+.wrow .st.live{color:var(--good)}.wrow .st.soon{color:var(--lab)}
+.wtips{display:flex;flex-direction:column;gap:10px;margin-top:16px;padding:16px;border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);text-align:left}
+.wtips b{font-size:15px}.wtips div{display:flex;gap:10px;align-items:center;font-weight:600;font-size:14px}
+.wtips i{font-style:normal;width:30px;height:30px;border-radius:10px;background:var(--soft);display:grid;place-items:center;flex:none}
+.wactions{display:flex;gap:8px;margin-top:14px}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -269,6 +346,7 @@ html,body{overscroll-behavior-y:none}
 <nav class="nav"><div class="wrap">
   <button data-tab="tt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18M8 14h3M13 14h3M8 17h3"/></svg><span data-t="navTT"></span></button>
   <button data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span data-t="navSearch"></span></button>
+  <button data-tab="where"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span data-t="navWhere"></span></button>
   <button data-tab="free"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16M6 21V4a1 1 0 0 1 1-1h8l3 3v15"/><circle cx="14" cy="13" r="1" fill="currentColor"/></svg><span data-t="navFree"></span></button>
 </div></nav>
 <div id="sheet"></div>
@@ -320,11 +398,17 @@ const I = {
     free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…',
     teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar', validity:'Amal qiladi', lang:'Til', langTitle:'Tilni tanlang',
     breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi',
-    inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${m} daq qoldi`,
+    inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${dur(m,'soat','daq')} qoldi`,
     whoAreYou:'Siz kimsiz?', whoSub:'Jadvalingiz har safar bir bosishda ochiladi', iStudent:'Talaba', iStudentSub:'Guruhimning jadvali', iTeacher:"O'qituvchi", iTeacherSub:"O'z dars jadvalim",
     mine:'Mening jadvalim', makeMine:'Meniki qilish', backMine:'Mening jadvalim', vDay:'Kun', vWeek:'Hafta', noRoom:"xona ko'rsatilmagan",
     teacherSub:(g,n)=>`${g} ta guruh · ${n} ta dars`, changeRole:'Rolni almashtirish', cancel:'Bekor qilish', picMissing:'Rasm hali tayyor emas',
-    shareText:'dars jadvali (TDIU Jadval)', weekN:'hafta', ofWord:'dan' },
+    shareText:'dars jadvali (TDIU Jadval)', weekN:'hafta', ofWord:'dan',
+    navWhere:'Ustoz', whereT:'Ustoz qayerda?', whereSub:"O'qituvchi hozir qaysi xonada ekanini bilib oling", whereHint:"Familiyani yozing — ustoz hozir qayerdaligini ko'rsatamiz",
+    whNow:'Hozir darsda', whBetween:"Hozir dars yo'q", whBefore:'Bugungi dars hali boshlanmagan', whAfter:'Bugungi darslar tugagan', whOff:"Bugun dars yo'q",
+    whNext:'Keyingi dars', whTomorrow:'Ertaga', whPlan:'Kun tartibi', whNote:"Rasmiy jadval asosida — kutilmagan o'zgarishlar bo'lishi mumkin.", whFull:"To'liq jadval", whLoading:'Yuklanmoqda…',
+    whShort:{ now:(r,t)=>`🟢 ${r} · ${t} gacha`, next:(r,t)=>`🟡 ${t} · ${r}`, off:"⚪ Bugun yo'q", nextDay:(d,t)=>`⚪ ${d}, ${t}` },
+    whInline:{ now:'Hozir', next:'Keyingi' }, whAZ:'A–Z', whTips:["Ustoz hozir qaysi xonada", "Keyingi darsi qachon va qayerda", "Kun bo'yi tartibi"], whEmpty:"Ustozni qidiring yoki ro'yxatdan tanlang", whFavHint:'⭐ bosib sevimli qiling',
+    whBusyRoom:(n)=>`${n} ta dars`, whNoRoom:"xona ko'rsatilmagan", whWeekN:(s)=>`${s}`, nextWk:'Keyingi hafta', prevWk:"O'tgan hafta" },
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
     navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
     lessonsN:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, groupsN:(n)=>`${n} ${plRu(n,'группа','группы','групп')}`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте',
@@ -341,11 +425,17 @@ const I = {
     free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} ${plRu(n,'свободная аудитория','свободные аудитории','свободных аудиторий')}`, filterRoom:'Номер аудитории…',
     teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы', validity:'Действует', lang:'Язык', langTitle:'Выберите язык',
     breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое',
-    inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${m} мин`,
+    inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${dur(m,'ч','мин')}`,
     whoAreYou:'Кто вы?', whoSub:'Ваше расписание будет открываться одним касанием', iStudent:'Студент', iStudentSub:'Расписание моей группы', iTeacher:'Преподаватель', iTeacherSub:'Моё расписание занятий',
     mine:'Моё расписание', makeMine:'Сделать моим', backMine:'Моё расписание', vDay:'День', vWeek:'Неделя', noRoom:'аудитория не указана',
     teacherSub:(g,n)=>`${g} ${plRu(g,'группа','группы','групп')} · ${n} ${plRu(n,'пара','пары','пар')}`, changeRole:'Сменить роль', cancel:'Отмена', picMissing:'Картинка ещё не готова',
-    shareText:'расписание (TDIU Jadval)', weekN:'неделя', ofWord:'из' },
+    shareText:'расписание (TDIU Jadval)', weekN:'неделя', ofWord:'из',
+    navWhere:'Препод', whereT:'Где препод?', whereSub:'Узнайте, в какой аудитории сейчас преподаватель', whereHint:'Введите фамилию — покажем, где преподаватель сейчас',
+    whNow:'Сейчас на паре', whBetween:'Сейчас пары нет', whBefore:'Сегодняшние пары ещё не начались', whAfter:'Сегодняшние пары закончились', whOff:'Сегодня пар нет',
+    whNext:'Следующая пара', whTomorrow:'Завтра', whPlan:'План дня', whNote:'По официальному расписанию — возможны неожиданные изменения.', whFull:'Всё расписание', whLoading:'Загрузка…',
+    whShort:{ now:(r,t)=>`🟢 ${r} · до ${t}`, next:(r,t)=>`🟡 ${t} · ${r}`, off:'⚪ Сегодня нет', nextDay:(d,t)=>`⚪ ${d}, ${t}` },
+    whInline:{ now:'Сейчас', next:'Далее' }, whAZ:'А–Я', whTips:['В какой аудитории сейчас', 'Когда и где следующая пара', 'План на весь день'], whEmpty:'Найдите преподавателя или выберите из списка', whFavHint:'Нажмите ⭐, чтобы сохранить',
+    whBusyRoom:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, whNoRoom:'аудитория не указана', whWeekN:(s)=>`${s}`, nextWk:'Следующая неделя', prevWk:'Прошлая неделя' },
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
     navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
     lessonsN:(n)=>`${n} class${n === 1 ? '' : 'es'}`, groupsN:(n)=>`${n} group${n === 1 ? '' : 's'}`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy',
@@ -362,11 +452,17 @@ const I = {
     free:'Free rooms', freeFor:(d,p)=>`${d}, period ${p}`, freeCount:(n)=>`${n} free room${n === 1 ? '' : 's'}`, filterRoom:'Room number…',
     teacher:'Teacher', room:'Room', groupsL:'Groups', validity:'Valid', lang:'Language', langTitle:'Choose language',
     breakMin:(m)=>`${m} min break`, error:"Couldn't load data. Check your connection and try again.", retry:'Retry', new:'New',
-    inMin:(m)=>`in ${dur(m,'h','min')}`, left:(m)=>`${m} min left`,
+    inMin:(m)=>`in ${dur(m,'h','min')}`, left:(m)=>`${dur(m,'h','min')} left`,
     whoAreYou:'Who are you?', whoSub:'Your timetable will open in one tap', iStudent:'Student', iStudentSub:"My group's timetable", iTeacher:'Teacher', iTeacherSub:'My teaching timetable',
     mine:'My timetable', makeMine:'Make it mine', backMine:'My timetable', vDay:'Day', vWeek:'Week', noRoom:'no room given',
     teacherSub:(g,n)=>`${g} group${g === 1 ? '' : 's'} · ${n} class${n === 1 ? '' : 'es'}`, changeRole:'Change role', cancel:'Cancel', picMissing:'Picture is not ready yet',
-    shareText:'timetable (TDIU Jadval)', weekN:'week', ofWord:'of' },
+    shareText:'timetable (TDIU Jadval)', weekN:'week', ofWord:'of',
+    navWhere:'Teacher', whereT:'Where is the teacher?', whereSub:'See which room a teacher is in right now', whereHint:"Type a surname — we'll show where the teacher is now",
+    whNow:'In class right now', whBetween:'No class right now', whBefore:"Today's classes haven't started", whAfter:"Today's classes are over", whOff:'No classes today',
+    whNext:'Next class', whTomorrow:'Tomorrow', whPlan:'Day plan', whNote:'Based on the official timetable — unexpected changes are possible.', whFull:'Full timetable', whLoading:'Loading…',
+    whShort:{ now:(r,t)=>`🟢 ${r} · until ${t}`, next:(r,t)=>`🟡 ${t} · ${r}`, off:'⚪ None today', nextDay:(d,t)=>`⚪ ${d}, ${t}` },
+    whInline:{ now:'Now', next:'Next' }, whAZ:'A–Z', whTips:['Which room right now', 'When and where the next class is', 'The whole day plan'], whEmpty:'Search a teacher or pick from the list', whFavHint:'Tap ⭐ to save',
+    whBusyRoom:(n)=>`${n} class${n === 1 ? '' : 'es'}`, whNoRoom:'no room given', whWeekN:(s)=>`${s}`, nextWk:'Next week', prevWk:'Previous week' },
 };
 // Faculty names come from EduPage in Uzbek: [ru, en] for the readers who switched language (unknown names stay as they are).
 const FAC = {
@@ -419,6 +515,9 @@ const S = {
   q: '', filter: 'all', picking: null,   // picking: 'g' | 't' while the user chooses who he is
   onboard: false, tLetter: null,
   recent: store.get('recent', []),
+  wRecent: store.get('wrecent', []),     // teachers looked up in the "Where is the teacher?" tab
+  wq: '', wLetter: null,
+  wt: null, wDate: null,                  // the teacher card open in that tab + the day shown in its timeline
   favs: store.get('favs', []),
   freeDay: null, freeP: null, freeQ: '',
   browseFac: null,
@@ -426,14 +525,49 @@ const S = {
 let seq = 0; // render sequence: a slower, older render never paints over a newer one
 
 // ---------------------------------------------------------------- data
-const cache = {};
-async function load(path) {
-  if (cache[path]) return cache[path];
-  const p = fetch('data/' + path, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); });
-  cache[path] = p;
-  p.catch(() => delete cache[path]);
+// Stale-while-revalidate: every file is kept in memory and in localStorage. A launch paints from the copy of the last visit at once
+// and refreshes from the network in the background (a changed copy re-draws the screen softly, keeping the scroll position).
+const mem = {}, stamp = {}, flight = {};
+const LSP = 'ttc:', LRU_MAX = 24;
+const lsGet = (path) => { try { const v = localStorage.getItem(LSP + path); return v ? JSON.parse(v) : null; } catch { return null; } };
+const lsDel = (path) => { try { localStorage.removeItem(LSP + path); } catch {} };
+function lsPut(path, data) {
+  const put = () => localStorage.setItem(LSP + path, JSON.stringify(data));
+  try { put(); } catch {
+    try { // quota: drop every cached timetable file, keep the small shared ones
+      for (let i = localStorage.length - 1; i >= 0; i--) { const k = localStorage.key(i); if (k && /^ttc:[gtr]\//.test(k)) localStorage.removeItem(k); }
+      localStorage.removeItem(LSP + '_lru'); put();
+    } catch { return; }
+  }
+  if (/^[gtr]\//.test(path)) { // keep only the most recently used timetable files
+    try {
+      const lru = [path, ...JSON.parse(localStorage.getItem(LSP + '_lru') || '[]').filter(x => x !== path)];
+      for (const old of lru.splice(LRU_MAX)) localStorage.removeItem(LSP + old);
+      localStorage.setItem(LSP + '_lru', JSON.stringify(lru));
+    } catch {}
+  }
+}
+/** Fresh enough in memory → that; otherwise one shared network request. */
+function load(path, maxAge = 90e3) {
+  if (flight[path]) return flight[path];
+  if (mem[path] && Date.now() - stamp[path] < maxAge) return Promise.resolve(mem[path]);
+  const p = fetch('data/' + path, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(d => { mem[path] = d; stamp[path] = Date.now(); lsPut(path, d); return d; },
+          e => { if (String(e.message) === '404') { delete mem[path]; lsDel(path); } throw e; })
+    .finally(() => { delete flight[path]; });
+  flight[path] = p;
   return p;
 }
+/** Any copy we already have answers immediately; `onFresh(newData)` fires if the network copy differs. No copy → wait for the network. */
+function swr(path, onFresh) {
+  const hit = mem[path] || lsGet(path);
+  const p = load(path);
+  if (!hit) return p;
+  if (!mem[path]) mem[path] = hit;
+  p.then(d => { if (onFresh && d !== hit && JSON.stringify(d) !== JSON.stringify(hit)) onFresh(d); }, () => {});
+  return Promise.resolve(hit);
+}
+const peek = (path) => mem[path] || lsGet(path);
 const fileOf = (e) => e.type === 'g' ? `g/${e.id}.json` : e.type === 't' ? `t/${e.id}.json` : `r/${e.id}.json`;
 
 // ---------------------------------------------------------------- time helpers (Tashkent UTC+5)
@@ -470,7 +604,7 @@ const entityOf = (code) => { const type = code[0], name = code.slice(2); return 
 let SUBJ = null;
 async function ensureSubjects() {
   if (lang === 'uz' || SUBJ) return;
-  try { SUBJ = new Map(Object.entries(await load('subjects.json')).map(([k, v]) => [skey(k), v])); } catch {}
+  try { SUBJ = new Map(Object.entries(await swr('subjects.json')).map(([k, v]) => [skey(k), v])); } catch {}
 }
 const trName = (n) => { const h = lang !== 'uz' && SUBJ && SUBJ.get(skey(n)); return (h && h[lang === 'ru' ? 0 : 1]) || n; };
 // translated name + the original Uzbek one beside it (only when the translation really differs)
@@ -505,12 +639,15 @@ function buildAll() {
 }
 async function ensureIndex() {
   await ensureSubjects();
-  if (!INDEX) { INDEX = await load('index.json'); ALLLANG = null; }
+  if (!INDEX) {
+    INDEX = await swr('index.json', (d) => { INDEX = d; ALLLANG = null; if (ALL.length) buildAll(); softRender(); });
+    ALLLANG = null;
+  }
   if (ALLLANG !== lang) buildAll();
 }
 async function ensurePeople() {
   if (PEOPLE) return;
-  try { PEOPLE = await load('people.json'); } catch { PEOPLE = { teachers: [], rooms: [] }; }
+  try { PEOPLE = await swr('people.json', (d) => { PEOPLE = d; if (INDEX) buildAll(); }); } catch { PEOPLE = { teachers: [], rooms: [] }; }
   if (INDEX) buildAll();
 }
 
@@ -558,9 +695,10 @@ function remember(e) {
 const isMine = (v) => !!(S.mine && v && S.mine.type === v.type && S.mine.id === v.id);
 function setMine(e) { S.mine = { type: e.type, id: e.id, name: e.name }; store.set('mine', S.mine); }
 /** Open an entity's timetable. `asMine` is set only when the user is choosing who he is (never by merely looking someone up). */
+const snap = () => ({ tab: S.tab, view: S.view, wt: S.wt, wDate: S.wDate });
 function openEntity(e, { asMine = false, push = true } = {}) {
   haptic();
-  if (push && S.view && !S.picking) S.stack.push({ tab: S.tab, view: S.view });
+  if (push && (S.view || S.tab !== 'tt') && !S.picking) S.stack.push(snap());
   if (asMine) { setMine(e); S.stack = []; S.picking = null; S.onboard = false; }
   S.view = { type: e.type, id: e.id, name: e.name };
   remember(e);
@@ -572,7 +710,7 @@ function goBack() {
   if (sheetOpen()) { closeSheet(); return; }
   const prev = S.stack.pop();
   if (!prev) return;
-  S.tab = prev.tab; S.view = prev.view; S.day = null;
+  S.tab = prev.tab; S.view = prev.view; S.wt = prev.wt || null; S.wDate = prev.wDate || null; S.day = null;
   render();
 }
 function syncBack() {
@@ -605,6 +743,7 @@ document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click'
   haptic();
   closeSheet();
   if (b.dataset.tab !== S.tab) { S.stack = []; S.tab = b.dataset.tab; }
+  else if (S.tab === 'where') { S.wt = null; S.wDate = null; S.stack = []; }
   S.picking = null;
   render();
   window.scrollTo(0, 0);
@@ -612,7 +751,7 @@ document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click'
 
 function showError() {
   app.innerHTML = `<div class="wrap"><div class="empty"><div class="big">📡</div><p>${esc(L.error)}</p><button class="pill on" id="retry">${esc(L.retry)}</button></div></div>`;
-  $('#retry').onclick = () => { for (const k in cache) delete cache[k]; INDEX = null; PEOPLE = null; render(); };
+  $('#retry').onclick = () => { for (const k in mem) delete mem[k]; for (const k in stamp) delete stamp[k]; INDEX = null; PEOPLE = null; render(); };
 }
 const safe = (fn) => async (...a) => { const my = seq; try { return await fn(...a); } catch (e) { console.error(e); if (my === seq) showError(); } };
 
@@ -625,6 +764,7 @@ async function render() {
     if (S.picking) return renderSearch();
     if (S.tab === 'search') return renderSearch();
     if (S.tab === 'free') return await renderFree();
+    if (S.tab === 'where') return await renderWhere();
     if (!S.view) S.view = S.mine;
     if (!S.view || S.onboard) return renderOnboarding();
     return await renderTimetable();
@@ -671,7 +811,7 @@ function footHtml(label) {
   return `<div class="foot">${label ? esc(L.validity) + ': ' + esc(label) + '<br>' : ''}<span class="sig">⚡ <b>TDIU Jadval</b> · @tdiujadval_bot</span><br>${esc(L.madeBy)} <a class="author" href="https://t.me/Eisenhai" target="_blank" rel="noopener">@Eisenhai</a></div>`;
 }
 function bindHero() {
-  const go = () => { haptic(); S.stack.push({ tab: S.tab, view: S.view }); S.tab = 'search'; S.picking = null; render(); };
+  const go = () => { haptic(); S.stack.push(snap()); S.tab = 'search'; S.picking = null; render(); };
   const a = $('#goSearch'), b = $('#goSearch2'), f = $('#favBtn'), lb = $('#langBtn');
   if (a) a.onclick = go; if (b) b.onclick = go;
   if (lb) lb.onclick = langSheet;
@@ -708,7 +848,7 @@ function lessonHtml(l, t, cls, state, v, isNew, par) {
   if (isNew) tags.push(`<span class="tag new">${esc(L.new)}</span>`);
   const meta = [];
   if (v.type !== 'r') {
-    if (l.r) for (const r of splitList(l.r)) meta.push(`<button class="ln" data-open="r:${esc(r)}">📍 <span>${esc(roomLabel(r))}</span></button>`);
+    if (l.r) for (const r of splitList(l.r)) meta.push(`<button class="ln rm" data-open="r:${esc(r)}">📍 <span>${esc(roomLabel(r))}</span></button>`);
     else meta.push(`<div class="ln">📍 <span class="muted">${esc(L.noRoom)}</span></div>`);
   }
   if (v.type !== 't' && l.t) for (const t2 of splitList(l.t)) meta.push(`<button class="ln" data-open="t:${esc(t2)}">👤 <span>${esc(t2)}</span></button>`);
@@ -741,10 +881,12 @@ function miniHtml(l, v, par, k, isNew) {
 const renderTimetable = safe(async function () {
   const my = ++seq;
   const v = S.view;
-  app.innerHTML = `<div class="wrap">${heroHtml(v, '', '')}<div class="spin"></div></div>`;
-  bindHero();
+  const soft = S.soft; S.soft = false;
+  const scrollY = soft ? window.scrollY : 0;
+  const path = fileOf(v);
+  if (!soft && !peek(path)) { app.innerHTML = `<div class="wrap">${heroHtml(v, '', '')}<div class="sk h1"></div><div class="sk h2"></div><div class="sk h2"></div><div class="sk h2"></div></div>`; bindHero(); }
   let data;
-  try { data = await load(fileOf(v)); } catch (e) {
+  try { data = await swr(path, () => { if (S.tab === 'tt' && S.view && fileOf(S.view) === path) softRender(); }); } catch (e) {
     if (my !== seq) return;
     if (String(e.message) === '404') { app.innerHTML = `<div class="wrap">${heroHtml(v, '', '')}<div class="empty">${esc(L.nothing)}</div></div>`; bindHero(); return; }
     throw e;
@@ -753,11 +895,20 @@ const renderTimetable = safe(async function () {
   if (my !== seq) return;
 
   const now = nowT();
+  const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
   const baseMon = monday(wd(now) === 6 ? addD(now, 1) : now);
   const mon = addD(baseMon, S.weekOffset * 7);
   const par = parity(INDEX.weekA, mon);
-  if (S.day == null) S.day = (S.weekOffset === 0 && wd(now) < 6) ? wd(now) : 0;
   const lessonsOf = (d) => (data.lessons || []).filter(l => l.d === d && (!par || !l.w || l.w === par));
+  if (S.day == null) {
+    // opens on today; once today's classes are over (or there are none) it opens on the next day that has classes
+    S.day = 0;
+    if (S.weekOffset === 0 && wd(now) < 6) {
+      S.day = wd(now);
+      const t0 = lessonsOf(S.day);
+      if (!t0.length || Math.max(...t0.map(l => mins(timeOf(l).b))) <= nm) for (let d = S.day + 1; d < 6; d++) if (lessonsOf(d).length) { S.day = d; break; }
+    }
+  }
 
   // subtitle: a group → faculty · course; a teacher → how much he teaches this week
   let sub;
@@ -779,7 +930,6 @@ const renderTimetable = safe(async function () {
   for (const c of recentChanges) for (const dd of c.days) { changedDays.add(dd.d); for (const l of dd.added) newKeys.add(key(l)); }
 
   // "Today" summary with a progress bar through the school day — the signature strip under the title
-  const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
   let summary = '';
   if (wd(now) < 6) {
     const pn = parity(INDEX.weekA, now);
@@ -788,7 +938,7 @@ const renderTimetable = safe(async function () {
       const start = mins(timeOf(todays[0]).a), end = Math.max(...todays.map(l => mins(timeOf(l).b)));
       const endS = `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
       const pct = Math.max(0, Math.min(100, Math.round((nm - start) / (end - start) * 100)));
-      summary = `<div class="summary"><span class="bolt">⚡</span><span>${esc(L.todayL)}: ${esc(L.lessonsN(todays.length))} · ${nm >= end ? esc(L.done) : esc(L.until(endS))}</span></div><div class="progress"><b style="width:${pct}%"></b></div>`;
+      summary = `<div class="summary"><span class="bolt">⚡</span><span>${esc(L.todayL)}: ${esc(L.lessonsN(todays.length))} · ${nm >= end ? esc(L.done) : esc(L.until(endS))}</span></div><div class="progress"><b style="width:${pct}%"></b></div>${nowLine(data, v, now)}`;
     } else summary = `<div class="summary"><span class="bolt">☀️</span><span>${esc(L.dayOff)}</span></div>`;
   }
 
@@ -815,7 +965,7 @@ const renderTimetable = safe(async function () {
 
   const week = S.vm === 'week';
   const date = addD(mon, S.day);
-  const parLbl = par ? ` · ${par === 'A' ? L.weekA : L.weekB}` : '';
+  const parLbl = par ? (par === 'A' ? L.weekA : L.weekB) : '';
   const flat = []; // lessons in the order they are drawn (the click handlers map back to them)
   let body = '';
   if (week) {
@@ -838,7 +988,7 @@ const renderTimetable = safe(async function () {
         let cls = '', state = '';
         if (isToday) {
           const a = mins(t.a), b = mins(t.b);
-          if (nm >= a && nm < b) { cls = 'now'; state = `<span class="state">● ${esc(L.now)} · ${esc(L.left(b - nm))}</span>`; }
+          if (nm >= a && nm < b) { cls = 'now'; state = `<span class="state"><i class="pulse"></i>${esc(L.now)} · ${esc(L.left(b - nm))}</span>`; }
           else if (nm >= b) cls = 'past';
           else if (!nextMarked) { nextMarked = true; state = `<span class="state next">${esc(L.next)} · ${esc(L.inMin(a - nm))}</span>`; }
         }
@@ -856,7 +1006,7 @@ const renderTimetable = safe(async function () {
     const has = lessonsOf(d).length;
     return `<button class="day ${d === S.day ? 'sel' : ''} ${sameDay(dt, now) ? 'today' : ''}" data-d="${d}">
       <div class="dn">${L.dShort[d]}</div><div class="dd">${dt.getUTCDate()}</div>
-      ${has ? '<span class="dot"></span>' : ''}${changedDays.has(d) && S.weekOffset === 0 ? '<span class="chg"></span>' : ''}</button>`;
+      ${has ? `<span class="dots">${'<i></i>'.repeat(Math.min(has, 4))}</span>` : ''}${changedDays.has(d) && S.weekOffset === 0 ? '<span class="chg"></span>' : ''}</button>`;
   }).join('');
 
   const calBtn = `<button class="pill calbtn ${S.calOpen ? 'on' : ''}" id="calBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> ${esc(L.months[date.getUTCMonth()])} <span class="chev ${S.calOpen ? 'up' : ''}">▾</span></button>`;
@@ -879,12 +1029,13 @@ const renderTimetable = safe(async function () {
     ${mineRow}${vm}
     ${bar}
     ${banner}
-    <div class="list ${week ? 'wk' : ''} ${S.anim || ''}" id="list">${body}</div>
+    <div class="list ${week ? 'wk' : ''} ${S.anim || (soft ? '' : 'stag')}" id="list">${body}</div>
     ${actions}
     ${footHtml(validityText(data.tt))}
   </div>`;
   bindHero();
   S.anim = '';
+  if (soft) window.scrollTo(0, scrollY);
 
   const gm = $('#goMine'); if (gm) gm.onclick = () => { haptic(); S.view = S.mine; S.stack = []; S.day = null; S.weekOffset = 0; render(); };
   const mm = $('#makeMine'); if (mm) mm.onclick = () => { haptic('medium'); setMine(v); S.stack = []; render(); };
@@ -1163,6 +1314,264 @@ const renderFree = safe(async function () {
   fqi.oninput = () => { S.freeQ = fqi.value; const pos = fqi.selectionStart; renderFree().then(() => { const n = $('#fq'); if (n) { n.focus(); try { n.setSelectionRange(pos, pos); } catch {} } }); };
 });
 
+// ---------------------------------------------------------------- "Where is the teacher?"
+// JS twin of whereIs() / dayItems() in src/shared.mjs (the bot answers with the very same rules; tests compare the two).
+const hhmm = (m) => `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+const dayStart = (d) => new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate()));
+const roomShort = (r) => { const m = /^(\d{1,2})\s*[-/]+\s*(\d{2,4}[A-Za-zА-Яа-я]?)(?:\s*-\s*\d+)?$/.exec(String(r).trim()); return m ? `${m[1]}-${m[2]}` : String(r).trim(); };
+function spanOf(l) {
+  const P = INDEX.periods, a = P.find(p => p.p === l.p), b = P.find(p => p.p === l.p + (l.n || 1) - 1) || a;
+  return a ? { from: mins(a.start), to: mins(b.end) } : { from: 0, to: 0 };
+}
+function dayItems(ent, date) {
+  const d = wd(date);
+  if (d === 6) return [];
+  const pr = parity(INDEX.weekA, date);
+  return (ent.lessons || []).filter(l => l.d === d && (!pr || !l.w || l.w === pr)).map(l => ({ l, ...spanOf(l) })).sort((x, y) => x.from - y.from || x.l.p - y.l.p);
+}
+function whereIs(ent, now) {
+  const nowM = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const today = dayItems(ent, now);
+  const cur = today.filter(x => nowM >= x.from && nowM < x.to);
+  const later = today.filter(x => x.from > nowM);
+  const done = today.some(x => x.to <= nowM);
+  let next = null;
+  if (later.length) next = { date: now, today: true, items: later.filter(x => x.from === later[0].from) };
+  else for (let k = 1; k <= 14 && !next; k++) {
+    const date = addD(now, k), items = dayItems(ent, date);
+    if (items.length) next = { date, today: false, items: items.filter(x => x.from === items[0].from) };
+  }
+  const state = cur.length ? 'now' : !today.length ? 'off' : later.length ? (done ? 'between' : 'before') : 'after';
+  const until = cur.length ? Math.max(...cur.map(x => x.to)) : null;
+  return { state, nowM, today, cur, next, until, left: until == null ? null : until - nowM, inMin: next && next.today ? next.items[0].from - nowM : null };
+}
+window.__tt = { whereIs, dayItems, nowT, parity, get INDEX() { return INDEX; } }; // read-only handle for the tests
+
+/** The line under the header: what is happening now / next today (for any timetable). */
+function nowLine(ent, v, now) {
+  const st = whereIs(ent, now);
+  let x, tag, tail;
+  if (st.state === 'now') { x = st.cur[0]; tag = `<i class="pulse"></i><b>${esc(L.whInline.now)}</b>`; tail = L.until(hhmm(st.until)); }
+  else if (st.next && st.next.today) { x = st.next.items[0]; tag = `<b>⏭ ${esc(L.whInline.next)}</b>`; tail = hhmm(x.from); }
+  else return '';
+  const room = v.type !== 'r' && x.l.r ? splitList(x.l.r).map(roomShort).join(' / ') : '';
+  return `<div class="nowline">${tag}<span>${esc(splitType(x.l.s).name)}${room ? ' · 📍 ' + esc(room) : ''} · ${esc(tail)}</span></div>`;
+}
+
+/** Short live status of a teacher for list rows: {cls, t}. */
+function statusShort(ent, now) {
+  const st = whereIs(ent, now), h = L.whShort;
+  const roomOf = (x) => x.l.r ? splitList(x.l.r).map(roomShort).join('/') : '—';
+  if (st.state === 'now') return { cls: 'live', t: h.now(roomOf(st.cur[0]), hhmm(st.until)) };
+  if (st.next && st.next.today) return { cls: 'soon', t: h.next(roomOf(st.next.items[0]), hhmm(st.next.items[0].from)) };
+  if (st.next) return { cls: '', t: h.nextDay(sameDay(st.next.date, addD(now, 1)) ? L.whTomorrow : L.dShort[wd(st.next.date)], hhmm(st.next.items[0].from)) };
+  return { cls: '', t: h.off };
+}
+async function fillStatuses(root) {
+  const now = nowT();
+  const els = [...root.querySelectorAll('[data-st]')].slice(0, 10);
+  await Promise.all(els.map(async (el) => {
+    try {
+      const ent = await swr(`t/${el.dataset.st}.json`);
+      if (!el.isConnected) return;
+      const s2 = statusShort(ent, now);
+      el.textContent = s2.t; el.className = 'st ' + s2.cls;
+    } catch {}
+  }));
+}
+
+const wRow = (e, q) => `<button class="row wrow" data-wid="${esc(e.id)}"><span class="ri">👤</span><span class="rt"><div>${highlight(e.name, q)}</div><span class="st" data-st="${esc(e.id)}">&nbsp;</span></span><span class="chev">›</span></button>`;
+const wEntity = (id) => ALL.find(x => x.type === 't' && x.id === id);
+
+function openWhere(e) {
+  haptic();
+  S.stack.push(snap());
+  S.wt = { type: 't', id: e.id, name: e.name }; S.wDate = null;
+  S.wRecent = [S.wt, ...S.wRecent.filter(x => x.id !== e.id)].slice(0, 8);
+  store.set('wrecent', S.wRecent);
+  S.tab = 'where';
+  render();
+  window.scrollTo(0, 0);
+}
+
+function whereHome() {
+  seq++;
+  app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
+      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(L.whereT)}</div><div class="t2">${esc(L.whereSub)}</div></div>
+      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
+      <label class="search">🔎<input id="wq" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(L.teacherPh)}" value="${esc(S.wq)}"></label></div>
+    <div id="wres"></div>${footHtml('')}</div>`;
+  $('#langBtn').onclick = langSheet;
+  const inp = $('#wq');
+  inp.oninput = () => { S.wq = inp.value; drawWhereList(); };
+  drawWhereList();
+  if (S.wq || !(S.favs.some(f => f.type === 't') || S.wRecent.length)) setTimeout(() => { if (document.activeElement !== inp && $('#wq') === inp) inp.focus(); }, 60);
+}
+function drawWhereList() {
+  const res = $('#wres'); if (!res) return;
+  const bind = () => {
+    res.querySelectorAll('[data-wid]').forEach(b => b.onclick = () => {
+      const e = wEntity(b.dataset.wid) || S.favs.concat(S.wRecent).find(x => x.id === b.dataset.wid);
+      if (e) openWhere(e);
+    });
+    fillStatuses(res);
+  };
+  if (S.wq.trim()) {
+    const hits = search(S.wq, 't');
+    res.innerHTML = hits.length ? `<div class="rows" style="margin-top:12px">${hits.map(e => wRow(e, S.wq)).join('')}</div>` : `<div class="empty"><div class="big">🤷</div>${esc(L.nothing)}</div>`;
+    bind(); return;
+  }
+  const favT = S.favs.filter(f => f.type === 't');
+  const recT = S.wRecent.filter(r => !favT.some(f => f.id === r.id));
+  let h = '';
+  if (favT.length) h += `<div class="sec">⭐ ${esc(L.favs)}</div><div class="rows">${favT.map(e => wRow(e, '')).join('')}</div>`;
+  if (recT.length) h += `<div class="sec">🕘 ${esc(L.recent)}</div><div class="rows">${recT.map(e => wRow(e, '')).join('')}</div>`;
+  if (!favT.length && !recT.length) h += `<div class="wtips"><b>${esc(L.whEmpty)}</b>${L.whTips.map((t, i) => `<div><i>${['🚪', '⏭', '🗓'][i]}</i>${esc(t)}</div>`).join('')}</div>`;
+  // A–Z list of all teachers (no live status here — tap one to see it)
+  const list = (PEOPLE ? PEOPLE.teachers : []).filter(([, n]) => realName(n));
+  const letter = (n) => (normT(n).charAt(0) || '#');
+  const letters = [...new Set(list.map(([, n]) => letter(n)))].sort();
+  if (!S.wLetter || !letters.includes(S.wLetter)) S.wLetter = letters[0];
+  if (letters.length) {
+    h += `<div class="sec">${esc(L.teachers)} · ${esc(L.whAZ)}</div><div class="lets">${letters.map(c => `<button class="pill ${c === S.wLetter ? 'on' : ''}" data-wlet="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
+    const rows = list.filter(([, n]) => letter(n) === S.wLetter).sort((a, b) => a[1].localeCompare(b[1]));
+    h += `<div class="rows">${rows.map(([id, name]) => `<button class="row" data-wid="${esc(id)}"><span class="ri">👤</span><span class="rt"><div>${esc(name)}</div><div class="rs">${esc(L.teacher)}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
+  }
+  res.innerHTML = h;
+  res.querySelectorAll('[data-wlet]').forEach(b => b.onclick = () => { haptic(); S.wLetter = b.dataset.wlet; drawWhereList(); });
+  bind();
+}
+
+const dayWord = (date, now) => sameDay(date, addD(now, 1)) ? L.whTomorrow : `${L.days[wd(date)]}, ${fmtDate(date)}`;
+const roomBtn = (l) => {
+  const rs = l.r ? splitList(l.r) : [];
+  if (!rs.length) return `<span class="wroom none">📍 ${esc(L.whNoRoom)}</span>`;
+  return rs.map(r => { const m = roomLabel(r).split(', '); return `<button class="wroom" data-open="r:${esc(r)}">📍 <span>${esc(m[1] || m[0])}${m[1] ? `<small>${esc(m[0])}</small>` : ''}</span></button>`; }).join('');
+};
+const itemBig = (x) => {
+  const st = splitType(x.l.s);
+  return `<div class="wmain">${roomBtn(x.l)}<div class="wsubj">${nameHtml(st)}<small>${esc([st.type, x.l.g].filter(Boolean).join(' · '))}</small></div>${x.l.gr ? `<div class="chips">${splitList(x.l.gr).map(g => chipBtn('g:' + g, g)).join('')}</div>` : ''}</div>`;
+};
+function tliHtml(x, cls, par) {
+  const st = splitType(x.l.s), rs = x.l.r ? splitList(x.l.r) : [];
+  const tag = x.l.w && !par ? (x.l.w === 'A' ? L.weekA : L.weekB) : '';
+  return `<div class="tli t-${st.cls} ${cls}"><div class="tt"><b>${hhmm(x.from)}</b><small>${hhmm(x.to)}</small></div><div class="tb">
+    <div class="ts">${nameHtml(st)}${st.type || tag || x.l.g ? `<small>${esc([st.type, tag, x.l.g].filter(Boolean).join(' · '))}</small>` : ''}</div>
+    ${rs.length ? rs.map(r => `<button class="rpill" data-open="r:${esc(r)}">📍 ${esc(roomLabel(r))}</button>`).join('') : `<span class="rpill none">📍 ${esc(L.whNoRoom)}</span>`}
+    ${x.l.gr ? `<div class="chips">${splitList(x.l.gr).map(g => chipBtn('g:' + g, g)).join('')}</div>` : ''}</div></div>`;
+}
+
+async function whereCard(my, soft, y) {
+  const t = S.wt, path = `t/${t.id}.json`;
+  if (!soft && !peek(path)) app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div><div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(t.name)}</div><div class="t2">${esc(L.whLoading)}</div></div></div></div><div class="sk h2"></div><div class="sk h2"></div><div class="sk row"></div></div>`;
+  let ent;
+  try { ent = await swr(path, () => { if (S.tab === 'where' && S.wt && S.wt.id === t.id) softRender(); }); }
+  catch (e) { if (String(e.message) !== '404') throw e; ent = { id: t.id, name: t.name, lessons: [] }; }
+  if (my !== seq) return;
+  const now = nowT();
+  const st = whereIs(ent, now);
+  if (!S.wDate) S.wDate = dayStart((st.state === 'off' || st.state === 'after') && st.next ? st.next.date : now);
+  if (wd(S.wDate) === 6) S.wDate = addD(S.wDate, 1);
+  const date = S.wDate, mon = monday(date), par = parity(INDEX.weekA, date);
+  const fav = S.favs.some(f => f.type === 't' && f.id === t.id);
+  const label = { now: L.whNow, between: L.whBetween, before: L.whBefore, after: L.whAfter, off: L.whOff }[st.state];
+
+  let main = '';
+  if (st.state === 'now') {
+    main = st.cur.map(itemBig).join('');
+    const c0 = st.cur[0], pct = Math.max(2, Math.min(100, Math.round((st.nowM - c0.from) / Math.max(1, c0.to - c0.from) * 100)));
+    main += `<div class="wprog"><b style="width:${pct}%"></b></div><div class="wleft">⏱ ${esc(L.until(hhmm(st.until)))} · ${esc(L.left(st.left))}</div>`;
+  } else if (st.next) {
+    const n = st.next, t0 = hhmm(n.items[0].from);
+    main = `<div class="wwhen">⏭ ${esc(L.whNext)} — ${esc(n.today ? `${t0} · ${L.inMin(st.inMin)}` : `${dayWord(n.date, now)}, ${t0}`)}</div>${n.items.map(itemBig).join('')}`;
+  }
+  let after = '';
+  if (st.state === 'now' && st.next) {
+    const n = st.next, t0 = hhmm(n.items[0].from);
+    after = `<div class="sec">⏭ ${esc(L.whNext)} · ${esc(n.today ? t0 : `${dayWord(n.date, now)}, ${t0}`)}</div><div class="tl">${n.items.map(x => tliHtml(x, '', parity(INDEX.weekA, n.date))).join('')}</div>`;
+  }
+
+  const items = dayItems(ent, date), isToday = sameDay(date, now);
+  const nmv = st.nowM;
+  let prevEnd = null;
+  const tl = items.map(x => {
+    const gap = prevEnd != null && x.from - prevEnd >= 30 ? `<div class="gap">☕ ${esc(L.breakMin(x.from - prevEnd))}</div>` : '';
+    prevEnd = Math.max(prevEnd ?? 0, x.to);
+    const cls = isToday ? (nmv >= x.from && nmv < x.to ? 'now' : x.to <= nmv ? 'past' : '') : '';
+    return gap + tliHtml(x, cls, par);
+  }).join('');
+  const dayBtns = [0, 1, 2, 3, 4, 5].map(d => {
+    const dt = addD(mon, d), n = dayItems(ent, dt).length;
+    return `<button class="day ${sameDay(dt, date) ? 'sel' : ''} ${sameDay(dt, now) ? 'today' : ''}" data-wd="${d}"><div class="dn">${L.dShort[d]}</div><div class="dd">${dt.getUTCDate()}</div>${n ? `<span class="dots">${'<i></i>'.repeat(Math.min(n, 4))}</span>` : ''}</button>`;
+  }).join('');
+  const parLbl = par ? (par === 'A' ? L.weekA : L.weekB) : '';
+
+  app.innerHTML = `<div class="wrap">
+    <div class="hero"><div class="rings"><i></i><i></i></div>
+      <div class="hrow"><button class="mark" id="wBack" aria-label="back"><img src="icon-192.png" alt=""></button>
+      <div class="htitle" style="cursor:default"><div class="t1">${esc(t.name)}</div><div class="t2">👨‍🏫 ${esc(L.whereT)}</div></div>
+      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button>
+      <button class="star ${fav ? 'on' : ''}" id="wFav" aria-label="favorite">${fav ? '★' : '☆'}</button></div></div>
+    <div class="wcard st-${st.state}"><div class="wst">${st.state === 'now' ? '<i class="pulse"></i>' : ''}${esc(label)}</div>${main}</div>
+    ${after}
+    <div class="wwk"><div class="lbl">${esc(L.whPlan)}<span>${esc(dm(mon))} – ${esc(dm(addD(mon, 5)))}${parLbl ? ' · ' + esc(parLbl) : ''}</span></div>
+      <div style="display:flex;gap:6px"><button class="pill" id="wPrev" aria-label="${esc(L.prevWk)}">‹</button><button class="pill" id="wNext" aria-label="${esc(L.nextWk)}">›</button></div></div>
+    <div class="wdays">${dayBtns}</div>
+    <div class="tl" id="wtl">${tl || `<div class="empty" style="padding:26px 10px"><div class="big">🎉</div>${esc(L.noLessons)}</div>`}</div>
+    <div class="wactions"><button class="act" id="wFull">📅 ${esc(L.whFull)}</button><button class="act" id="wShare">↗ ${esc(L.share)}</button></div>
+    <div class="wnote">ℹ️ ${esc(L.whNote)}</div>
+    ${footHtml('')}</div>`;
+  if (soft) window.scrollTo(0, y);
+
+  $('#langBtn').onclick = langSheet;
+  $('#wBack').onclick = () => { haptic(); if (S.stack.length) goBack(); else { S.wt = null; S.wDate = null; render(); } };
+  $('#wFav').onclick = () => {
+    haptic('medium');
+    const i = S.favs.findIndex(x => x.type === 't' && x.id === t.id);
+    if (i >= 0) S.favs.splice(i, 1); else S.favs.unshift({ type: 't', id: t.id, name: t.name });
+    store.set('favs', S.favs);
+    $('#wFav').classList.toggle('on', i < 0); $('#wFav').textContent = i < 0 ? '★' : '☆';
+  };
+  const redraw = () => { S.soft = true; renderWhere(); };
+  app.querySelectorAll('[data-wd]').forEach(b => b.onclick = () => { haptic(); S.wDate = addD(mon, Number(b.dataset.wd)); redraw(); });
+  $('#wPrev').onclick = () => { haptic(); S.wDate = addD(date, -7); redraw(); };
+  $('#wNext').onclick = () => { haptic(); S.wDate = addD(date, 7); redraw(); };
+  app.querySelectorAll('[data-open]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); const e = entityOf(b.dataset.open); if (e) openEntity(e); });
+  $('#wFull').onclick = () => { const e = wEntity(t.id) || { type: 't', id: t.id, name: t.name }; openEntity(e); };
+  $('#wShare').onclick = () => {
+    haptic();
+    const url = `https://t.me/tdiujadval_bot?start=w_${t.id}`;
+    const link = `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(`${t.name} — ${L.whereT}`)}`;
+    if (inTg && tg.openTelegramLink) tg.openTelegramLink(link); else window.open(link, '_blank');
+  };
+}
+
+const renderWhere = safe(async function () {
+  const my = ++seq;
+  const soft = S.soft; S.soft = false;
+  const y = soft ? window.scrollY : 0;
+  if (!PEOPLE && !soft && !(S.wt && peek(`t/${S.wt.id}.json`)) && !peek('people.json')) app.innerHTML = `<div class="wrap"><div class="sk h1" style="height:120px;border-radius:0 0 26px 26px;margin:0 -14px"></div><div class="sk row"></div><div class="sk row"></div><div class="sk row"></div></div>`;
+  await ensurePeople();
+  if (my !== seq) return;
+  if (S.wt) return await whereCard(my, soft, y);
+  if (soft && $('#wres')) { fillStatuses($('#wres')); return; } // home: only the live chips change
+  whereHome();
+});
+
+/** Re-draw the current screen without a spinner (data refreshed in the background, or the minute ticked over). */
+function softRender() {
+  if (document.hidden || sheetOpen() || S.picking || S.onboard) return;
+  if (S.tab === 'tt' && S.view) { S.soft = true; renderTimetable(); }
+  else if (S.tab === 'where') { S.soft = true; renderWhere(); }
+}
+setInterval(softRender, 60e3);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) return;
+  const p = S.tab === 'where' && S.wt ? `t/${S.wt.id}.json` : S.tab === 'tt' && S.view ? fileOf(S.view) : null;
+  if (p) swr(p, softRender);
+  softRender();
+});
+
 // Author link: inside Telegram open the profile natively instead of a browser page
 document.addEventListener('click', (e) => {
   const a = e.target.closest && e.target.closest('a.author');
@@ -1173,29 +1582,44 @@ document.addEventListener('click', (e) => {
 // ---------------------------------------------------------------- start
 if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch {} }
 (async () => {
-  // Telegram CloudStorage keeps the user's own timetable, favourites and language across his devices
-  if (inTg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9')) {
-    await new Promise(res => {
-      try {
-        tg.CloudStorage.getItems(['mine', 'favs', 'recent', 'lang', 'botLang', 'vm'], (err, v) => {
-          try {
-            if (!err && v) {
-              if (v.mine && !S.mine) S.mine = JSON.parse(v.mine);
-              if (v.favs && !S.favs.length) S.favs = JSON.parse(v.favs);
-              if (v.recent && !S.recent.length) S.recent = JSON.parse(v.recent);
-              if (v.vm && store.get('vm', null) == null) S.vm = JSON.parse(v.vm);
-              try { if (v.lang && store.get('lang', null) == null) localStorage.setItem('tt_lang', v.lang); } catch {}
-              try { if (v.botLang && store.get('botLang', null) == null) localStorage.setItem('tt_botLang', v.botLang); } catch {}
-            }
-          } catch {}
-          res();
-        });
-      } catch { res(); }
-      setTimeout(res, 800);
-    });
-  }
+  // everything a launch needs starts downloading right now, in parallel (index, and the user's own timetable if we know it)
+  load('index.json').catch(() => {});
+  if (S.mine) load(fileOf(S.mine)).catch(() => {});
+
+  // Telegram CloudStorage keeps the user's own timetable, favourites and language across his devices.
+  // Known user (own timetable already on this device) → never wait for it; first launch on this device → wait up to 0.8 s.
+  const cloud = new Promise(res => {
+    if (!(inTg && tg.CloudStorage && tg.isVersionAtLeast && tg.isVersionAtLeast('6.9'))) return res();
+    try {
+      tg.CloudStorage.getItems(['mine', 'favs', 'recent', 'wrecent', 'lang', 'botLang', 'vm'], (err, v) => {
+        try {
+          if (!err && v) {
+            if (v.mine && !S.mine) S.mine = JSON.parse(v.mine);
+            if (v.favs && !S.favs.length) S.favs = JSON.parse(v.favs);
+            if (v.recent && !S.recent.length) S.recent = JSON.parse(v.recent);
+            if (v.wrecent && !S.wRecent.length) S.wRecent = JSON.parse(v.wrecent);
+            if (v.vm && store.get('vm', null) == null) S.vm = JSON.parse(v.vm);
+            try { if (v.lang && store.get('lang', null) == null) localStorage.setItem('tt_lang', v.lang); } catch {}
+            try { if (v.botLang && store.get('botLang', null) == null) localStorage.setItem('tt_botLang', v.botLang); } catch {}
+          }
+        } catch {}
+        res();
+      });
+    } catch { res(); }
+    setTimeout(res, 800);
+  });
+  if (!S.mine) await cloud;
   decideLang();
   if (hash.get('tab') === 'free') S.tab = 'free';
+  else if (hash.get('tab') === 'where') S.tab = 'where';
+  const wid = hash.get('w');
+  if (wid) { // a link to "where is this teacher?" — opens the card, and does NOT make him "my timetable"
+    try {
+      await ensureIndex(); await ensurePeople();
+      const e = wEntity(wid);
+      if (e) { S.tab = 'where'; S.wt = { type: 't', id: e.id, name: e.name }; S.wRecent = [S.wt, ...S.wRecent.filter(x => x.id !== e.id)].slice(0, 8); store.set('wrecent', S.wRecent); }
+    } catch {}
+  }
   const gid = hash.get('g') || hash.get('t') || hash.get('r');
   if (gid) {
     try {
@@ -1211,6 +1635,8 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
     } catch {}
   }
   render();
+  // the teachers / rooms list is needed by search, the Teacher tab and the tappable chips: fetch it while the screen is idle
+  (window.requestIdleCallback || ((f) => setTimeout(f, 1200)))(() => { ensurePeople().catch(() => {}); });
 })();
 })();
 </script>

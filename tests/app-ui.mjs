@@ -4,6 +4,7 @@ import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { whereIs as nodeWhere, dayItems as nodeDayItems } from '../src/shared.mjs';
 
 let chromium;
 try { ({ chromium } = await import('playwright')); } catch { console.log('app-ui: playwright not installed — skipped'); process.exit(0); }
@@ -238,6 +239,136 @@ try {
       }
       ok(s.errs.length === 0, 'upper/lower errors ' + s.errs.join(';'));
       await s.ctx.close();
+    }
+  }
+
+  // ---------------- 10) "Where is the teacher?" tab + live logic + stale-while-revalidate cache
+  {
+    const DAYMS = 864e5, H5 = 5 * 3600e3;
+    const tFile = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/t', tid + '.json'), 'utf8'));
+    const IDX = { ...idx, weekA: '2026-08-31' };
+    const monday12 = Date.UTC(2026, 9, 12); // Monday 12 Oct 2026 = an upper (A) week
+    const spanOf = (l) => { const a = idx.periods.find((p) => p.p === l.p), b = idx.periods.find((p) => p.p === l.p + (l.n || 1) - 1) || a; const m = (t) => { const [h, mm] = t.split(':').map(Number); return h * 60 + mm; }; return { from: m(a.start), to: m(b.end) }; };
+    const monLessons = tFile.lessons.filter((l) => l.d === 0 && (!l.w || l.w === 'A')).map((l) => ({ l, ...spanOf(l) })).sort((a, b) => a.from - b.from);
+    ok(monLessons.length > 0 && tFile.lessons.some((l) => l.d === 1 && (!l.w || l.w === 'A')), 'fixture teacher has Monday and Tuesday classes');
+    const at = (minOfDay, dayOffset = 0) => new Date(monday12 + dayOffset * DAYMS - H5 + minOfDay * 60e3); // real instant for a Tashkent time
+    const openAt = async (instant, hash, mode = 'web') => {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' });
+      await ctx.route(/data\/index\.json/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(IDX) }));
+      await ctx.clock.install({ time: instant });
+      return open({ mode, hash, ctx });
+    };
+    const first = monLessons[0];
+    const during = first.from + 5;
+
+    // -- home of the tab
+    s = await openAt(at(during), '#tab=where&l=en');
+    ok((await s.page.locator('.nav button').count()) === 4, 'nav has four tabs');
+    ok(await s.page.locator('.nav button[data-tab="where"]').evaluate((b) => b.classList.contains('on')), '#tab=where opens the Teacher tab');
+    ok(/Where is the teacher\?/.test(await txt(s.page, '.htitle .t1')), 'where tab title');
+    ok((await s.page.locator('.wtips').count()) === 1, 'empty state shows the tips card');
+    ok((await s.page.locator('.lets .pill').count()) > 5, 'A–Z list on the tab home');
+    await s.page.fill('#wq', 'Abdiyeva'); await settle(s.page, 500);
+    ok((await s.page.locator('#wres .wrow').count()) >= 1, 'search finds the teacher');
+    const row0 = await s.page.locator('#wres .wrow').first().innerText();
+    ok(/🟢/.test(row0), 'row shows live status (in class now): ' + row0);
+    await shot(s.page, '10-where-search');
+
+    // -- the card agrees with the bot's rules (Node twin of the same function)
+    await s.page.click('#wres .wrow >> nth=0'); await settle(s.page, 600);
+    ok((await s.page.locator('.wcard.st-now').count()) === 1, 'card is green (in class now)');
+    ok((await s.page.locator('.wcard .wroom').count()) >= 1, 'card shows the room big');
+    ok((await s.page.locator('.wcard .wprog').count()) === 1, 'card shows the lesson progress bar');
+    ok((await s.page.locator('.wcard .chip').count()) >= 1, 'card shows the groups as chips');
+    const roomRaw = first.l.r.split(', ')[0];
+    const bm = /^(\d{1,2})\s*[-/]+\s*(\d{2,4}[A-Za-zА-Яа-я]?)/.exec(roomRaw);
+    ok(!bm || (await txt(s.page, '.wcard .wroom')).includes(bm[2]), 'card room matches the data: ' + roomRaw + ' vs ' + await txt(s.page, '.wcard .wroom'));
+    const nodeNow = new Date(at(during).getTime() + H5);
+    const nw = nodeWhere(tFile, IDX, nodeNow);
+    const twin = await s.page.evaluate(async ({ file, iso }) => {
+      const ent = await (await fetch('data/t/' + file + '.json')).json();
+      const w = window.__tt.whereIs(ent, new Date(iso));
+      return { state: w.state, until: w.until, left: w.left, cur: w.cur.length, today: w.today.length, nextToday: w.next && w.next.today, nextFrom: w.next && w.next.items[0].from, inMin: w.inMin, nextMs: w.next && w.next.date.getTime() };
+    }, { file: tid, iso: nodeNow.toISOString() });
+    ok(twin.state === nw.state && twin.until === nw.until && twin.left === nw.left && twin.cur === nw.cur.length && twin.today === nw.today.length && twin.nextFrom === (nw.next && nw.next.items[0].from) && twin.inMin === nw.inMin && twin.nextMs === (nw.next && nw.next.date.getTime()), 'page twin == shared.mjs whereIs: ' + JSON.stringify(twin) + ' vs ' + JSON.stringify({ s: nw.state, u: nw.until, l: nw.left, c: nw.cur.length, t: nw.today.length, nf: nw.next && nw.next.items[0].from, im: nw.inMin }));
+    ok(/left/.test(await txt(s.page, '.wleft')) && new RegExp(String(Math.floor(nw.until / 60)).padStart(2, '0') + ':' + String(nw.until % 60).padStart(2, '0')).test(await txt(s.page, '.wleft')), 'countdown shows the end time + minutes left: ' + await txt(s.page, '.wleft'));
+    await shot(s.page, '10-where-card');
+
+    // -- day strip + timeline agree with the data
+    for (const d of [0, 1, 2]) {
+      await s.page.click(`[data-wd="${d}"]`); await settle(s.page, 250);
+      const want = nodeDayItems(tFile, IDX, new Date(monday12 + d * DAYMS)).length;
+      ok((await s.page.locator('#wtl .tli').count()) === want, `day ${d}: timeline has ${want} classes, got ${await s.page.locator('#wtl .tli').count()}`);
+    }
+    // -- tapping the room opens the room's timetable; Back returns to the card
+    await s.page.click('.wcard .wroom >> nth=0'); await settle(s.page, 600);
+    ok((await s.page.locator('.wcard').count()) === 0 && (await s.page.locator('.htitle .t1').count()) === 1, 'room pill opens the room timetable');
+    ok(await s.page.evaluate(() => window.__tt.INDEX != null), 'index exposed for tests');
+    await s.page.click('.nav button[data-tab="where"]'); await settle(s.page, 400);
+    ok((await s.page.locator('.wcard').count()) === 1, 'switching back to the Teacher tab restores the open card');
+    await s.page.click('.nav button[data-tab="where"]'); await settle(s.page, 400);
+    ok((await s.page.locator('#wq').count()) === 1, 'tapping the active Teacher tab again returns to its search');
+    // -- favourite star
+    await s.page.fill('#wq', 'Abdiyeva'); await settle(s.page, 300);
+    await s.page.click('#wres .wrow >> nth=0'); await settle(s.page, 500);
+    await s.page.click('#wFav'); await settle(s.page, 200);
+    ok(await s.page.evaluate((id) => JSON.parse(localStorage.getItem('tt_favs') || '[]').some((f) => f.type === 't' && f.id === id), tid), 'star saves the teacher to favourites');
+    await s.page.click('#wBack'); await settle(s.page, 400);
+    ok(await s.page.inputValue('#wq') === 'Abdiyeva' && (await s.page.locator('#wres .wrow').count()) >= 1, 'Back from the card keeps the search results');
+    await s.page.fill('#wq', ''); await settle(s.page, 400);
+    ok((await s.page.locator('#wres .sec').first().innerText()).toLowerCase().includes('favorites') && (await s.page.locator('#wres .wrow').count()) >= 1, 'favourites + recents listed with live status on the tab home');
+    ok(s.errs.length === 0, 'where tab errors: ' + s.errs.join(';'));
+    await s.ctx.close();
+
+    // -- a deep link (#w=) opens the card, does NOT make it "my timetable", and uses Telegram's back button
+    s = await openAt(at(during), `#w=${tid}&l=ru`, 'tg');
+    ok((await s.page.locator('.wcard').count()) === 1 && (await txt(s.page, '.htitle .t1')).includes(tname), '#w= deep link opens the teacher card');
+    ok(await s.page.evaluate(() => localStorage.getItem('tt_mine')) === null, '#w= does not set "mine"');
+    ok(!/(Bugun|Hozir|Keyingi|gacha|xona|bino|qoldi)/i.test(await txt(s.page, '.wst, .wleft, .wwk .lbl, .wnote, .wcard .wroom small')), 'ru: where card chrome has no Uzbek: ' + await txt(s.page, '.wst, .wleft, .wwk .lbl, .wnote, .wcard .wroom small'));
+    ok(/Сейчас на паре/.test(await txt(s.page, '.wst')), 'ru status text');
+    await shot(s.page, '10-where-ru');
+    // the minute ticks over: a soft refresh (no spinner, scroll kept)
+    await s.page.evaluate(() => window.scrollTo(0, 120)); await settle(s.page, 100);
+    const before = await txt(s.page, '.wleft');
+    await s.page.clock.fastForward(61000); await settle(s.page, 500);
+    const after = await txt(s.page, '.wleft');
+    ok(before !== after && (await s.page.locator('.sk').count()) === 0, `live refresh updates the countdown without a skeleton (${before} → ${after})`);
+    ok(Math.abs((await s.page.evaluate(() => window.scrollY)) - 120) < 30, 'live refresh keeps the scroll position');
+    ok(s.errs.length === 0, 'deep link errors: ' + s.errs.join(';'));
+    await s.ctx.close();
+
+    // -- after the day: card says "over" and points at the next teaching day
+    s = await openAt(at(21 * 60), `#w=${tid}&l=en`);
+    ok((await s.page.locator('.wcard.st-after').count()) === 1, 'late evening → "classes are over" card (grey)');
+    ok(/Next class — Tomorrow|Next class — Tuesday/.test(await txt(s.page, '.wwhen')), 'late evening → next class is tomorrow: ' + await txt(s.page, '.wwhen'));
+    ok(await s.page.locator('.day.sel[data-wd="1"]').count() === 1, 'timeline opens on the next teaching day');
+    await s.ctx.close();
+
+    // -- the main timetable: "now" line in the header, and the smart default day
+    s = await openAt(at(during), `#t=${tid}&l=en`, 'tg');
+    ok((await s.page.locator('.nowline').count()) === 1 && /📍/.test(await txt(s.page, '.nowline')), 'header shows what is on now + the room: ' + await txt(s.page, '.nowline'));
+    ok(await s.page.locator('.lesson.now .pulse').count() === 1, 'the running lesson has the pulsing dot');
+    ok(await s.page.locator('.lesson .rm').count() >= 1, 'room is a tappable pill on lesson cards');
+    await shot(s.page, '10-tt-now');
+    await s.ctx.close();
+    s = await openAt(at(22 * 60), `#t=${tid}&l=en`, 'tg');
+    ok(await s.page.locator('.day.sel[data-d="1"]').count() === 1, 'after the last class the day view opens on the next day with classes');
+    await s.ctx.close();
+
+    // -- speed: second launch paints from the cache even if the network is gone
+    {
+      const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' });
+      await ctx.route(/data\/index\.json/, (r) => r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(IDX) }));
+      s = await open({ mode: 'web', hash: `#t=${tid}&l=en`, ctx });
+      ok((await s.page.locator('.lesson, .empty').count()) > 0, 'first launch renders');
+      ok(await s.page.evaluate(() => !!localStorage.getItem('ttc:index.json') && Object.keys(localStorage).some((k) => k.startsWith('ttc:t/'))), 'index and the timetable are cached in localStorage');
+      await ctx.unroute(/data\/index\.json/);
+      await ctx.route(/\/data\//, (r) => r.abort());
+      const t0 = Date.now();
+      await s.page.goto(BASE); await s.page.waitForSelector('.lesson, .empty, .rolecard', { timeout: 5000 }).catch(() => {}); await s.page.waitForTimeout(200);
+      ok((await s.page.locator('.lesson, .banner, .dayh').count()) > 0 || (await s.page.locator('.empty .big').count()) > 0, 'offline relaunch still shows the timetable from cache');
+      ok((await s.page.locator('.empty .big:has-text("📡")').count()) === 0, 'offline relaunch has no error screen');
+      await ctx.close();
     }
   }
 } finally {

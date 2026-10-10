@@ -9,7 +9,7 @@ var T = {
     months: ["yanvar", "fevral", "mart", "aprel", "may", "iyun", "iyul", "avgust", "sentabr", "oktabr", "noyabr", "dekabr"],
     langName: "\u{1F1FA}\u{1F1FF} O'zbekcha",
     chooseLang: "Tilni tanlang / \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u044F\u0437\u044B\u043A / Choose language",
-    welcome: "Assalomu alaykum! \u{1F44B}\nMen <b>TDIU Jadval</b> botiman.\n\n\u2022 Talaba va o'qituvchilar jadvalini ko'rsataman\n\u2022 Jadval o'zgarsa darhol xabar beraman\n\u2022 Bo'sh xonalarni qidiraman\n\nBoshlash uchun kim ekaningizni tanlang \u{1F447}",
+    welcome: "Assalomu alaykum! \u{1F44B}\nMen <b>TDIU Jadval</b> botiman.\n\n\u2022 Talaba va o'qituvchilar jadvalini ko'rsataman\n\u2022 Jadval o'zgarsa darhol xabar beraman\n\u2022 Bo'sh xonalarni qidiraman\n\u2022 Ustoz hozir qaysi xonada ekanini aytaman\n\nBoshlash uchun kim ekaningizni tanlang \u{1F447}",
     chooseFaculty: "\u{1F3DB} Fakultetni tanlang:",
     chooseCourse: "\u{1F393} Kursni tanlang:",
     chooseGroup: "\u{1F465} Guruhni tanlang:",
@@ -32,6 +32,15 @@ var T = {
     btnSettings: "\u2699\uFE0F Sozlamalar",
     btnApp: "\u{1F4F1} Ilovani ochish",
     btnFree: "\u{1F7E2} Bo'sh xonalar",
+    btnWhere: "\u{1F50E} Ustoz qayerda?",
+    whereAsk: "\u{1F50E} Ustoz qayerda?\nO'qituvchining familiyasini yozing \u{1F447}",
+    whereAskPh: "Karimov",
+    whereNone: "Bunday ustoz topilmadi. Familiyani tekshiring, masalan: Karimov",
+    wherePick: "\u{1F50E} Topildi \u2014 qaysi ustoz?",
+    whereGroupHint: "\u{1F50E} Ustoz qayerda? Familiyani yozing: <code>/where Karimov</code>",
+    btnRefresh: "\u{1F504} Yangilash",
+    btnWhereApp: "\u{1F4F1} Ilovada ochish",
+    whatsNew: "\u{1F195} <b>Yangilik!</b>\n\n\u{1F50E} <b>Ustoz qayerda?</b> \u2014 o'qituvchining hozir qaysi xonada ekanini, keyingi darsi qachon va qayerda ekanini bilib oling.\n\nTugma pastdagi menyuga qo'shildi \u{1F447}",
     thisWeekShort: "Shu hafta",
     nextWeekShort: "Keyingi hafta",
     btnOpenInApp: "\u{1F4F1} Ilovada ochish",
@@ -54,7 +63,7 @@ var T = {
     back: "\u2B05\uFE0F Orqaga",
     more: "Yana \u27A1\uFE0F",
     unset: "\u2705 Bu chat guruhdan uzildi.",
-    help: "<b>Buyruqlar</b>\n/today \u2014 bugungi darslar\n/tomorrow \u2014 ertangi darslar\n/week \u2014 haftalik jadval\n/group \u2014 guruhni tanlash (talaba)\n/teacher \u2014 o'qituvchi sifatida kirish\n/settings \u2014 sozlamalar\n/time \u2014 ertangi dars eslatmasi vaqti\n/app \u2014 ilovani ochish\n/feedback \u2014 taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup \u2014 chatni guruhga ulash (admin)\n/unset \u2014 uzish (admin)\n/time \u2014 ertangi dars eslatmasi vaqti (admin)",
+    help: "<b>Buyruqlar</b>\n/today \u2014 bugungi darslar\n/tomorrow \u2014 ertangi darslar\n/week \u2014 haftalik jadval\n/group \u2014 guruhni tanlash (talaba)\n/where \u2014 ustoz qayerda? (masalan: /where Karimov)\n/teacher \u2014 o'qituvchi sifatida kirish\n/settings \u2014 sozlamalar\n/time \u2014 ertangi dars eslatmasi vaqti\n/app \u2014 ilovani ochish\n/feedback \u2014 taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup \u2014 chatni guruhga ulash (admin)\n/unset \u2014 uzish (admin)\n/time \u2014 ertangi dars eslatmasi vaqti (admin)",
     dataError: "Jadvalni yuklab bo'lmadi, birozdan so'ng qayta urinib ko'ring.",
     now: "Hozir",
     btnInvite: "\u{1F4E4} Do'stlarni taklif qilish",
@@ -101,7 +110,7 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     months: ["\u044F\u043D\u0432\u0430\u0440\u044F", "\u0444\u0435\u0432\u0440\u0430\u043B\u044F", "\u043C\u0430\u0440\u0442\u0430", "\u0430\u043F\u0440\u0435\u043B\u044F", "\u043C\u0430\u044F", "\u0438\u044E\u043D\u044F", "\u0438\u044E\u043B\u044F", "\u0430\u0432\u0433\u0443\u0441\u0442\u0430", "\u0441\u0435\u043D\u0442\u044F\u0431\u0440\u044F", "\u043E\u043A\u0442\u044F\u0431\u0440\u044F", "\u043D\u043E\u044F\u0431\u0440\u044F", "\u0434\u0435\u043A\u0430\u0431\u0440\u044F"],
     langName: "\u{1F1F7}\u{1F1FA} \u0420\u0443\u0441\u0441\u043A\u0438\u0439",
     chooseLang: "Tilni tanlang / \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u044F\u0437\u044B\u043A / Choose language",
-    welcome: "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435! \u{1F44B}\n\u042F <b>TDIU Jadval</b> \u2014 \u0431\u043E\u0442 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F \u0422\u0413\u042D\u0423.\n\n\u2022 \u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0441\u0442\u0443\u0434\u0435\u043D\u0442\u043E\u0432 \u0438 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u0435\u0439\n\u2022 \u0421\u0440\u0430\u0437\u0443 \u0441\u043E\u043E\u0431\u0449\u0430\u044E \u043E\u0431 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445\n\u2022 \u0418\u0449\u0443 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438\n\n\u0414\u043B\u044F \u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435, \u043A\u0442\u043E \u0432\u044B \u{1F447}",
+    welcome: "\u0417\u0434\u0440\u0430\u0432\u0441\u0442\u0432\u0443\u0439\u0442\u0435! \u{1F44B}\n\u042F <b>TDIU Jadval</b> \u2014 \u0431\u043E\u0442 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044F \u0422\u0413\u042D\u0423.\n\n\u2022 \u041F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u044E \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0441\u0442\u0443\u0434\u0435\u043D\u0442\u043E\u0432 \u0438 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u0435\u0439\n\u2022 \u0421\u0440\u0430\u0437\u0443 \u0441\u043E\u043E\u0431\u0449\u0430\u044E \u043E\u0431 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445\n\u2022 \u0418\u0449\u0443 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438\n\u2022 \u041F\u043E\u0434\u0441\u043A\u0430\u0436\u0443, \u0432 \u043A\u0430\u043A\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438 \u0441\u0435\u0439\u0447\u0430\u0441 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C\n\n\u0414\u043B\u044F \u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435, \u043A\u0442\u043E \u0432\u044B \u{1F447}",
     chooseFaculty: "\u{1F3DB} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0444\u0430\u043A\u0443\u043B\u044C\u0442\u0435\u0442:",
     chooseCourse: "\u{1F393} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0443\u0440\u0441:",
     chooseGroup: "\u{1F465} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u0443:",
@@ -124,6 +133,15 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     btnSettings: "\u2699\uFE0F \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     btnApp: "\u{1F4F1} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
     btnFree: "\u{1F7E2} \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435",
+    btnWhere: "\u{1F50E} \u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434?",
+    whereAsk: "\u{1F50E} \u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C?\n\u041D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0444\u0430\u043C\u0438\u043B\u0438\u044E \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044F \u{1F447}",
+    whereAskPh: "Karimov",
+    whereNone: "\u041F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D. \u041F\u0440\u043E\u0432\u0435\u0440\u044C\u0442\u0435 \u0444\u0430\u043C\u0438\u043B\u0438\u044E, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: Karimov",
+    wherePick: "\u{1F50E} \u041D\u0430\u0439\u0434\u0435\u043D\u043E \u2014 \u043A\u0430\u043A\u043E\u0439 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C?",
+    whereGroupHint: "\u{1F50E} \u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? \u041D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u0444\u0430\u043C\u0438\u043B\u0438\u044E: <code>/where Karimov</code>",
+    btnRefresh: "\u{1F504} \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C",
+    btnWhereApp: "\u{1F4F1} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438",
+    whatsNew: "\u{1F195} <b>\u041D\u043E\u0432\u0438\u043D\u043A\u0430!</b>\n\n\u{1F50E} <b>\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C?</b> \u2014 \u0443\u0437\u043D\u0430\u0439\u0442\u0435, \u0432 \u043A\u0430\u043A\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C \u0441\u0435\u0439\u0447\u0430\u0441, \u0430 \u0442\u0430\u043A\u0436\u0435 \u043A\u043E\u0433\u0434\u0430 \u0438 \u0433\u0434\u0435 \u0435\u0433\u043E \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0430\u0440\u0430.\n\n\u041A\u043D\u043E\u043F\u043A\u0430 \u043F\u043E\u044F\u0432\u0438\u043B\u0430\u0441\u044C \u0432 \u043C\u0435\u043D\u044E \u0432\u043D\u0438\u0437\u0443 \u{1F447}",
     thisWeekShort: "\u042D\u0442\u0430 \u043D\u0435\u0434\u0435\u043B\u044F",
     nextWeekShort: "\u0421\u043B\u0435\u0434. \u043D\u0435\u0434\u0435\u043B\u044F",
     btnOpenInApp: "\u{1F4F1} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438",
@@ -146,7 +164,7 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     back: "\u2B05\uFE0F \u041D\u0430\u0437\u0430\u0434",
     more: "\u0415\u0449\u0451 \u27A1\uFE0F",
     unset: "\u2705 \u0427\u0430\u0442 \u043E\u0442\u0432\u044F\u0437\u0430\u043D \u043E\u0442 \u0433\u0440\u0443\u043F\u043F\u044B.",
-    help: "<b>\u041A\u043E\u043C\u0430\u043D\u0434\u044B</b>\n/today \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\n/tomorrow \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430\n/week \u2014 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E\n/group \u2014 \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)\n/teacher \u2014 \u0432\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C\n/settings \u2014 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\n/time \u2014 \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445 \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430\n/app \u2014 \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\n/feedback \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u0441\u043E\u043E\u0431\u0449\u0438\u0442\u044C \u043E\u0431 \u043E\u0448\u0438\u0431\u043A\u0435\n\n<b>\u0412 \u0447\u0430\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u044B</b>\n/setgroup \u2014 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)\n/unset \u2014 \u043E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)\n/time \u2014 \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445 \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430 (\u0430\u0434\u043C\u0438\u043D)",
+    help: "<b>\u041A\u043E\u043C\u0430\u043D\u0434\u044B</b>\n/today \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\n/tomorrow \u2014 \u043F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430\n/week \u2014 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E\n/where \u2014 \u0433\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? (\u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: /where Karimov)\n/group \u2014 \u0432\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)\n/teacher \u2014 \u0432\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C\n/settings \u2014 \u043D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438\n/time \u2014 \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445 \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430\n/app \u2014 \u043E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435\n/feedback \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C \u043E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u0441\u043E\u043E\u0431\u0449\u0438\u0442\u044C \u043E\u0431 \u043E\u0448\u0438\u0431\u043A\u0435\n\n<b>\u0412 \u0447\u0430\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u044B</b>\n/setgroup \u2014 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)\n/unset \u2014 \u043E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)\n/time \u2014 \u0432\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445 \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430 (\u0430\u0434\u043C\u0438\u043D)",
     dataError: "\u041D\u0435 \u0443\u0434\u0430\u043B\u043E\u0441\u044C \u0437\u0430\u0433\u0440\u0443\u0437\u0438\u0442\u044C \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435, \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0447\u0443\u0442\u044C \u043F\u043E\u0437\u0436\u0435.",
     now: "\u0421\u0435\u0439\u0447\u0430\u0441",
     btnInvite: "\u{1F4E4} \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u044C \u0434\u0440\u0443\u0437\u0435\u0439",
@@ -193,7 +211,7 @@ ${t}`,
     months: ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"],
     langName: "\u{1F1EC}\u{1F1E7} English",
     chooseLang: "Tilni tanlang / \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u044F\u0437\u044B\u043A / Choose language",
-    welcome: "Hi! \u{1F44B}\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n\u2022 I show student and teacher timetables\n\u2022 I tell you right away when it changes\n\u2022 I can find free rooms\n\nTo start, tell me who you are \u{1F447}",
+    welcome: "Hi! \u{1F44B}\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n\u2022 I show student and teacher timetables\n\u2022 I tell you right away when it changes\n\u2022 I can find free rooms\n\u2022 I can tell where a teacher is right now\n\nTo start, tell me who you are \u{1F447}",
     chooseFaculty: "\u{1F3DB} Choose your faculty:",
     chooseCourse: "\u{1F393} Choose your year:",
     chooseGroup: "\u{1F465} Choose your group:",
@@ -216,6 +234,15 @@ ${t}`,
     btnSettings: "\u2699\uFE0F Settings",
     btnApp: "\u{1F4F1} Open app",
     btnFree: "\u{1F7E2} Free rooms",
+    btnWhere: "\u{1F50E} Find a teacher",
+    whereAsk: "\u{1F50E} Where is the teacher?\nType the teacher's surname \u{1F447}",
+    whereAskPh: "Karimov",
+    whereNone: "Teacher not found. Check the surname, e.g. Karimov",
+    wherePick: "\u{1F50E} Found \u2014 which teacher?",
+    whereGroupHint: "\u{1F50E} Where is the teacher? Type the surname: <code>/where Karimov</code>",
+    btnRefresh: "\u{1F504} Refresh",
+    btnWhereApp: "\u{1F4F1} Open in app",
+    whatsNew: "\u{1F195} <b>New!</b>\n\n\u{1F50E} <b>Find a teacher</b> \u2014 see which room a teacher is in right now, and when and where their next class is.\n\nThe button is now in the menu below \u{1F447}",
     thisWeekShort: "This week",
     nextWeekShort: "Next week",
     btnOpenInApp: "\u{1F4F1} Open in app",
@@ -238,7 +265,7 @@ ${t}`,
     back: "\u2B05\uFE0F Back",
     more: "More \u27A1\uFE0F",
     unset: "\u2705 This chat is no longer linked to a group.",
-    help: "<b>Commands</b>\n/today \u2014 today's classes\n/tomorrow \u2014 tomorrow's classes\n/week \u2014 weekly timetable\n/group \u2014 choose group (student)\n/teacher \u2014 sign in as a teacher\n/settings \u2014 settings\n/time \u2014 reminder time for tomorrow's classes\n/app \u2014 open the app\n/feedback \u2014 send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup \u2014 link chat to a group (admin)\n/unset \u2014 unlink (admin)\n/time \u2014 reminder time for tomorrow's classes (admin)",
+    help: "<b>Commands</b>\n/today \u2014 today's classes\n/tomorrow \u2014 tomorrow's classes\n/week \u2014 weekly timetable\n/where \u2014 find a teacher (e.g. /where Karimov)\n/group \u2014 choose group (student)\n/teacher \u2014 sign in as a teacher\n/settings \u2014 settings\n/time \u2014 reminder time for tomorrow's classes\n/app \u2014 open the app\n/feedback \u2014 send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup \u2014 link chat to a group (admin)\n/unset \u2014 unlink (admin)\n/time \u2014 reminder time for tomorrow's classes (admin)",
     dataError: "Couldn't load the timetable, please try again in a moment.",
     now: "Now",
     btnInvite: "\u{1F4E4} Invite friends",
@@ -343,7 +370,22 @@ var W = {
 ${r} \xB7 ${n} ta dars`,
     lessonsWeek: "Haftalik jadval",
     freeWeek: "Bu hafta dars yo'q \u{1F389}",
-    seeApp: "\u{1F4F1} Batafsil \u2014 ilovada"
+    seeApp: "\u{1F4F1} Batafsil \u2014 ilovada",
+    h: (m) => m >= 60 ? `${Math.floor(m / 60)} soat${m % 60 ? " " + m % 60 + " daqiqa" : ""}` : `${m} daqiqa`,
+    wh: {
+      now: "\u{1F7E2} <b>Hozir darsda</b>",
+      between: "\u{1F7E1} <b>Hozir dars yo'q</b>",
+      before: "\u23F3 <b>Bugungi dars hali boshlanmagan</b>",
+      after: "\u{1F3C1} <b>Bugungi darslar tugagan</b>",
+      off: "\u26AA <b>Bugun dars yo'q</b>",
+      until: (t, left) => `\u23F1 ${t} gacha \u2014 ${left} qoldi`,
+      next: "\u23ED <b>Keyingi dars</b>",
+      inM: (d) => `${d}dan so'ng`,
+      tomorrow: "Ertaga",
+      today: (c) => `\u{1F5D3} <b>Bugungi tartib</b> \xB7 ${c}`,
+      noRoom: "xona ko'rsatilmagan",
+      note: "\u2139\uFE0F Rasmiy dars jadvali asosida \u2014 kutilmagan o'zgarishlar bo'lishi mumkin."
+    }
   },
   ru: {
     lecture: "\u041B\u0435\u043A\u0446\u0438\u044F",
@@ -368,7 +410,22 @@ ${r} \xB7 ${n} ta dars`,
 ${r} \xB7 ${n} \u043F\u0430\u0440`,
     lessonsWeek: "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E",
     freeWeek: "\u041D\u0430 \u044D\u0442\u043E\u0439 \u043D\u0435\u0434\u0435\u043B\u0435 \u043F\u0430\u0440 \u043D\u0435\u0442 \u{1F389}",
-    seeApp: "\u{1F4F1} \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435 \u2014 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438"
+    seeApp: "\u{1F4F1} \u041F\u043E\u0434\u0440\u043E\u0431\u043D\u0435\u0435 \u2014 \u0432 \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0438",
+    h: (m) => m >= 60 ? `${Math.floor(m / 60)} \u0447${m % 60 ? " " + m % 60 + " \u043C\u0438\u043D" : ""}` : `${m} \u043C\u0438\u043D`,
+    wh: {
+      now: "\u{1F7E2} <b>\u0421\u0435\u0439\u0447\u0430\u0441 \u043D\u0430 \u043F\u0430\u0440\u0435</b>",
+      between: "\u{1F7E1} <b>\u0421\u0435\u0439\u0447\u0430\u0441 \u043F\u0430\u0440\u044B \u043D\u0435\u0442</b>",
+      before: "\u23F3 <b>\u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0438\u0435 \u043F\u0430\u0440\u044B \u0435\u0449\u0451 \u043D\u0435 \u043D\u0430\u0447\u0430\u043B\u0438\u0441\u044C</b>",
+      after: "\u{1F3C1} <b>\u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0438\u0435 \u043F\u0430\u0440\u044B \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C</b>",
+      off: "\u26AA <b>\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043F\u0430\u0440 \u043D\u0435\u0442</b>",
+      until: (t, left) => `\u23F1 \u0434\u043E ${t} \u2014 \u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ${left}`,
+      next: "\u23ED <b>\u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0430\u0440\u0430</b>",
+      inM: (d) => `\u0447\u0435\u0440\u0435\u0437 ${d}`,
+      tomorrow: "\u0417\u0430\u0432\u0442\u0440\u0430",
+      today: (c) => `\u{1F5D3} <b>\u041F\u043B\u0430\u043D \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F</b> \xB7 ${c}`,
+      noRoom: "\u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u043D\u0435 \u0443\u043A\u0430\u0437\u0430\u043D\u0430",
+      note: "\u2139\uFE0F \u041F\u043E \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u043C\u0443 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044E \u2014 \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u044B \u043D\u0435\u043E\u0436\u0438\u0434\u0430\u043D\u043D\u044B\u0435 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F."
+    }
   },
   en: {
     lecture: "Lecture",
@@ -393,7 +450,22 @@ ${r} \xB7 ${n} \u043F\u0430\u0440`,
 ${r} \xB7 ${n} classes`,
     lessonsWeek: "Weekly timetable",
     freeWeek: "No classes this week \u{1F389}",
-    seeApp: "\u{1F4F1} More in the app"
+    seeApp: "\u{1F4F1} More in the app",
+    h: (m) => m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? " " + m % 60 + " min" : ""}` : `${m} min`,
+    wh: {
+      now: "\u{1F7E2} <b>In class right now</b>",
+      between: "\u{1F7E1} <b>No class right now</b>",
+      before: "\u23F3 <b>Today's classes haven't started yet</b>",
+      after: "\u{1F3C1} <b>Today's classes are over</b>",
+      off: "\u26AA <b>No classes today</b>",
+      until: (t, left) => `\u23F1 until ${t} \u2014 ${left} left`,
+      next: "\u23ED <b>Next class</b>",
+      inM: (d) => `in ${d}`,
+      tomorrow: "Tomorrow",
+      today: (c) => `\u{1F5D3} <b>Today's plan</b> \xB7 ${c}`,
+      noRoom: "no room given",
+      note: "\u2139\uFE0F Based on the official timetable \u2014 unexpected changes are possible."
+    }
   }
 };
 var words = (lang) => W[lang] || W.uz;
@@ -450,26 +522,30 @@ function weekTag(l, lang, parity) {
   if (!l.w || parity) return "";
   return ` \xB7 <i>${l.w === "A" ? tr(lang).weekA : tr(lang).weekB}</i>`;
 }
+var TYPE_DOT = { lecture: "\u{1F7E6}", seminar: "\u{1F7E9}", lab: "\u{1F7E7}", practice: "\u{1F7E7}" };
+var typeDot = (type) => TYPE_DOT[type] || "\u2B1C";
 function fmtLesson(l, periods, lang, parity, state) {
   const w = words(lang);
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
-  const head = `${state ? state + "\n" : ""}<b>${t.a} \u2013 ${t.b}</b>  \xB7  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
-  const lines = [head, `\u{1F4D8} ${subjHtml(sub, true)}${sub.type ? ` \u2014 ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`];
-  if (l.r) lines.push(`\u{1F4CD} ${esc(roomLabel(l.r, lang))}`);
-  if (l.t) lines.push(`\u{1F464} ${esc(l.t)}`);
+  const head = `${typeDot(sub.type)} <b>${t.a} \u2013 ${t.b}</b> \xB7 <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}${state ? `  ${state}` : ""}`;
+  const lines = [head, `${subjHtml(sub, true)}${sub.type ? ` \u2014 ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`];
+  const meta = [];
+  if (l.r) meta.push(`\u{1F4CD} <b>${esc(roomLabel(l.r, lang))}</b>`);
+  if (l.t) meta.push(`\u{1F464} ${esc(l.t)}`);
+  if (meta.length) lines.push(meta.join("  \xB7  "));
   if (l.gr) lines.push(`\u{1F465} ${esc(l.gr)}`);
-  return lines.join("\n");
+  return `<blockquote>${lines.join("\n")}</blockquote>`;
 }
 function fmtLessonShort(l, periods, lang, parity) {
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
-  let s = `<b>${t.a}</b> ${subjHtml(sub)}`;
+  let s = `${typeDot(sub.type)} <b>${t.a}</b> ${subjHtml(sub)}`;
   if (sub.type) s += ` <i>(${typeLabel(sub.type, lang).toLowerCase()})</i>`;
   if (l.g) s += ` <i>[${esc(l.g)}]</i>`;
   if (l.gr) s += ` <i>[${esc(l.gr)}]</i>`;
   if (l.r) s += ` \xB7 \u{1F4CD}${esc(l.r)}`;
-  if (l.w && !parity) s += ` \xB7 <i>${l.w}</i>`;
+  if (l.w && !parity) s += ` \xB7 <i>${l.w === "A" ? tr(lang).weekA : tr(lang).weekB}</i>`;
   return s;
 }
 function fmtDay(group, index, date, lang, nowDate) {
@@ -478,9 +554,11 @@ function fmtDay(group, index, date, lang, nowDate) {
   const d = weekday(date);
   const parity = weekParity(index.weekA, date);
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
+  const endM = ls.length ? Math.max(...ls.map((l) => mins(times(index.periods, l).b))) : 0;
+  const span = ls.length ? ` \xB7 ${times(index.periods, ls[0]).a}\u2013${hhmm(endM)}` : "";
   const head = [
     `\u{1F4C5} <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` \xB7 ${parity === "A" ? L.weekA : L.weekB}` : ""),
-    `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` \xB7 ${w.count(ls.length)}` : ""}`
+    `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` \xB7 ${w.count(ls.length)}${span}` : ""}`
   ].join("\n");
   if (!ls.length) return `${head}
 
@@ -494,7 +572,7 @@ ${L.noLessons}`;
     const t = times(index.periods, l);
     if (prevEnd != null) {
       const gap = mins(t.a) - prevEnd;
-      if (gap >= 30) blocks.push(w.brk(gap));
+      if (gap >= 30) blocks.push(`<i>${w.brk(gap)}</i>`);
     }
     prevEnd = Math.max(prevEnd ?? 0, mins(t.b));
     let state = "";
@@ -507,13 +585,75 @@ ${L.noLessons}`;
     }
     blocks.push(fmtLesson(l, index.periods, lang, parity, state));
   }
-  const last = times(index.periods, ls[ls.length - 1]).b;
   return clip(`${head}
-\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501
 
-${blocks.join("\n\n")}
+${blocks.join("\n")}
 
-${w.finish(last)}`);
+${w.finish(hhmm(endM))}`);
+}
+function spanOf(periods, l) {
+  const a = periods.find((p) => p.p === l.p);
+  const b = periods.find((p) => p.p === l.p + (l.n || 1) - 1) || a;
+  return a ? { from: mins(a.start), to: mins(b.end) } : { from: 0, to: 0 };
+}
+function dayItems(entity, index, date) {
+  const d = weekday(date);
+  if (d === 6) return [];
+  return lessonsForDay(entity, d, weekParity(index.weekA, date)).map((l) => ({ l, ...spanOf(index.periods, l) })).sort((x, y) => x.from - y.from || x.l.p - y.l.p);
+}
+function whereIs(entity, index, now) {
+  const nowM = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const today = dayItems(entity, index, now);
+  const cur = today.filter((x) => nowM >= x.from && nowM < x.to);
+  const later = today.filter((x) => x.from > nowM);
+  const done = today.some((x) => x.to <= nowM);
+  let next = null;
+  if (later.length) next = { date: now, today: true, items: later.filter((x) => x.from === later[0].from) };
+  else {
+    for (let k = 1; k <= 14 && !next; k++) {
+      const date = addDays(now, k), items = dayItems(entity, index, date);
+      if (items.length) next = { date, today: false, items: items.filter((x) => x.from === items[0].from) };
+    }
+  }
+  const state = cur.length ? "now" : !today.length ? "off" : later.length ? done ? "between" : "before" : "after";
+  const until = cur.length ? Math.max(...cur.map((x) => x.to)) : null;
+  return { state, nowM, today, cur, next, until, left: until == null ? null : until - nowM, inMin: next && next.today ? next.items[0].from - nowM : null };
+}
+var shortList = (str, n = 2) => {
+  const a = String(str || "").split(", ").filter(Boolean);
+  return a.length > n ? `${a.slice(0, n).join(", ")} +${a.length - n}` : a.join(", ");
+};
+function fmtWhere(teacher, index, now, lang) {
+  const w = words(lang), h = w.wh, L = tr(lang);
+  const st = whereIs(teacher, index, now);
+  const detail = (x) => {
+    const l = x.l, sub = parseSubject(l.s, lang);
+    const out2 = [
+      `\u{1F4CD} <b>${esc(l.r ? roomLabel(l.r, lang) : h.noRoom)}</b>`,
+      `${typeDot(sub.type)} ${subjHtml(sub, true)}${sub.type ? ` \u2014 ${typeLabel(sub.type, lang)}` : ""}${l.g ? ` <i>(${esc(l.g)})</i>` : ""}`
+    ];
+    if (l.gr) out2.push(`\u{1F465} ${esc(l.gr)}`);
+    return out2.join("\n");
+  };
+  const out = [`\u{1F468}\u200D\u{1F3EB} <b>${esc(teacher.name)}</b>`, h[st.state]];
+  if (st.state === "now") out.push(`<blockquote>${st.cur.map(detail).join("\n\n")}
+${h.until(hhmm(st.until), w.h(st.left))}</blockquote>`);
+  if (st.next) {
+    const n = st.next, t0 = hhmm(n.items[0].from);
+    const tomorrow = ymd(addDays(now, 1)) === ymd(n.date);
+    const when = n.today ? `${t0} (${h.inM(w.h(st.inMin))})` : `${tomorrow ? h.tomorrow : `${L.days[weekday(n.date)]}, ${fmtDate(n.date, lang)}`}, ${t0}`;
+    out.push("", `${h.next} \u2014 ${when}`, `<blockquote>${n.items.map(detail).join("\n\n")}</blockquote>`);
+  }
+  if (st.today.length) {
+    out.push("", h.today(w.count(st.today.length)));
+    for (const x of st.today) {
+      const mark = st.cur.includes(x) ? "\u{1F7E2}" : x.to <= st.nowM ? "\u25AB\uFE0F" : "\u25AA\uFE0F";
+      const room = x.l.r ? roomLabel(x.l.r, lang) : "\u2014";
+      out.push(`${mark} ${hhmm(x.from)}\u2013${hhmm(x.to)} \xB7 ${esc(room)}${x.l.gr ? ` \xB7 ${esc(shortList(x.l.gr))}` : ""}`);
+    }
+  }
+  out.push("", `<i>${h.note}</i>`);
+  return clip(out.join("\n"));
 }
 function fmtWeek(group, index, monday, lang) {
   const L = tr(lang);
@@ -523,7 +663,7 @@ function fmtWeek(group, index, monday, lang) {
   for (let d = 0; d < 6; d++) {
     const ls = lessonsForDay(group, d, parity);
     if (!ls.length) continue;
-    parts.push(`<b>${L.days[d]}</b>
+    parts.push(`<b>${L.days[d]}</b> \xB7 ${words(lang).count(ls.length)}
 ${ls.map((l) => fmtLessonShort(l, index.periods, lang, parity)).join("\n")}`);
   }
   if (parts.length === 1) parts.push(words(lang).freeWeek);
@@ -540,12 +680,16 @@ function fmtWeekCaption(group, index, monday, lang) {
 function clip(s) {
   if (s.length <= 4e3) return s;
   const cut = s.lastIndexOf("\n", 3950);
-  return s.slice(0, cut > 0 ? cut : 3950) + "\n\u2026";
+  let out = s.slice(0, cut > 0 ? cut : 3950);
+  const open = (out.match(/<blockquote>/g) || []).length, close = (out.match(/<\/blockquote>/g) || []).length;
+  if (open > close) out += "</blockquote>";
+  return out + "\n\u2026";
 }
 
 // worker/worker.mjs
 var PAGE = 30;
 var TPAGE = 16;
+var KB_VERSION = 2;
 var CALENDAR_ENABLED = false;
 var worker_default = {
   async fetch(request, env, ctx) {
@@ -692,6 +836,9 @@ async function db(env) {
     if (!cols.some((c) => c.name === "last_seen")) {
       await addColumn("ALTER TABLE chats ADD COLUMN last_seen INTEGER");
     }
+    if (!cols.some((c) => c.name === "kbv")) {
+      await addColumn("ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0");
+    }
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)").run();
     schemaReady = true;
   }
@@ -712,11 +859,12 @@ async function ensureChat(env, chat, langCode) {
     group_name: null,
     lang: "uz",
     alerts: 1,
-    weekly: kind === "group" ? 1 : 0
+    weekly: kind === "group" ? 1 : 0,
+    kbv: KB_VERSION
     // Uzbek is the default for everyone; changeable in the menu / settings
   };
   const now = Date.now();
-  await (await db(env)).prepare("INSERT OR IGNORE INTO chats (chat_id, kind, lang, alerts, weekly, created_at, updated_at) VALUES (?,?,?,?,?,?,?)").bind(row.chat_id, kind, row.lang, row.alerts, row.weekly, now, now).run();
+  await (await db(env)).prepare("INSERT OR IGNORE INTO chats (chat_id, kind, lang, alerts, weekly, kbv, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)").bind(row.chat_id, kind, row.lang, row.alerts, row.weekly, KB_VERSION, now, now).run();
   return { row, isNew: true };
 }
 async function updateChat(env, chatId, fields) {
@@ -774,14 +922,14 @@ async function onSetup(url, env) {
     drop_pending_updates: true
   });
   const cmds = {
-    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["group", "Guruhni tanlash (talaba)"], ["teacher", "O'qituvchi sifatida kirish"], ["settings", "Sozlamalar"], ["time", "Ertangi dars eslatmasi vaqti"], ["app", "Ilovani ochish"], ["calendar", "Kalendarga obuna bo'lish"], ["feedback", "Taklif yoki xato yuborish"], ["help", "Yordam"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
-    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)"], ["teacher", "\u0412\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["calendar", "\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"], ["feedback", "\u041E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u0448\u0438\u0431\u043A\u0430"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
-    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["group", "Choose group (student)"], ["teacher", "Sign in as a teacher"], ["settings", "Settings"], ["time", "Reminder time"], ["app", "Open the app"], ["calendar", "Subscribe to calendar"], ["feedback", "Send feedback"], ["help", "Help"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar")
+    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["group", "Guruhni tanlash (talaba)"], ["teacher", "O'qituvchi sifatida kirish"], ["settings", "Sozlamalar"], ["time", "Ertangi dars eslatmasi vaqti"], ["app", "Ilovani ochish"], ["calendar", "Kalendarga obuna bo'lish"], ["feedback", "Taklif yoki xato yuborish"], ["help", "Yordam"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
+    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["where", "\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? (/where Karimov)"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)"], ["teacher", "\u0412\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["calendar", "\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"], ["feedback", "\u041E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u0448\u0438\u0431\u043A\u0430"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
+    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["where", "Find a teacher (/where Karimov)"], ["group", "Choose group (student)"], ["teacher", "Sign in as a teacher"], ["settings", "Settings"], ["time", "Reminder time"], ["app", "Open the app"], ["calendar", "Subscribe to calendar"], ["feedback", "Send feedback"], ["help", "Help"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar")
   };
   const groupCmds = {
-    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["setgroup", "Chatni guruhga ulash (admin)"], ["unset", "Uzish (admin)"], ["time", "Eslatma vaqti (admin)"]],
-    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["setgroup", "\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)"], ["unset", "\u041E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F (\u0430\u0434\u043C\u0438\u043D)"]],
-    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["setgroup", "Link chat to a group (admin)"], ["unset", "Unlink (admin)"], ["time", "Reminder time (admin)"]]
+    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["setgroup", "Chatni guruhga ulash (admin)"], ["unset", "Uzish (admin)"], ["time", "Eslatma vaqti (admin)"]],
+    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["where", "\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? (/where Karimov)"], ["setgroup", "\u041F\u0440\u0438\u0432\u044F\u0437\u0430\u0442\u044C \u0447\u0430\u0442 \u043A \u0433\u0440\u0443\u043F\u043F\u0435 (\u0430\u0434\u043C\u0438\u043D)"], ["unset", "\u041E\u0442\u0432\u044F\u0437\u0430\u0442\u044C (\u0430\u0434\u043C\u0438\u043D)"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F (\u0430\u0434\u043C\u0438\u043D)"]],
+    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["where", "Find a teacher (/where Karimov)"], ["setgroup", "Link chat to a group (admin)"], ["unset", "Unlink (admin)"], ["time", "Reminder time (admin)"]]
   };
   const toCmd = (l) => l.map(([command, description]) => ({ command, description }));
   for (const lang of LANGS) {
@@ -862,7 +1010,7 @@ async function track(env, update) {
     if (c) k = "cb:" + String(c.data || "").split(":")[0];
     else if (m.text) {
       const cmd = parseCommand(m.text);
-      k = cmd ? cmd.cmd : BUTTONS[m.text.trim()] || (chat.type === "private" ? "text" : null);
+      k = cmd ? cmd.cmd : BUTTONS[m.text.trim()] || (chat.type === "private" ? isWherePrompt(m.reply_to_message) ? "where" : "text" : null);
     }
     if (!k) return;
     const now = Date.now();
@@ -885,6 +1033,8 @@ var USAGE_NAMES = {
   app: "\u{1F4F1} /app",
   group: "\u{1F465} Guruh tanlash",
   teacher: "\u{1F468}\u200D\u{1F3EB} O'qituvchi bo'limi",
+  where: "\u{1F50E} Ustoz qayerda?",
+  ustoz: "\u{1F50E} Ustoz qayerda?",
   text: "\u{1F50E} Nom yozib qidirish",
   feedback: "\u270D\uFE0F Fikr yuborish",
   time: "\u23F0 Eslatma vaqti",
@@ -967,14 +1117,12 @@ async function adminMenu(env) {
 }
 function mainKeyboard(env, lang, groupId, role) {
   const L = tr(lang);
-  const rows = [
-    [{ text: L.btnToday }, { text: L.btnTomorrow }],
-    [{ text: L.btnWeek }, { text: L.btnSettings }]
-  ];
-  if (siteUrl(env)) rows.push([
-    { text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } },
-    { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&l=${lang}` } }
-  ]);
+  const rows = [[{ text: L.btnToday }, { text: L.btnTomorrow }, { text: L.btnWeek }]];
+  if (siteUrl(env)) rows.push(
+    [{ text: L.btnWhere }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&l=${lang}` } }],
+    [{ text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } }, { text: L.btnSettings }]
+  );
+  else rows.push([{ text: L.btnWhere }, { text: L.btnSettings }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 function appUrl(env, groupId, lang, role) {
@@ -986,7 +1134,10 @@ for (const l of LANGS) {
   BUTTONS[T[l].btnTomorrow] = "tomorrow";
   BUTTONS[T[l].btnWeek] = "week";
   BUTTONS[T[l].btnSettings] = "settings";
+  BUTTONS[T[l].btnWhere] = "where";
 }
+var WHERE_PROMPTS = new Set(LANGS.map((l) => T[l].whereAsk.replace(/<[^>]+>/g, "").trim()));
+var isWherePrompt = (m) => !!(m?.from?.is_bot && WHERE_PROMPTS.has(String(m.text || "").trim()));
 function parseCommand(text) {
   const m = /^\/([a-zA-Z_]+)(?:@(\w+))?(?:\s+(.*))?$/s.exec(text || "");
   if (!m) return null;
@@ -1050,21 +1201,47 @@ async function onAdminReply(env, msg, command) {
   return true;
 }
 async function onPrivate(env, msg, command) {
+  const flags = {};
+  await privateMain(env, msg, command, flags);
+  if (flags.upgrade && !flags.kbSent) await upgradeKeyboard(env, msg.chat.id);
+}
+async function upgradeKeyboard(env, chatId) {
+  const row = await getChat(env, chatId);
+  if (!row || (row.kbv | 0) >= KB_VERSION) return;
+  await (await db(env)).prepare("UPDATE chats SET kbv = ? WHERE chat_id = ?").bind(KB_VERSION, chatId).run();
+  await send(env, chatId, tr(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
+}
+async function privateMain(env, msg, command, flags) {
   if (isAdminChat(env, msg.chat.id) && await onAdminReply(env, msg, command)) return;
   const { row, isNew } = await ensureChat(env, msg.chat, msg.from?.language_code);
+  if (!isNew && (row.kbv | 0) < KB_VERSION) flags.upgrade = true;
   const lang = row.lang;
   const L = tr(lang);
   const uid = msg.from.id;
   const action = command ? command.cmd : BUTTONS[msg.text.trim()];
+  if (!command && !action && isWherePrompt(msg.reply_to_message)) return whereSearch(env, msg.chat.id, lang, msg.text, "private");
   if (action === "start") {
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
-    if (m) return chooseGroup(env, msg.chat, uid, m[1], null, lang);
+    if (m) {
+      flags.kbSent = true;
+      return chooseGroup(env, msg.chat, uid, m[1], null, lang);
+    }
     const mt = /^t_([a-z0-9]+)$/.exec(command.arg);
-    if (mt) return chooseTeacher(env, msg.chat, uid, mt[1], null, lang);
+    if (mt) {
+      flags.kbSent = true;
+      return chooseTeacher(env, msg.chat, uid, mt[1], null, lang);
+    }
+    const mw = /^w_([a-z0-9]+)$/.exec(command.arg);
+    if (mw) return showWhere(env, msg.chat.id, lang, "private", mw[1]);
     if (siteUrl(env)) await syncMenu(env, msg.chat.id);
+    flags.kbSent = true;
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
     if (!row.group_id) return askRole(env, msg.chat.id, uid, lang, null, row.role);
     return;
+  }
+  if (action === "where" || action === "ustoz" || action === "find") {
+    if (command?.arg) return whereSearch(env, msg.chat.id, lang, command.arg, "private");
+    return send(env, msg.chat.id, L.whereAsk, { reply_markup: { force_reply: true, input_field_placeholder: L.whereAskPh, selective: true } });
   }
   if (action === "help") return send(env, msg.chat.id, L.help, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
   if (action === "group" || action === "setgroup") {
@@ -1138,6 +1315,10 @@ async function onGroupChat(env, msg, command) {
   if (cmd === "today" || cmd === "tomorrow" || cmd === "week") {
     if (!row.group_id) return send(env, msg.chat.id, L.noGroupChat);
     return sendSchedule(env, msg.chat.id, row, cmd);
+  }
+  if (cmd === "where" || cmd === "ustoz") {
+    if (!command.arg) return send(env, msg.chat.id, L.whereGroupHint, { reply_to_message_id: msg.message_id });
+    return whereSearch(env, msg.chat.id, lang, command.arg, "group");
   }
   if (cmd === "start" || cmd === "help") return send(env, msg.chat.id, row.group_id ? L.help : L.addedToGroup);
 }
@@ -1383,6 +1564,52 @@ async function chooseTeacher(env, chat, uid, teacherId, messageId, langHint) {
   else await send(env, chat.id, L.dataError, { reply_markup: mainKeyboard(env, lang, teacherId, "teacher") });
   if (firstTime) await send(env, chat.id, L.teacherTip);
 }
+async function whereSearch(env, chatId, lang, query, kind) {
+  const L = tr(lang);
+  const q = normT(query);
+  if (q.length < 2) return send(env, chatId, L.whereNone);
+  let people;
+  try {
+    people = await getPeople(env);
+  } catch {
+    return send(env, chatId, L.dataError);
+  }
+  const hits = [];
+  for (const [id, name] of people?.teachers || []) {
+    if (!/[A-Za-zА-Яа-яЎўҚқҒғҲҳ]{3,}/.test(name)) continue;
+    const n = normT(name);
+    if (n.includes(q)) hits.push([id, name, n === q ? 0 : n.startsWith(q) ? 1 : 2]);
+  }
+  if (!hits.length) return send(env, chatId, L.whereNone);
+  hits.sort((a, b) => a[2] - b[2] || a[1].localeCompare(b[1]));
+  if (hits.length === 1 || hits[0][2] === 0 && hits[1][2] !== 0) return showWhere(env, chatId, lang, kind, hits[0][0]);
+  const top = hits.slice(0, 16);
+  const kb = [];
+  for (let i = 0; i < top.length; i += 2) kb.push(top.slice(i, i + 2).map(([id, name]) => ({ text: "\u{1F468}\u200D\u{1F3EB} " + name, callback_data: `wh:${id}` })));
+  return send(env, chatId, L.wherePick, { reply_markup: { inline_keyboard: kb } });
+}
+async function showWhere(env, chatId, lang, kind, teacherId, messageId) {
+  const L = tr(lang);
+  let index, t;
+  try {
+    [index, t] = await Promise.all([getIndex(env), getTeacher(env, teacherId)]);
+  } catch {
+    return send(env, chatId, L.dataError);
+  }
+  if (!t) return send(env, chatId, L.whereNone);
+  const text = fmtWhere({ ...t, kind: "t" }, index, tashkentNow(), lang);
+  const rows = [[{ text: L.btnRefresh, callback_data: `wh:${teacherId}` }]];
+  if (siteUrl(env)) {
+    if (kind === "private") rows.push([{ text: L.btnWhereApp, web_app: { url: `${siteUrl(env)}/#w=${teacherId}&l=${lang}` } }]);
+    else {
+      const name = await getBotName(env);
+      if (name) rows.push([{ text: L.btnWhereApp, url: `https://t.me/${name}?start=w_${teacherId}` }]);
+    }
+  }
+  const reply_markup = { inline_keyboard: rows };
+  if (messageId) return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup });
+  return send(env, chatId, text, { reply_markup });
+}
 async function searchGroups(env, chatId, uid, lang, query) {
   const L = tr(lang);
   const q = norm(query);
@@ -1529,6 +1756,7 @@ async function onCallback(env, cb) {
     await updateChat(env, chatId, { remind_at: m });
     return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: L.remindSet(m), parse_mode: "HTML" });
   }
+  if (kind === "wh") return showWhere(env, chatId, lang, isGroupChat ? "group" : "private", parts[1], msg.message_id);
   if (kind === "day") {
     if (!row.group_id) return;
     return onDayTab(env, row, msg, Number(parts[1]), Number(parts[2]));

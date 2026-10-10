@@ -5,8 +5,9 @@ A free Telegram bot and Mini App for TSUE students, built on the public timetabl
 **What it does**
 
 - **Group chats:** a group leader adds the bot and runs `/setgroup`. The bot then posts "tomorrow's classes" once a day at the set time (default 21:00; on Sundays the weekly timetable post at 20:00 takes its place) and — outside that schedule — an extra ➖/➕ alert only when the timetable actually changes.
-- **Private chat:** students pick their group (or just type it, e.g. `mo 901`). Buttons: 📅 Today · ➡️ Tomorrow · 🗓 Week · ⚙️ Settings (change alerts, weekly post, language).
-- **Mini App** (📱 button): fast search for any group, teacher or room, ⭐ favorites, day tabs, "Now / Next" markers, highlighted changes, 🟢 free-room finder. It also works as a normal website and can be added to a phone's home screen like an app.
+- **Private chat:** students pick their group (or just type it, e.g. `mo 901`). Buttons: 📅 Today · ➡️ Tomorrow · 🗓 Week · 🔎 Where is the teacher? · 🟢 Free rooms · 📱 App · ⚙️ Settings (change alerts, weekly post, language). Lessons are shown as small cards (time, type colour, room, teacher).
+- **🔎 Where is the teacher?** (button, `/where` or `/ustoz`, also works in group chats): type a surname and the bot says whether that teacher is in class right now (room, subject, groups, time left), otherwise where and when the next class is, plus the day's plan. Links like `t.me/<bot>?start=w_<teacherId>` share one teacher's card.
+- **Mini App** (📱 button): fast search for any group, teacher or room, ⭐ favorites, day tabs, a live "Now / Next" line (subject · room · time) under the header, highlighted changes, 🟢 free-room finder and the **📍 Teacher tab** (live status, big room, countdown, day plan, share link). It opens on the next day that has classes once today's are over, refreshes itself every minute, and paints instantly from the last visit's cached copy (works offline too). It also works as a normal website and can be added to a phone's home screen like an app.
 - **Languages:** Uzbek, Russian and English.
 
 **Costs: $0.** Everything runs on free plans:
@@ -88,7 +89,7 @@ own (unreliable) 15-minute schedule, so changes get caught quickly and consisten
 ### 6. Try it
 
 - Open your bot in Telegram, press **Start**, pick a language, then pick a group.
-- Tap **📱 Ilovani ochish** to open the Mini App.
+- Tap **📱 Ilovani ochish** to open the Mini App, or **🔎 Ustoz qayerda?** and type a teacher's surname.
 - **In a group chat:** add the bot, make it an admin, and send `/setgroup`. The bot posts the current week right away.
 - Test the weekly post early: **Actions → Timetable → Run workflow**, tick *Also send the weekly timetable post now*.
 
@@ -114,6 +115,9 @@ Students ──> Telegram ──webhook──> Cloudflare Worker (buttons, /toda
 
 - **Students and teachers:** at `/start` the bot asks "Student / Teacher". A student picks a group, a teacher picks their name from the EduPage teacher list (letter buttons or type the surname; `/teacher` switches). Teachers get the same Today / Tomorrow / Week views (the week as a picture too), change alerts and reminders — `chats.role` is `student` or `teacher` and the chosen id sits in `group_id` either way. Teacher pictures are drawn into `docs/img/t/`.
 - **Daily "tomorrow's classes" message:** every chat has its own time (`chats.remind_at`, minutes after midnight in Tashkent time, default **21:00**, `-1` = off). Group chats get the full list of tomorrow's classes, private chats a short "first class" ping; free days stay silent (on Sundays a group that gets the weekly post skips it, so a group never gets two scheduled messages in a day). Each chat is served at most once a day, even if a run crashes half-way and the next one picks up where it stopped (`state.json` keeps a short keyed hash per chat served today). A group admin (or anyone in a private chat) changes the time with `/time` (buttons) or `/time 20:30`, `/time off`. `notify.mjs auto` serves each chat once at its time; `docs/data/state.json` (`tmr`) remembers how far today's run has got.
+- **Where is the teacher? (`whereIs` in `src/shared.mjs`):** one pure function used by the bot and mirrored in the Mini App (a test compares both). State is *in class* / *between classes* / *day not started* / *classes over* / *no classes today*, plus the next lesson start (today, or the next teaching day within two weeks); alternating weeks are resolved. The answer is based on the official timetable, so it says so.
+- **Reply keyboard upgrade:** the private-chat keyboard has a version (`chats.kbv`, `KB_VERSION` in the Worker). When the layout changes, each user's next message quietly swaps in the new keyboard once.
+- **Mini App caching:** every data file is kept in memory and `localStorage` (`ttc:*`, the last 24 timetable files) — stale-while-revalidate: the screen paints from the cache at once, the network copy replaces it softly if it differs. `sw.js` (browser use) serves the shell from cache and falls back to cached data after 3.5 s.
 - **Subject names in Russian / English:** EduPage's names are Uzbek. `docs/data/subjects.json` (`{ "<Uzbek name>": [ru, en] }`) is used by the bot, the alerts and the Mini App when the chat's language is ru/en; the weekly *picture* stays Uzbek, so ru/en chats get the text version of the week. When a new subject appears, `update.mjs` prints a warning ("no ru/en translation yet") — add it to `subjects.json` (unknown names are simply shown in Uzbek).
 - **Answering feedback:** every `/feedback` message is forwarded to `ADMIN_CHAT_ID`; **Reply** to that message in Telegram and the answer is delivered to the author in their language (`/reply <chat_id> text` works too).
 - **Admin statistics:** send `/stats` from the `ADMIN_CHAT_ID` account (it also appears in that account's command menu only): total / new / active users, what people use most (today and 7 days), top groups, languages, feedback — with a 🔄 refresh button. Anyone else gets the normal help. Activity is recorded per chat (`chats.last_seen`) and per action per day (`usage` table); ordinary group chatter is not counted.

@@ -329,6 +329,65 @@ check('mode=all includes a chat with alerts off', subsAll.rows.some((r) => r.cha
 check('mode=alerts excludes that same chat', !subsAlertsOnly.rows.some((r) => r.chat_id === 555), subsAlertsOnly);
 await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
 
+// ---- "Ustoz qayerda?" (where is the teacher)
+{
+  const STATUS = /Hozir darsda|Hozir dars yo'q|Bugungi dars hali boshlanmagan|Bugungi darslar tugagan|Bugun dars yo'q/;
+    await reset(); await post(msg('🔎 Ustoz qayerda?', priv2, user2));
+  l = await log();
+  const prompt = l.find((c) => c.method === 'sendMessage' && /O'qituvchining familiyasini yozing/.test(c.data.text || ''));
+  check('"Ustoz qayerda?" button asks for a surname (force reply)', !!prompt && prompt.data.reply_markup?.force_reply === true, texts(l));
+  await reset();
+  await post({ message: { message_id: 7, date: 0, chat: priv2, from: user2, text: 'Abdiyeva', reply_to_message: { message_id: 6, from: { id: 1, is_bot: true }, chat: priv2, text: prompt.data.text } } });
+  l = await log();
+  const ans = l.find((c) => c.method === 'sendMessage' && /Abdiyeva Flora/.test(c.data.text || ''));
+  check('reply with a surname → the teacher’s status (one match = straight answer)', !!ans && STATUS.test(ans.data.text) && /Rasmiy dars jadvali asosida/.test(ans.data.text), texts(l));
+  const akb = ans?.data.reply_markup?.inline_keyboard?.flat() || [];
+  check('answer has 🔄 refresh (wh:<id>) and "open timetable" Mini App buttons', akb.some((b) => b.callback_data === 'wh:t38r6gs') && akb.some((b) => /#w=t38r6gs&l=uz$/.test(b.web_app?.url || '')), akb);
+  await reset(); await post(cb('wh:t38r6gs', priv2, user2));
+  l = await log();
+  check('🔄 refresh edits the same message', l.some((c) => c.method === 'editMessageText' && /Abdiyeva Flora/.test(c.data.text || '') && STATUS.test(c.data.text)), texts(l));
+  await reset(); await post(msg('/where Karimov', priv2, user2));
+  l = await log();
+  const pick = l.find((c) => c.method === 'sendMessage' && c.data.reply_markup?.inline_keyboard?.flat().some((b) => /Karimov Dilshod/.test(b.text) && b.callback_data === 'wh:thf5rej'));
+  check('/where Karimov (many matches) → buttons to pick from', !!pick, texts(l));
+  await reset(); await post(cb('wh:thf5rej', priv2, user2));
+  l = await log();
+  check('picking a teacher turns the list into the answer', l.some((c) => c.method === 'editMessageText' && /Karimov Dilshod/.test(c.data.text || '') && STATUS.test(c.data.text)), texts(l));
+  await reset(); await post(msg('/where Karimov Dilshod', priv2, user2));
+  l = await log();
+  check('/where with the full name → straight answer', l.some((c) => c.method === 'sendMessage' && /Karimov Dilshod/.test(c.data.text || '') && STATUS.test(c.data.text)), texts(l));
+  await reset(); await post(msg('/where Zzzzzz', priv2, user2));
+  l = await log();
+  check('/where unknown surname → not found', l.some((c) => /Bunday ustoz topilmadi/.test(c.data.text || '')), texts(l));
+  await reset(); await post(msg('/start w_t38r6gs', priv2, user2));
+  l = await log();
+  check('deep link /start w_<id> shows the teacher status', l.some((c) => /Abdiyeva Flora/.test(c.data.text || '') && STATUS.test(c.data.text)), texts(l));
+  // group chats: works for everyone, "open timetable" is a t.me deep link (web_app buttons are not allowed there)
+  await reset(); await post(msg('/where Abdiyeva', grp, user));
+  l = await log();
+  const gans = l.find((c) => c.method === 'sendMessage' && /Abdiyeva Flora/.test(c.data.text || ''));
+  const gkb = gans?.data.reply_markup?.inline_keyboard?.flat() || [];
+  check('/where in a group chat answers with a deep-link button (no web_app)', !!gans && gkb.some((b) => /t\.me\/.+\?start=w_t38r6gs$/.test(b.url || '')) && !gkb.some((b) => b.web_app), gkb);
+  await reset(); await post(msg('/where', grp, user));
+  l = await log();
+  check('/where without a name in a group → usage hint', l.some((c) => /\/where Karimov/.test(c.data.text || '')), texts(l));
+  // the keyboard: new layout with the new button
+  await reset(); await post(msg('/start', { id: 8001, type: 'private' }, { id: 8001, first_name: 'Yangi', language_code: 'uz' }));
+  l = await log();
+  const kbd = l.find((c) => c.data.reply_markup?.keyboard)?.data.reply_markup.keyboard || [];
+  check('main keyboard: 3 rows, "Ustoz qayerda?" next to free rooms', kbd.length === 3 && kbd[0].length === 3 && kbd[1][0].text === '🔎 Ustoz qayerda?' && !!kbd[1][1].web_app && !!kbd[2][0].web_app && /Sozlamalar/.test(kbd[2][1].text), kbd);
+  // existing users (older keyboard) get the new one once, with a note
+  const { execSync } = await import('node:child_process');
+  execSync(`npx wrangler d1 execute DB --local --command "UPDATE chats SET kbv = 0 WHERE chat_id = 555"`, { cwd: new URL('..', import.meta.url).pathname, stdio: 'pipe' });
+  await reset(); await post(msg('/help', priv2, user2));
+  l = await log();
+  const up = l.find((c) => /Ustoz qayerda\?<\/b>/.test(c.data.text || ''));
+  check('older keyboard → the new one is handed out once with a "what’s new" note', !!up && up.data.reply_markup?.keyboard?.[1]?.[0]?.text === '🔎 Ustoz qayerda?', texts(l));
+  await reset(); await post(msg('/help', priv2, user2));
+  l = await log();
+  check('… and only once', !l.some((c) => /Yangilik/.test(c.data.text || '')), texts(l));
+}
+
 // setup endpoint
 await reset();
 const setup = await (await fetch(W + '/setup?key=secretkey')).json();

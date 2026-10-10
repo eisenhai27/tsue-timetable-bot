@@ -10,7 +10,7 @@ export const T = {
     months: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'],
     langName: "🇺🇿 O'zbekcha",
     chooseLang: 'Tilni tanlang / Выберите язык / Choose language',
-    welcome: "Assalomu alaykum! 👋\nMen <b>TDIU Jadval</b> botiman.\n\n• Talaba va o'qituvchilar jadvalini ko'rsataman\n• Jadval o'zgarsa darhol xabar beraman\n• Bo'sh xonalarni qidiraman\n\nBoshlash uchun kim ekaningizni tanlang 👇",
+    welcome: "Assalomu alaykum! 👋\nMen <b>TDIU Jadval</b> botiman.\n\n• Talaba va o'qituvchilar jadvalini ko'rsataman\n• Jadval o'zgarsa darhol xabar beraman\n• Bo'sh xonalarni qidiraman\n• Ustoz hozir qaysi xonada ekanini aytaman\n\nBoshlash uchun kim ekaningizni tanlang 👇",
     chooseFaculty: '🏛 Fakultetni tanlang:',
     chooseCourse: '🎓 Kursni tanlang:',
     chooseGroup: '👥 Guruhni tanlang:',
@@ -30,6 +30,15 @@ export const T = {
     btnSettings: '⚙️ Sozlamalar',
     btnApp: '📱 Ilovani ochish',
     btnFree: "🟢 Bo'sh xonalar",
+    btnWhere: '🔎 Ustoz qayerda?',
+    whereAsk: "🔎 Ustoz qayerda?\nO'qituvchining familiyasini yozing 👇",
+    whereAskPh: 'Karimov',
+    whereNone: "Bunday ustoz topilmadi. Familiyani tekshiring, masalan: Karimov",
+    wherePick: '🔎 Topildi — qaysi ustoz?',
+    whereGroupHint: '🔎 Ustoz qayerda? Familiyani yozing: <code>/where Karimov</code>',
+    btnRefresh: '🔄 Yangilash',
+    btnWhereApp: '📱 Ilovada ochish',
+    whatsNew: "🆕 <b>Yangilik!</b>\n\n🔎 <b>Ustoz qayerda?</b> — o'qituvchining hozir qaysi xonada ekanini, keyingi darsi qachon va qayerda ekanini bilib oling.\n\nTugma pastdagi menyuga qo'shildi 👇",
     thisWeekShort: 'Shu hafta',
     nextWeekShort: 'Keyingi hafta',
     btnOpenInApp: '📱 Ilovada ochish',
@@ -51,7 +60,7 @@ export const T = {
     back: '⬅️ Orqaga',
     more: 'Yana ➡️',
     unset: "✅ Bu chat guruhdan uzildi.",
-    help: "<b>Buyruqlar</b>\n/today — bugungi darslar\n/tomorrow — ertangi darslar\n/week — haftalik jadval\n/group — guruhni tanlash (talaba)\n/teacher — o'qituvchi sifatida kirish\n/settings — sozlamalar\n/time — ertangi dars eslatmasi vaqti\n/app — ilovani ochish\n/feedback — taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup — chatni guruhga ulash (admin)\n/unset — uzish (admin)\n/time — ertangi dars eslatmasi vaqti (admin)",
+    help: "<b>Buyruqlar</b>\n/today — bugungi darslar\n/tomorrow — ertangi darslar\n/week — haftalik jadval\n/group — guruhni tanlash (talaba)\n/where — ustoz qayerda? (masalan: /where Karimov)\n/teacher — o'qituvchi sifatida kirish\n/settings — sozlamalar\n/time — ertangi dars eslatmasi vaqti\n/app — ilovani ochish\n/feedback — taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup — chatni guruhga ulash (admin)\n/unset — uzish (admin)\n/time — ertangi dars eslatmasi vaqti (admin)",
     dataError: "Jadvalni yuklab bo'lmadi, birozdan so'ng qayta urinib ko'ring.",
     now: 'Hozir',
     btnInvite: "📤 Do'stlarni taklif qilish",
@@ -89,7 +98,7 @@ export const T = {
     months: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
     langName: '🇷🇺 Русский',
     chooseLang: 'Tilni tanlang / Выберите язык / Choose language',
-    welcome: 'Здравствуйте! 👋\nЯ <b>TDIU Jadval</b> — бот расписания ТГЭУ.\n\n• Показываю расписание студентов и преподавателей\n• Сразу сообщаю об изменениях\n• Ищу свободные аудитории\n\nДля начала выберите, кто вы 👇',
+    welcome: 'Здравствуйте! 👋\nЯ <b>TDIU Jadval</b> — бот расписания ТГЭУ.\n\n• Показываю расписание студентов и преподавателей\n• Сразу сообщаю об изменениях\n• Ищу свободные аудитории\n• Подскажу, в какой аудитории сейчас преподаватель\n\nДля начала выберите, кто вы 👇',
     chooseFaculty: '🏛 Выберите факультет:',
     chooseCourse: '🎓 Выберите курс:',
     chooseGroup: '👥 Выберите группу:',
@@ -109,6 +118,15 @@ export const T = {
     btnSettings: '⚙️ Настройки',
     btnApp: '📱 Открыть приложение',
     btnFree: '🟢 Свободные',
+    btnWhere: '🔎 Где препод?',
+    whereAsk: '🔎 Где преподаватель?\nНапишите фамилию преподавателя 👇',
+    whereAskPh: 'Karimov',
+    whereNone: 'Преподаватель не найден. Проверьте фамилию, например: Karimov',
+    wherePick: '🔎 Найдено — какой преподаватель?',
+    whereGroupHint: '🔎 Где преподаватель? Напишите фамилию: <code>/where Karimov</code>',
+    btnRefresh: '🔄 Обновить',
+    btnWhereApp: '📱 Открыть в приложении',
+    whatsNew: '🆕 <b>Новинка!</b>\n\n🔎 <b>Где преподаватель?</b> — узнайте, в какой аудитории преподаватель сейчас, а также когда и где его следующая пара.\n\nКнопка появилась в меню внизу 👇',
     thisWeekShort: 'Эта неделя',
     nextWeekShort: 'След. неделя',
     btnOpenInApp: '📱 Открыть в приложении',
@@ -130,7 +148,7 @@ export const T = {
     back: '⬅️ Назад',
     more: 'Ещё ➡️',
     unset: '✅ Чат отвязан от группы.',
-    help: '<b>Команды</b>\n/today — пары на сегодня\n/tomorrow — пары на завтра\n/week — расписание на неделю\n/group — выбрать группу (студент)\n/teacher — войти как преподаватель\n/settings — настройки\n/time — время напоминания о парах на завтра\n/app — открыть приложение\n/feedback — отправить отзыв или сообщить об ошибке\n\n<b>В чате группы</b>\n/setgroup — привязать чат к группе (админ)\n/unset — отвязать (админ)\n/time — время напоминания о парах на завтра (админ)',
+    help: '<b>Команды</b>\n/today — пары на сегодня\n/tomorrow — пары на завтра\n/week — расписание на неделю\n/where — где преподаватель? (например: /where Karimov)\n/group — выбрать группу (студент)\n/teacher — войти как преподаватель\n/settings — настройки\n/time — время напоминания о парах на завтра\n/app — открыть приложение\n/feedback — отправить отзыв или сообщить об ошибке\n\n<b>В чате группы</b>\n/setgroup — привязать чат к группе (админ)\n/unset — отвязать (админ)\n/time — время напоминания о парах на завтра (админ)',
     dataError: 'Не удалось загрузить расписание, попробуйте чуть позже.',
     now: 'Сейчас',
     btnInvite: '📤 Пригласить друзей',
@@ -168,7 +186,7 @@ export const T = {
     months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
     langName: '🇬🇧 English',
     chooseLang: 'Tilni tanlang / Выберите язык / Choose language',
-    welcome: "Hi! 👋\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n• I show student and teacher timetables\n• I tell you right away when it changes\n• I can find free rooms\n\nTo start, tell me who you are 👇",
+    welcome: "Hi! 👋\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n• I show student and teacher timetables\n• I tell you right away when it changes\n• I can find free rooms\n• I can tell where a teacher is right now\n\nTo start, tell me who you are 👇",
     chooseFaculty: '🏛 Choose your faculty:',
     chooseCourse: '🎓 Choose your year:',
     chooseGroup: '👥 Choose your group:',
@@ -188,6 +206,15 @@ export const T = {
     btnSettings: '⚙️ Settings',
     btnApp: '📱 Open app',
     btnFree: '🟢 Free rooms',
+    btnWhere: '🔎 Find a teacher',
+    whereAsk: "🔎 Where is the teacher?\nType the teacher's surname 👇",
+    whereAskPh: 'Karimov',
+    whereNone: 'Teacher not found. Check the surname, e.g. Karimov',
+    wherePick: '🔎 Found — which teacher?',
+    whereGroupHint: '🔎 Where is the teacher? Type the surname: <code>/where Karimov</code>',
+    btnRefresh: '🔄 Refresh',
+    btnWhereApp: '📱 Open in app',
+    whatsNew: "🆕 <b>New!</b>\n\n🔎 <b>Find a teacher</b> — see which room a teacher is in right now, and when and where their next class is.\n\nThe button is now in the menu below 👇",
     thisWeekShort: 'This week',
     nextWeekShort: 'Next week',
     btnOpenInApp: '📱 Open in app',
@@ -209,7 +236,7 @@ export const T = {
     back: '⬅️ Back',
     more: 'More ➡️',
     unset: '✅ This chat is no longer linked to a group.',
-    help: '<b>Commands</b>\n/today — today\'s classes\n/tomorrow — tomorrow\'s classes\n/week — weekly timetable\n/group — choose group (student)\n/teacher — sign in as a teacher\n/settings — settings\n/time — reminder time for tomorrow\'s classes\n/app — open the app\n/feedback — send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup — link chat to a group (admin)\n/unset — unlink (admin)\n/time — reminder time for tomorrow\'s classes (admin)',
+    help: '<b>Commands</b>\n/today — today\'s classes\n/tomorrow — tomorrow\'s classes\n/week — weekly timetable\n/where — find a teacher (e.g. /where Karimov)\n/group — choose group (student)\n/teacher — sign in as a teacher\n/settings — settings\n/time — reminder time for tomorrow\'s classes\n/app — open the app\n/feedback — send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup — link chat to a group (admin)\n/unset — unlink (admin)\n/time — reminder time for tomorrow\'s classes (admin)',
     dataError: "Couldn't load the timetable, please try again in a moment.",
     now: 'Now',
     btnInvite: '📤 Invite friends',
@@ -309,16 +336,28 @@ const W = {
     count: (n) => `${n} ta dars`, pair: (n) => `${n}-para`, now: '🟢 Hozir', next: '⏭ Keyingi', brk: (m) => `☕ ${m} daqiqa tanaffus`,
     finish: (t) => `🏁 Darslar ${t} da tugaydi`, moved: '🔁 Vaqti o‘zgardi', roomCh: '🚪 Xona o‘zgardi', teachCh: '👤 O‘qituvchi o‘zgardi', groupCh: '👥 Guruhlar o‘zgardi',
     removed: '❌ Bekor qilindi', added: '➕ Yangi dars', wkCap: (g, r, n) => `🗓 <b>${g}</b> — haftalik jadval\n${r} · ${n} ta dars`,
-    lessonsWeek: 'Haftalik jadval', freeWeek: "Bu hafta dars yo'q 🎉", seeApp: '📱 Batafsil — ilovada' },
+    lessonsWeek: 'Haftalik jadval', freeWeek: "Bu hafta dars yo'q 🎉", seeApp: '📱 Batafsil — ilovada',
+    h: (m) => (m >= 60 ? `${Math.floor(m / 60)} soat${m % 60 ? ' ' + (m % 60) + ' daqiqa' : ''}` : `${m} daqiqa`),
+    wh: { now: '🟢 <b>Hozir darsda</b>', between: "🟡 <b>Hozir dars yo'q</b>", before: '⏳ <b>Bugungi dars hali boshlanmagan</b>', after: '🏁 <b>Bugungi darslar tugagan</b>', off: "⚪ <b>Bugun dars yo'q</b>",
+      until: (t, left) => `⏱ ${t} gacha — ${left} qoldi`, next: '⏭ <b>Keyingi dars</b>', inM: (d) => `${d}dan so'ng`, tomorrow: 'Ertaga', today: (c) => `🗓 <b>Bugungi tartib</b> · ${c}`,
+      noRoom: "xona ko'rsatilmagan", note: "ℹ️ Rasmiy dars jadvali asosida — kutilmagan o'zgarishlar bo'lishi mumkin." } },
   ru: { lecture: 'Лекция', seminar: 'Семинар', lab: 'Лабораторная', practice: 'Практика', bld: (b) => `корпус ${b}`, room: (r) => `ауд. ${r}`,
     count: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'пара' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'пары' : 'пар'}`, pair: (n) => `${n} пара`,
     now: '🟢 Сейчас', next: '⏭ Следующая', brk: (m) => `☕ перерыв ${m} мин`, finish: (t) => `🏁 Пары закончатся в ${t}`,
     moved: '🔁 Изменилось время', roomCh: '🚪 Изменилась аудитория', teachCh: '👤 Изменился преподаватель', groupCh: '👥 Изменились группы', removed: '❌ Отменено', added: '➕ Новая пара',
-    wkCap: (g, r, n) => `🗓 <b>${g}</b> — расписание на неделю\n${r} · ${n} пар`, lessonsWeek: 'Расписание на неделю', freeWeek: 'На этой неделе пар нет 🎉', seeApp: '📱 Подробнее — в приложении' },
+    wkCap: (g, r, n) => `🗓 <b>${g}</b> — расписание на неделю\n${r} · ${n} пар`, lessonsWeek: 'Расписание на неделю', freeWeek: 'На этой неделе пар нет 🎉', seeApp: '📱 Подробнее — в приложении',
+    h: (m) => (m >= 60 ? `${Math.floor(m / 60)} ч${m % 60 ? ' ' + (m % 60) + ' мин' : ''}` : `${m} мин`),
+    wh: { now: '🟢 <b>Сейчас на паре</b>', between: '🟡 <b>Сейчас пары нет</b>', before: '⏳ <b>Сегодняшние пары ещё не начались</b>', after: '🏁 <b>Сегодняшние пары закончились</b>', off: '⚪ <b>Сегодня пар нет</b>',
+      until: (t, left) => `⏱ до ${t} — осталось ${left}`, next: '⏭ <b>Следующая пара</b>', inM: (d) => `через ${d}`, tomorrow: 'Завтра', today: (c) => `🗓 <b>План на сегодня</b> · ${c}`,
+      noRoom: 'аудитория не указана', note: 'ℹ️ По официальному расписанию — возможны неожиданные изменения.' } },
   en: { lecture: 'Lecture', seminar: 'Seminar', lab: 'Lab', practice: 'Practice', bld: (b) => `Building ${b}`, room: (r) => `Room ${r}`,
     count: (n) => `${n} class${n === 1 ? '' : 'es'}`, pair: (n) => `Period ${n}`, now: '🟢 Now', next: '⏭ Next', brk: (m) => `☕ ${m} min break`,
     finish: (t) => `🏁 Classes end at ${t}`, moved: '🔁 Time changed', roomCh: '🚪 Room changed', teachCh: '👤 Teacher changed', groupCh: '👥 Groups changed', removed: '❌ Cancelled',
-    added: '➕ New class', wkCap: (g, r, n) => `🗓 <b>${g}</b> — weekly timetable\n${r} · ${n} classes`, lessonsWeek: 'Weekly timetable', freeWeek: 'No classes this week 🎉', seeApp: '📱 More in the app' },
+    added: '➕ New class', wkCap: (g, r, n) => `🗓 <b>${g}</b> — weekly timetable\n${r} · ${n} classes`, lessonsWeek: 'Weekly timetable', freeWeek: 'No classes this week 🎉', seeApp: '📱 More in the app',
+    h: (m) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ' ' + (m % 60) + ' min' : ''}` : `${m} min`),
+    wh: { now: '🟢 <b>In class right now</b>', between: '🟡 <b>No class right now</b>', before: "⏳ <b>Today's classes haven't started yet</b>", after: "🏁 <b>Today's classes are over</b>", off: '⚪ <b>No classes today</b>',
+      until: (t, left) => `⏱ until ${t} — ${left} left`, next: '⏭ <b>Next class</b>', inM: (d) => `in ${d}`, tomorrow: 'Tomorrow', today: (c) => `🗓 <b>Today's plan</b> · ${c}`,
+      noRoom: 'no room given', note: "ℹ️ Based on the official timetable — unexpected changes are possible." } },
 };
 export const words = (lang) => W[lang] || W.uz;
 
@@ -392,29 +431,35 @@ function weekTag(l, lang, parity) {
   return ` · <i>${l.w === 'A' ? tr(lang).weekA : tr(lang).weekB}</i>`;
 }
 
-/** Full lesson block for "today / tomorrow" messages. */
+const TYPE_DOT = { lecture: '🟦', seminar: '🟩', lab: '🟧', practice: '🟧' };
+/** Colour square of a lesson type — the same colours as the weekly picture and the Mini App cards. */
+export const typeDot = (type) => TYPE_DOT[type] || '⬜';
+
+/** Full lesson card for "today / tomorrow" messages (a quote block, so lessons read as separate cards). */
 export function fmtLesson(l, periods, lang, parity, state) {
   const w = words(lang);
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
-  const head = `${state ? state + '\n' : ''}<b>${t.a} – ${t.b}</b>  ·  <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}`;
-  const lines = [head, `📘 ${subjHtml(sub, true)}${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ''}${l.g ? ` <i>(${esc(l.g)})</i>` : ''}`];
-  if (l.r) lines.push(`📍 ${esc(roomLabel(l.r, lang))}`);
-  if (l.t) lines.push(`👤 ${esc(l.t)}`);
+  const head = `${typeDot(sub.type)} <b>${t.a} – ${t.b}</b> · <i>${w.pair(l.p)}</i>${weekTag(l, lang, parity)}${state ? `  ${state}` : ''}`;
+  const lines = [head, `${subjHtml(sub, true)}${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ''}${l.g ? ` <i>(${esc(l.g)})</i>` : ''}`];
+  const meta = [];
+  if (l.r) meta.push(`📍 <b>${esc(roomLabel(l.r, lang))}</b>`);
+  if (l.t) meta.push(`👤 ${esc(l.t)}`);
+  if (meta.length) lines.push(meta.join('  ·  '));
   if (l.gr) lines.push(`👥 ${esc(l.gr)}`); // teacher timetables: which groups attend
-  return lines.join('\n');
+  return `<blockquote>${lines.join('\n')}</blockquote>`;
 }
 
 /** One-line version used in weekly captions and change alerts. */
 export function fmtLessonShort(l, periods, lang, parity) {
   const t = times(periods, l);
   const sub = parseSubject(l.s, lang);
-  let s = `<b>${t.a}</b> ${subjHtml(sub)}`;
+  let s = `${typeDot(sub.type)} <b>${t.a}</b> ${subjHtml(sub)}`;
   if (sub.type) s += ` <i>(${typeLabel(sub.type, lang).toLowerCase()})</i>`;
   if (l.g) s += ` <i>[${esc(l.g)}]</i>`;
   if (l.gr) s += ` <i>[${esc(l.gr)}]</i>`;
   if (l.r) s += ` · 📍${esc(l.r)}`;
-  if (l.w && !parity) s += ` · <i>${l.w}</i>`;
+  if (l.w && !parity) s += ` · <i>${l.w === 'A' ? tr(lang).weekA : tr(lang).weekB}</i>`;
   return s;
 }
 
@@ -428,8 +473,10 @@ export function fmtDay(group, index, date, lang, nowDate) {
   const d = weekday(date);
   const parity = weekParity(index.weekA, date);
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
+  const endM = ls.length ? Math.max(...ls.map((l) => mins(times(index.periods, l).b))) : 0;
+  const span = ls.length ? ` · ${times(index.periods, ls[0]).a}–${hhmm(endM)}` : '';
   const head = [`📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''),
-    `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}` : ''}`].join('\n');
+    `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}${span}` : ''}`].join('\n');
   if (!ls.length) return `${head}\n\n${L.noLessons}`;
   const sameDay = nowDate && ymd(nowDate) === ymd(date);
   const nowM = sameDay ? nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes() : -1;
@@ -440,7 +487,7 @@ export function fmtDay(group, index, date, lang, nowDate) {
     const t = times(index.periods, l);
     if (prevEnd != null) {
       const gap = mins(t.a) - prevEnd;
-      if (gap >= 30) blocks.push(w.brk(gap));
+      if (gap >= 30) blocks.push(`<i>${w.brk(gap)}</i>`);
     }
     prevEnd = Math.max(prevEnd ?? 0, mins(t.b));
     let state = '';
@@ -450,8 +497,85 @@ export function fmtDay(group, index, date, lang, nowDate) {
     }
     blocks.push(fmtLesson(l, index.periods, lang, parity, state));
   }
-  const last = times(index.periods, ls[ls.length - 1]).b;
-  return clip(`${head}\n━━━━━━━━━━━━━━\n\n${blocks.join('\n\n')}\n\n${w.finish(last)}`);
+  return clip(`${head}\n\n${blocks.join('\n')}\n\n${w.finish(hhmm(endM))}`);
+}
+
+// ---------- "Where is the teacher?" ----------
+// Pure functions over a timetable entity ({ lessons }) — a teacher's file, but a group's or a room's works too.
+// The Mini App has a twin of whereIs() (docs/index.html); tests/app-ui.mjs checks that both give the same answer.
+
+/** {from, to} in minutes after midnight for a lesson (a double period covers both). */
+function spanOf(periods, l) {
+  const a = periods.find((p) => p.p === l.p);
+  const b = periods.find((p) => p.p === l.p + (l.n || 1) - 1) || a;
+  return a ? { from: mins(a.start), to: mins(b.end) } : { from: 0, to: 0 };
+}
+/** Lessons held on `date` (alternating weeks resolved), each with its time span, in time order. */
+export function dayItems(entity, index, date) {
+  const d = weekday(date);
+  if (d === 6) return [];
+  return lessonsForDay(entity, d, weekParity(index.weekA, date))
+    .map((l) => ({ l, ...spanOf(index.periods, l) }))
+    .sort((x, y) => x.from - y.from || x.l.p - y.l.p);
+}
+
+/**
+ * Where is this teacher right now? `now` is a Tashkent "local date" (see tashkentNow).
+ *   state  'now' (in class) | 'between' (free, has more classes today) | 'before' (day not started)
+ *          | 'after' (today's classes are over) | 'off' (no classes today)
+ *   cur    lessons running now         today  all of today's lessons
+ *   next   { date, today, items } — the next lesson start (today, or on the next teaching day within two weeks)
+ */
+export function whereIs(entity, index, now) {
+  const nowM = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const today = dayItems(entity, index, now);
+  const cur = today.filter((x) => nowM >= x.from && nowM < x.to);
+  const later = today.filter((x) => x.from > nowM);
+  const done = today.some((x) => x.to <= nowM);
+  let next = null;
+  if (later.length) next = { date: now, today: true, items: later.filter((x) => x.from === later[0].from) };
+  else {
+    for (let k = 1; k <= 14 && !next; k++) {
+      const date = addDays(now, k), items = dayItems(entity, index, date);
+      if (items.length) next = { date, today: false, items: items.filter((x) => x.from === items[0].from) };
+    }
+  }
+  const state = cur.length ? 'now' : !today.length ? 'off' : later.length ? (done ? 'between' : 'before') : 'after';
+  const until = cur.length ? Math.max(...cur.map((x) => x.to)) : null;
+  return { state, nowM, today, cur, next, until, left: until == null ? null : until - nowM, inMin: next && next.today ? next.items[0].from - nowM : null };
+}
+
+const shortList = (str, n = 2) => { const a = String(str || '').split(', ').filter(Boolean); return a.length > n ? `${a.slice(0, n).join(', ')} +${a.length - n}` : a.join(', '); };
+
+/** The "Ustoz qayerda?" answer: status line, room card, next class, today's plan. */
+export function fmtWhere(teacher, index, now, lang) {
+  const w = words(lang), h = w.wh, L = tr(lang);
+  const st = whereIs(teacher, index, now);
+  const detail = (x) => {
+    const l = x.l, sub = parseSubject(l.s, lang);
+    const out = [`📍 <b>${esc(l.r ? roomLabel(l.r, lang) : h.noRoom)}</b>`,
+      `${typeDot(sub.type)} ${subjHtml(sub, true)}${sub.type ? ` — ${typeLabel(sub.type, lang)}` : ''}${l.g ? ` <i>(${esc(l.g)})</i>` : ''}`];
+    if (l.gr) out.push(`👥 ${esc(l.gr)}`);
+    return out.join('\n');
+  };
+  const out = [`👨‍🏫 <b>${esc(teacher.name)}</b>`, h[st.state]];
+  if (st.state === 'now') out.push(`<blockquote>${st.cur.map(detail).join('\n\n')}\n${h.until(hhmm(st.until), w.h(st.left))}</blockquote>`);
+  if (st.next) {
+    const n = st.next, t0 = hhmm(n.items[0].from);
+    const tomorrow = ymd(addDays(now, 1)) === ymd(n.date);
+    const when = n.today ? `${t0} (${h.inM(w.h(st.inMin))})` : `${tomorrow ? h.tomorrow : `${L.days[weekday(n.date)]}, ${fmtDate(n.date, lang)}`}, ${t0}`;
+    out.push('', `${h.next} — ${when}`, `<blockquote>${n.items.map(detail).join('\n\n')}</blockquote>`);
+  }
+  if (st.today.length) {
+    out.push('', h.today(w.count(st.today.length)));
+    for (const x of st.today) {
+      const mark = st.cur.includes(x) ? '🟢' : x.to <= st.nowM ? '▫️' : '▪️';
+      const room = x.l.r ? roomLabel(x.l.r, lang) : '—';
+      out.push(`${mark} ${hhmm(x.from)}–${hhmm(x.to)} · ${esc(room)}${x.l.gr ? ` · ${esc(shortList(x.l.gr))}` : ''}`);
+    }
+  }
+  out.push('', `<i>${h.note}</i>`);
+  return clip(out.join('\n'));
 }
 
 /** Text version of the week (fallback when the picture can't be sent). */
@@ -463,7 +587,7 @@ export function fmtWeek(group, index, monday, lang) {
   for (let d = 0; d < 6; d++) {
     const ls = lessonsForDay(group, d, parity);
     if (!ls.length) continue;
-    parts.push(`<b>${L.days[d]}</b>\n${ls.map((l) => fmtLessonShort(l, index.periods, lang, parity)).join('\n')}`);
+    parts.push(`<b>${L.days[d]}</b> · ${words(lang).count(ls.length)}\n${ls.map((l) => fmtLessonShort(l, index.periods, lang, parity)).join('\n')}`);
   }
   if (parts.length === 1) parts.push(words(lang).freeWeek);
   return clip(parts.join('\n\n'));
@@ -555,7 +679,11 @@ export function fmtChanges(group, index, dayDiffs, lang, isNewTT, now = tashkent
 
 function clip(s) {
   if (s.length <= 4000) return s;
-  // cut at a line break so no HTML tag is left open (every line closes its own tags)
+  // cut at a line break so no HTML tag is left open (every line closes its own tags) …
   const cut = s.lastIndexOf('\n', 3950);
-  return s.slice(0, cut > 0 ? cut : 3950) + '\n…';
+  let out = s.slice(0, cut > 0 ? cut : 3950);
+  // … except a <blockquote> that spans several lines
+  const open = (out.match(/<blockquote>/g) || []).length, close = (out.match(/<\/blockquote>/g) || []).length;
+  if (open > close) out += '</blockquote>';
+  return out + '\n…';
 }

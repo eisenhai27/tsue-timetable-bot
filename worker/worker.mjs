@@ -19,11 +19,14 @@
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
-  fmtDay, fmtWeek, fmtWeekCaption, hhmm, parseClock, setSubjects, ymd,
+  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd,
 } from '../src/shared.mjs';
 
 const PAGE = 30; // groups per page in the picker
 const TPAGE = 16; // teachers per page in the picker
+// Version of the reply keyboard (the buttons under the message box). Chats that have an older one get the new keyboard
+// once, together with a short "what's new" note, the next time they write to the bot.
+const KB_VERSION = 2;
 const CALENDAR_ENABLED = false; // the /calendar command + button are hidden for now; flip to true to bring them back
 
 export default {
@@ -197,6 +200,10 @@ async function db(env) {
       // last_seen = when the chat last used the bot (ms) — the admin's /stats counts active users from it
       await addColumn('ALTER TABLE chats ADD COLUMN last_seen INTEGER');
     }
+    if (!cols.some((c) => c.name === 'kbv')) {
+      // kbv = which reply keyboard this chat has been given (see KB_VERSION)
+      await addColumn('ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0');
+    }
     await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)').run();
     schemaReady = true;
   }
@@ -213,12 +220,12 @@ async function ensureChat(env, chat, langCode) {
   const kind = chat.type === 'private' ? 'private' : 'group';
   row = {
     chat_id: chat.id, kind, role: 'student', group_id: null, group_name: null,
-    lang: 'uz', alerts: 1, weekly: kind === 'group' ? 1 : 0, // Uzbek is the default for everyone; changeable in the menu / settings
+    lang: 'uz', alerts: 1, weekly: kind === 'group' ? 1 : 0, kbv: KB_VERSION, // Uzbek is the default for everyone; changeable in the menu / settings
   };
   const now = Date.now();
   await (await db(env))
-    .prepare('INSERT OR IGNORE INTO chats (chat_id, kind, lang, alerts, weekly, created_at, updated_at) VALUES (?,?,?,?,?,?,?)')
-    .bind(row.chat_id, kind, row.lang, row.alerts, row.weekly, now, now)
+    .prepare('INSERT OR IGNORE INTO chats (chat_id, kind, lang, alerts, weekly, kbv, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?)')
+    .bind(row.chat_id, kind, row.lang, row.alerts, row.weekly, KB_VERSION, now, now)
     .run();
   return { row, isNew: true };
 }
@@ -295,14 +302,14 @@ async function onSetup(url, env) {
     drop_pending_updates: true,
   });
   const cmds = {
-    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['group', 'Guruhni tanlash (talaba)'], ['teacher', "O'qituvchi sifatida kirish"], ['settings', 'Sozlamalar'], ['time', 'Ertangi dars eslatmasi vaqti'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
-    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['group', 'Выбрать группу (студент)'], ['teacher', 'Войти как преподаватель'], ['settings', 'Настройки'], ['time', 'Время напоминания о парах'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
-    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['group', 'Choose group (student)'], ['teacher', 'Sign in as a teacher'], ['settings', 'Settings'], ['time', 'Reminder time'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['group', 'Guruhni tanlash (talaba)'], ['teacher', "O'qituvchi sifatida kirish"], ['settings', 'Sozlamalar'], ['time', 'Ertangi dars eslatmasi vaqti'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['where', 'Где преподаватель? (/where Karimov)'], ['group', 'Выбрать группу (студент)'], ['teacher', 'Войти как преподаватель'], ['settings', 'Настройки'], ['time', 'Время напоминания о парах'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['where', 'Find a teacher (/where Karimov)'], ['group', 'Choose group (student)'], ['teacher', 'Sign in as a teacher'], ['settings', 'Settings'], ['time', 'Reminder time'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
   };
   const groupCmds = {
-    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['setgroup', 'Chatni guruhga ulash (admin)'], ['unset', 'Uzish (admin)'], ['time', 'Eslatma vaqti (admin)']],
-    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['setgroup', 'Привязать чат к группе (админ)'], ['unset', 'Отвязать (админ)'], ['time', 'Время напоминания (админ)']],
-    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['setgroup', 'Link chat to a group (admin)'], ['unset', 'Unlink (admin)'], ['time', 'Reminder time (admin)']],
+    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['setgroup', 'Chatni guruhga ulash (admin)'], ['unset', 'Uzish (admin)'], ['time', 'Eslatma vaqti (admin)']],
+    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['where', 'Где преподаватель? (/where Karimov)'], ['setgroup', 'Привязать чат к группе (админ)'], ['unset', 'Отвязать (админ)'], ['time', 'Время напоминания (админ)']],
+    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['where', 'Find a teacher (/where Karimov)'], ['setgroup', 'Link chat to a group (admin)'], ['unset', 'Unlink (admin)'], ['time', 'Reminder time (admin)']],
   };
   const toCmd = (l) => l.map(([command, description]) => ({ command, description }));
   for (const lang of LANGS) {
@@ -396,7 +403,7 @@ async function track(env, update) {
     if (c) k = 'cb:' + String(c.data || '').split(':')[0];
     else if (m.text) {
       const cmd = parseCommand(m.text);
-      k = cmd ? cmd.cmd : BUTTONS[m.text.trim()] || (chat.type === 'private' ? 'text' : null);
+      k = cmd ? cmd.cmd : BUTTONS[m.text.trim()] || (chat.type === 'private' ? (isWherePrompt(m.reply_to_message) ? 'where' : 'text') : null);
     }
     if (!k) return; // ordinary group chatter (the bot is an admin there and sees every message) is not counted
     const now = Date.now();
@@ -413,7 +420,7 @@ async function track(env, update) {
 const USAGE_NAMES = {
   today: '📅 Bugungi darslar', tomorrow: '➡️ Ertangi darslar', week: '🗓 Haftalik jadval', settings: '⚙️ Sozlamalar',
   start: '▶️ /start', help: '❓ Yordam', app: '📱 /app', group: '👥 Guruh tanlash', teacher: "👨‍🏫 O'qituvchi bo'limi",
-  text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
+  where: '🔎 Ustoz qayerda?', ustoz: '🔎 Ustoz qayerda?', text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
 };
 
 /** The admin's statistics message (only ever sent to ADMIN_CHAT_ID). editId = refresh an earlier one in place. */
@@ -495,14 +502,12 @@ async function adminMenu(env) {
 
 function mainKeyboard(env, lang, groupId, role) {
   const L = tr(lang);
-  const rows = [
-    [{ text: L.btnToday }, { text: L.btnTomorrow }],
-    [{ text: L.btnWeek }, { text: L.btnSettings }],
-  ];
-  if (siteUrl(env)) rows.push([
-    { text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } },
-    { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&l=${lang}` } },
-  ]);
+  const rows = [[{ text: L.btnToday }, { text: L.btnTomorrow }, { text: L.btnWeek }]];
+  if (siteUrl(env)) rows.push(
+    [{ text: L.btnWhere }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&l=${lang}` } }],
+    [{ text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } }, { text: L.btnSettings }],
+  );
+  else rows.push([{ text: L.btnWhere }, { text: L.btnSettings }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 
@@ -517,7 +522,11 @@ for (const l of LANGS) {
   BUTTONS[TEXTS[l].btnTomorrow] = 'tomorrow';
   BUTTONS[TEXTS[l].btnWeek] = 'week';
   BUTTONS[TEXTS[l].btnSettings] = 'settings';
+  BUTTONS[TEXTS[l].btnWhere] = 'where';
 }
+// the "type a surname" prompt of the Ustoz-qayerda button — a reply to it is a teacher search
+const WHERE_PROMPTS = new Set(LANGS.map((l) => TEXTS[l].whereAsk.replace(/<[^>]+>/g, '').trim()));
+const isWherePrompt = (m) => !!(m?.from?.is_bot && WHERE_PROMPTS.has(String(m.text || '').trim()));
 
 function parseCommand(text) {
   const m = /^\/([a-zA-Z_]+)(?:@(\w+))?(?:\s+(.*))?$/s.exec(text || '');
@@ -593,23 +602,48 @@ async function onAdminReply(env, msg, command) {
 }
 
 async function onPrivate(env, msg, command) {
+  const flags = {};
+  await privateMain(env, msg, command, flags);
+  if (flags.upgrade && !flags.kbSent) await upgradeKeyboard(env, msg.chat.id);
+}
+
+/** Chats with an older reply keyboard get the new one once, with a short "what's new" note. */
+async function upgradeKeyboard(env, chatId) {
+  const row = await getChat(env, chatId);
+  if (!row || (row.kbv | 0) >= KB_VERSION) return;
+  await (await db(env)).prepare('UPDATE chats SET kbv = ? WHERE chat_id = ?').bind(KB_VERSION, chatId).run();
+  await send(env, chatId, tr(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
+}
+
+async function privateMain(env, msg, command, flags) {
   if (isAdminChat(env, msg.chat.id) && (await onAdminReply(env, msg, command))) return;
   const { row, isNew } = await ensureChat(env, msg.chat, msg.from?.language_code);
+  if (!isNew && (row.kbv | 0) < KB_VERSION) flags.upgrade = true;
   const lang = row.lang;
   const L = tr(lang);
   const uid = msg.from.id;
   const action = command ? command.cmd : BUTTONS[msg.text.trim()];
 
+  // a reply to the "Ustoz qayerda?" prompt → look the teacher up
+  if (!command && !action && isWherePrompt(msg.reply_to_message)) return whereSearch(env, msg.chat.id, lang, msg.text, 'private');
+
   if (action === 'start') {
     // Deep link from a group chat post: /start g_<groupId>
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
-    if (m) return chooseGroup(env, msg.chat, uid, m[1], null, lang);
+    if (m) { flags.kbSent = true; return chooseGroup(env, msg.chat, uid, m[1], null, lang); }
     const mt = /^t_([a-z0-9]+)$/.exec(command.arg); // a teacher's shared link: /start t_<teacherId>
-    if (mt) return chooseTeacher(env, msg.chat, uid, mt[1], null, lang);
+    if (mt) { flags.kbSent = true; return chooseTeacher(env, msg.chat, uid, mt[1], null, lang); }
+    const mw = /^w_([a-z0-9]+)$/.exec(command.arg); // "where is this teacher" link: /start w_<teacherId>
+    if (mw) return showWhere(env, msg.chat.id, lang, 'private', mw[1]);
     if (siteUrl(env)) await syncMenu(env, msg.chat.id);
+    flags.kbSent = true;
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
     if (!row.group_id) return askRole(env, msg.chat.id, uid, lang, null, row.role); // student or teacher?
     return;
+  }
+  if (action === 'where' || action === 'ustoz' || action === 'find') {
+    if (command?.arg) return whereSearch(env, msg.chat.id, lang, command.arg, 'private'); // /where Karimov
+    return send(env, msg.chat.id, L.whereAsk, { reply_markup: { force_reply: true, input_field_placeholder: L.whereAskPh, selective: true } });
   }
   if (action === 'help') return send(env, msg.chat.id, L.help, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
   if (action === 'group' || action === 'setgroup') {
@@ -685,6 +719,10 @@ async function onGroupChat(env, msg, command) {
   if (cmd === 'today' || cmd === 'tomorrow' || cmd === 'week') {
     if (!row.group_id) return send(env, msg.chat.id, L.noGroupChat);
     return sendSchedule(env, msg.chat.id, row, cmd);
+  }
+  if (cmd === 'where' || cmd === 'ustoz') {
+    if (!command.arg) return send(env, msg.chat.id, L.whereGroupHint, { reply_to_message_id: msg.message_id });
+    return whereSearch(env, msg.chat.id, lang, command.arg, 'group');
   }
   if (cmd === 'start' || cmd === 'help') return send(env, msg.chat.id, row.group_id ? L.help : L.addedToGroup);
 }
@@ -939,6 +977,50 @@ async function chooseTeacher(env, chat, uid, teacherId, messageId, langHint) {
   if (firstTime) await send(env, chat.id, L.teacherTip);
 }
 
+// ---------------------------------------------------------------- "Ustoz qayerda?"
+
+/** Type a surname → the answer straight away when one teacher matches, otherwise buttons to pick from. */
+async function whereSearch(env, chatId, lang, query, kind) {
+  const L = tr(lang);
+  const q = normT(query);
+  if (q.length < 2) return send(env, chatId, L.whereNone);
+  let people;
+  try { people = await getPeople(env); } catch { return send(env, chatId, L.dataError); }
+  const hits = [];
+  for (const [id, name] of people?.teachers || []) {
+    if (!/[A-Za-zА-Яа-яЎўҚқҒғҲҳ]{3,}/.test(name)) continue; // skip placeholder rows like ". ."
+    const n = normT(name);
+    if (n.includes(q)) hits.push([id, name, n === q ? 0 : n.startsWith(q) ? 1 : 2]);
+  }
+  if (!hits.length) return send(env, chatId, L.whereNone);
+  hits.sort((a, b) => a[2] - b[2] || a[1].localeCompare(b[1]));
+  if (hits.length === 1 || (hits[0][2] === 0 && hits[1][2] !== 0)) return showWhere(env, chatId, lang, kind, hits[0][0]);
+  const top = hits.slice(0, 16);
+  const kb = [];
+  for (let i = 0; i < top.length; i += 2) kb.push(top.slice(i, i + 2).map(([id, name]) => ({ text: '👨‍🏫 ' + name, callback_data: `wh:${id}` })));
+  return send(env, chatId, L.wherePick, { reply_markup: { inline_keyboard: kb } });
+}
+
+/** Where is this teacher? Edits `messageId` in place (picker → answer, 🔄 refresh), or sends a new message. */
+async function showWhere(env, chatId, lang, kind, teacherId, messageId) {
+  const L = tr(lang);
+  let index, t;
+  try { [index, t] = await Promise.all([getIndex(env), getTeacher(env, teacherId)]); } catch { return send(env, chatId, L.dataError); }
+  if (!t) return send(env, chatId, L.whereNone);
+  const text = fmtWhere({ ...t, kind: 't' }, index, tashkentNow(), lang);
+  const rows = [[{ text: L.btnRefresh, callback_data: `wh:${teacherId}` }]];
+  if (siteUrl(env)) {
+    if (kind === 'private') rows.push([{ text: L.btnWhereApp, web_app: { url: `${siteUrl(env)}/#w=${teacherId}&l=${lang}` } }]);
+    else {
+      const name = await getBotName(env); // web_app buttons are not allowed in groups → deep link into a private chat
+      if (name) rows.push([{ text: L.btnWhereApp, url: `https://t.me/${name}?start=w_${teacherId}` }]);
+    }
+  }
+  const reply_markup = { inline_keyboard: rows };
+  if (messageId) return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup });
+  return send(env, chatId, text, { reply_markup });
+}
+
 async function searchGroups(env, chatId, uid, lang, query) {
   const L = tr(lang);
   const q = norm(query);
@@ -1094,6 +1176,7 @@ async function onCallback(env, cb) {
     await updateChat(env, chatId, { remind_at: m });
     return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: L.remindSet(m), parse_mode: 'HTML' });
   }
+  if (kind === 'wh') return showWhere(env, chatId, lang, isGroupChat ? 'group' : 'private', parts[1], msg.message_id);
   if (kind === 'day') { if (!row.group_id) return; return onDayTab(env, row, msg, Number(parts[1]), Number(parts[2])); }
   if (kind === 'wk') { if (!row.group_id) return; return sendSchedule(env, chatId, row, 'week'); }
   if (kind === 'F') return showFaculties(env, chatId, parts[1], lang, msg.message_id);

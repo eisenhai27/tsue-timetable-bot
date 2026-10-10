@@ -2,7 +2,7 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { buildAll, pickTimetable, diffLessons, groupId } from '../src/build.mjs';
-import { fmtDay, fmtWeek, fmtChanges, weekParity, mondayOf, parseClock, hhmm, fmtTomorrowFull, setSubjects, hasSubject, parseSubject, subjectName, subjHtml } from '../src/shared.mjs';
+import { fmtDay, fmtWeek, fmtChanges, weekParity, mondayOf, parseClock, hhmm, fmtTomorrowFull, setSubjects, hasSubject, parseSubject, subjectName, subjHtml, whereIs, fmtWhere, words } from '../src/shared.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('./fixtures/regulartt-small.json', import.meta.url)));
 const viewer = JSON.parse(fs.readFileSync(new URL('./fixtures/ttviewer.json', import.meta.url)));
@@ -59,6 +59,51 @@ assert.equal(weekParity(null, monday), null);
   assert.match(fmtWeek(g, idx, new Date('2026-10-12T00:00:00Z'), 'en'), /Upper week/);
 }
 assert.equal(mondayOf(new Date('2026-09-27T10:00:00Z')).toISOString().slice(0, 10), '2026-09-21');
+
+// "Where is the teacher?"
+{
+  const P = [[1, '08:00', '09:20'], [2, '09:30', '10:50'], [3, '11:00', '12:20'], [4, '13:00', '14:20'], [5, '14:30', '15:50'], [6, '16:00', '17:20'], [7, '17:30', '18:50'], [8, '19:00', '20:20']].map(([p, start, end]) => ({ p, start, end }));
+  const idx = { periods: P, weekA: '2026-08-31' };
+  const t = { id: 't1', name: 'Karimov Dilshod', kind: 't', lessons: [
+    { d: 0, p: 2, n: 1, s: 'Iqtisodiyot (Ma)', r: '8-310-30', gr: 'MO-901/26, MO-902/26' },
+    { d: 0, p: 5, n: 1, s: 'Statistika (Sem)', r: '4-210-30', gr: 'MO-905/26', w: 'A' },
+    { d: 0, p: 5, n: 1, s: 'Statistika (Sem)', r: '5-101-30', gr: 'MO-905/26', w: 'B' },
+    { d: 2, p: 1, n: 2, s: 'Audit (Lab)', r: '7/415-30', gr: 'T-25' },
+  ] };
+  const at = (iso) => new Date(iso + ':00Z'); // "local date": UTC fields carry Tashkent wall time
+  const up = '2026-10-12', low = '2026-10-19'; // Monday of an upper (A) / a lower (B) week
+  let w = whereIs(t, idx, at(`${up}T09:00`));
+  assert.equal(w.state, 'before'); assert.equal(w.next.today, true); assert.equal(hhmm(w.next.items[0].from), '09:30'); assert.equal(w.inMin, 30);
+  w = whereIs(t, idx, at(`${up}T10:00`));
+  assert.equal(w.state, 'now'); assert.equal(w.cur[0].l.r, '8-310-30'); assert.equal(w.left, 50); assert.equal(w.until, 650);
+  w = whereIs(t, idx, at(`${up}T11:30`));
+  assert.equal(w.state, 'between'); assert.equal(w.next.items[0].l.r, '4-210-30'); // the upper-week seminar
+  w = whereIs(t, idx, at(`${low}T11:30`));
+  assert.equal(w.state, 'between'); assert.equal(w.next.items[0].l.r, '5-101-30'); // …and the lower-week one
+  w = whereIs(t, idx, at(`${up}T14:40`)); assert.equal(w.state, 'now'); assert.equal(w.cur[0].l.r, '4-210-30');
+  w = whereIs(t, idx, at(`${low}T14:40`)); assert.equal(w.state, 'now'); assert.equal(w.cur[0].l.r, '5-101-30');
+  w = whereIs(t, idx, at(`${up}T18:00`));
+  assert.equal(w.state, 'after'); assert.equal(w.next.today, false); assert.equal(weekday2(w.next.date), 2); // next: Wednesday
+  w = whereIs(t, idx, at('2026-10-14T09:00'));
+  assert.equal(w.state, 'now'); assert.equal(w.until, 650); assert.equal(w.left, 110); // a double period runs to the end of the second
+  w = whereIs(t, idx, at('2026-10-11T12:00'));
+  assert.equal(w.state, 'off'); assert.equal(w.next.today, false); assert.equal(hhmm(w.next.items[0].from), '09:30');
+  assert.equal(whereIs({ lessons: [] }, idx, at(`${up}T12:00`)).next, null);
+  // message: status, room card, next class, plan, in every language
+  const m1 = fmtWhere(t, idx, at(`${up}T10:00`), 'uz');
+  for (const re of [/Karimov Dilshod/, /Hozir darsda/, /8-bino, 310-xona/, /Iqtisodiyot/, /MO-901\/26, MO-902\/26/, /11:30 gacha|10:50 gacha/, /50 daqiqa qoldi/, /Keyingi dars/, /Bugungi tartib/]) assert.match(m1, re);
+  assert.match(fmtWhere(t, idx, at(`${up}T10:00`), 'ru'), /Сейчас на паре[\s\S]*корпус 8, ауд\. 310[\s\S]*осталось 50 мин/);
+  assert.match(fmtWhere(t, idx, at(`${up}T10:00`), 'en'), /In class right now[\s\S]*Building 8, Room 310[\s\S]*50 min left/);
+  assert.match(fmtWhere(t, idx, at('2026-10-13T12:00'), 'uz'), /Bugun dars yo'q[\s\S]*Ertaga, 08:00/); // Tuesday: nothing today, Wednesday is "tomorrow"
+  assert.match(fmtWhere(t, idx, at(`${up}T09:00`), 'uz'), /7 soatdan so'ng|30 daqiqadan so'ng/);
+  assert.equal(words('uz').h(65), '1 soat 5 daqiqa'); assert.equal(words('ru').h(125), '2 ч 5 мин'); assert.equal(words('en').h(45), '45 min');
+  assert.ok(fmtWhere(t, idx, at(`${up}T10:00`), 'uz').length < 4000);
+  // the day message uses quote blocks and keeps its quote tags balanced
+  const dm1 = fmtDay(t, idx, at(`${up}T10:00`), 'uz', at(`${up}T10:00`));
+  assert.equal((dm1.match(/<blockquote>/g) || []).length, (dm1.match(/<\/blockquote>/g) || []).length);
+  assert.match(dm1, /🟦 <b>09:30 – 10:50<\/b>[\s\S]*🟢 Hozir/);
+}
+function weekday2(d) { return (d.getUTCDay() + 6) % 7; }
 
 // reminder time parsing
 assert.equal(parseClock('21'), 1260);
