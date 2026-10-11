@@ -57,7 +57,7 @@ check("someone else's menu is refused", l.some((c) => c.method === 'answerCallba
 
 await reset(); await post(msg('🗓 Неделя'));
 l = await log();
-check('week button (RU) → text week with Russian subject names (picture is Uzbek-only)', !l.some((c) => c.method === 'sendPhoto') && l.some((c) => c.method === 'sendMessage' && /Расписание на неделю/i.test(c.data.text || '') && /[А-Яа-я]{4}/.test((c.data.text || '').replace(/Расписание на неделю/gi, ''))), texts(l));
+check('week button (RU) → the weekly picture in Russian (/img/ru/g/<id>.png) with a Russian caption', l.some((c) => c.method === 'sendPhoto' && /\/img\/ru\/g\/1thm8e1\.png\?v=.+&w=\d{4}-\d\d-\d\d/.test(c.data.photo) && /расписание на неделю/i.test(c.data.caption || '')), texts(l));
 
 await reset(); await post(msg('/tomorrow'));
 l = await log();
@@ -408,6 +408,55 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
   await reset(); await post(msg('/help', priv2, user2));
   l = await log();
   check('… and only once', !l.some((c) => /Yangilik/.test(c.data.text || '')), texts(l));
+}
+
+// Mini App → "send me the weekly picture" (signed Telegram initData, picture in the Mini App's language, to the asker's own chat)
+{
+  const fs = await import('node:fs');
+  const TOKEN = fs.readFileSync(new URL('../.dev.vars', import.meta.url), 'utf8').match(/^BOT_TOKEN=(.*)$/m)[1].trim();
+  const initData = (u, authDate = Math.floor(Date.now() / 1000), badHash = false) => {
+    const p = { auth_date: String(authDate), query_id: 'AAH', user: JSON.stringify(u) };
+    const check = Object.keys(p).sort().map((k) => `${k}=${p[k]}`).join('\n');
+    const sec = crypto.createHmac('sha256', 'WebAppData').update(TOKEN).digest();
+    const hash = crypto.createHmac('sha256', sec).update(check).digest('hex');
+    return new URLSearchParams({ ...p, hash: badHash ? hash.replace(/^./, (c) => (c === 'a' ? 'b' : 'a')) : hash }).toString();
+  };
+  const api = (body, method = 'POST') => fetch(W + '/api/week-pic', { method, headers: { 'content-type': 'application/json' }, body: method === 'POST' ? JSON.stringify(body) : undefined });
+  const pre = await api(null, 'OPTIONS');
+  check('week-pic: CORS preflight allows the Mini App origin', pre.status === 204 && pre.headers.get('access-control-allow-origin') === 'http://localhost:1236' && /POST/.test(pre.headers.get('access-control-allow-methods') || ''), [...pre.headers]);
+
+  await reset();
+  let r = await api({ initData: initData({ id: 777, first_name: 'X' }, undefined, true), type: 'g', id: '1thm8e1', lang: 'ru' });
+  l = await log();
+  check('week-pic: wrong signature → 401, nothing sent', r.status === 401 && !l.length, { status: r.status, l });
+  r = await api({ initData: initData({ id: 777 }, Math.floor(Date.now() / 1000) - 3 * 86400), type: 'g', id: '1thm8e1', lang: 'ru' });
+  check('week-pic: old (3 days) initData → 401', r.status === 401);
+  r = await api({ type: 'g', id: '1thm8e1', lang: 'ru' });
+  check('week-pic: no initData → 401', r.status === 401);
+
+  r = await api({ initData: initData({ id: 777, first_name: 'X' }), type: 'g', id: '1thm8e1', lang: 'ru' });
+  const j1 = await r.json(); l = await log();
+  const ph = l.find((c) => c.method === 'sendPhoto');
+  check('week-pic: group, Russian → the Russian picture to the asker’s own chat + Russian caption', j1.ok && ph?.data.chat_id === 777 && /\/img\/ru\/g\/1thm8e1\.png\?v=.*&w=\d{4}-\d\d-\d\d/.test(ph.data.photo) && /расписание на неделю/i.test(ph.data.caption || ''), { j1, l: l.map((c) => c.method), ph });
+  check('week-pic: answer carries the CORS header', r.headers.get('access-control-allow-origin') === 'http://localhost:1236');
+  r = await api({ initData: initData({ id: 777 }), type: 'g', id: '1thm8e1', lang: 'ru' });
+  check('week-pic: pressed again at once → 429 (brake)', r.status === 429);
+
+  await reset();
+  r = await api({ initData: initData({ id: 778 }), type: 't', id: 'thf5rej', lang: 'en' });
+  const j2 = await r.json(); l = await log();
+  const ph2 = l.find((c) => c.method === 'sendPhoto');
+  check('week-pic: teacher, English → /img/en/t/<id>.png with an English caption', j2.ok && ph2?.data.chat_id === 778 && /\/img\/en\/t\/thf5rej\.png/.test(ph2.data.photo) && /week/i.test(ph2.data.caption || ''), { j2, ph2 });
+  await reset();
+  r = await api({ initData: initData({ id: 779 }), type: 'g', id: '1thm8e1', lang: 'uz' });
+  l = await log();
+  check('week-pic: Uzbek → /img/g/<id>.png', (await r.json()).ok && /\/img\/g\/1thm8e1\.png/.test(l.find((c) => c.method === 'sendPhoto')?.data.photo || ''), texts(l));
+  r = await api({ initData: initData({ id: 780 }), type: 'g', id: '../../x', lang: 'uz' });
+  check('week-pic: odd id → 400', r.status === 400);
+  r = await api({ initData: initData({ id: 781 }), type: 'g', id: 'nosuchgroup', lang: 'uz' });
+  check('week-pic: unknown group → 404', r.status === 404);
+  r = await fetch(W + '/api/week-pic');
+  check('week-pic: GET → 405', r.status === 405);
 }
 
 // setup endpoint
