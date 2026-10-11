@@ -2,7 +2,8 @@
 import fs from 'node:fs';
 import assert from 'node:assert/strict';
 import { buildAll, pickTimetable, diffLessons, groupId } from '../src/build.mjs';
-import { fmtDay, fmtWeek, fmtChanges, weekParity, mondayOf, parseClock, hhmm, fmtTomorrowFull, setSubjects, hasSubject, parseSubject, subjectName, subjHtml, whereIs, fmtWhere, words } from '../src/shared.mjs';
+import { fmtDay, fmtWeek, fmtChanges, weekParity, mondayOf, parseClock, hhmm, fmtTomorrowFull, setSubjects, hasSubject, parseSubject, subjectName, subjHtml, whereIs, fmtWhere, words, displayMonday, weekImgPath, tashkentNow } from '../src/shared.mjs';
+import { renderSvg } from '../scripts/render.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('./fixtures/regulartt-small.json', import.meta.url)));
 const viewer = JSON.parse(fs.readFileSync(new URL('./fixtures/ttviewer.json', import.meta.url)));
@@ -161,5 +162,52 @@ for (const dir of ['g', 't']) {
 assert.equal(missing.size, 0, 'subjects without ru/en translation: ' + [...missing].join(' | '));
 for (const [k, v] of Object.entries(subjects)) assert.ok(Array.isArray(v) && v.length === 2 && v[0] && v[1], 'bad entry ' + k);
 setSubjects({});
+
+// ---- weekly picture: language, week type, paths, the Sunday switch
+{
+  assert.equal(weekImgPath('g', 'abc', 'uz'), 'img/g/abc.png', 'Uzbek picture keeps its original address');
+  assert.equal(weekImgPath('g', 'abc', 'ru'), 'img/ru/g/abc.png');
+  assert.equal(weekImgPath('t', 'xyz', 'en'), 'img/en/t/xyz.png');
+  assert.equal(weekImgPath('t', 'xyz', 'de'), 'img/t/xyz.png', 'unknown language → Uzbek');
+  // Tashkent time: Saturday 23:30 still shows this week, Sunday already shows the coming one
+  const at = (iso) => tashkentNow(Date.parse(iso));
+  assert.equal(displayMonday(at('2026-10-10T18:30:00Z')).toISOString().slice(0, 10), '2026-10-05', 'Saturday 23:30 → this week');
+  assert.equal(displayMonday(at('2026-10-10T19:30:00Z')).toISOString().slice(0, 10), '2026-10-12', 'Sunday 00:30 → coming week');
+  assert.equal(displayMonday(at('2026-10-11T12:00:00Z')).toISOString().slice(0, 10), '2026-10-12', 'Sunday noon → coming week');
+  assert.equal(displayMonday(at('2026-10-12T00:00:00Z')).toISOString().slice(0, 10), '2026-10-12', 'Monday → this week');
+
+  const idx = { periods: [{ p: 1, start: '08:00', end: '09:20' }, { p: 2, start: '09:30', end: '10:50' }], weekA: '2026-08-31' };
+  const L = (o) => ({ d: 0, p: 1, n: 1, s: 'Hisob (Ma)', t: 'Aliyev Vali', r: '8-101', ...o });
+  const grp = { name: 'T-1', id: 'x', fac: 'Fakultet', course: '1', tt: { label: 'test' }, lessons: [L({ w: 'A' }), L({ w: 'B', s: 'Fizika (Ma)' }), L({ d: 1, p: 2, s: 'Til' })] };
+  const PURPLE = '#8E24AA';
+  const upper = renderSvg(grp, idx, null, { lang: 'uz', parity: 'A', monday: new Date('2026-10-12T00:00:00Z') });
+  assert.ok(upper.includes(PURPLE), "this week's lessons get their own colour");
+  assert.match(upper, /fill="#8E24AA"\/>\s*<path[^>]*fill="#FFFFFF"\/>\s*<text[^>]*>Yuqori hafta<\/text>/, 'week switch: the upper-week pill is the filled one');
+  assert.match(upper, />Quyi hafta<\/text>/, 'week switch also shows the other (lower) week');
+  assert.match(upper, /12\.10 – 17\.10/, 'date range of the week');
+  assert.match(upper, /Haftalik dars jadvali/);
+  assert.match(upper, /shu haftadagi darslar/, 'legend');
+  assert.match(upper, />Fizika<\/text>/, "the other week's lesson is a faded strip");
+  assert.match(upper, /<text[^>]*>QUYI<\/text>/, "…with a ▼ QUYI chip");
+  assert.match(upper, /<text[^>]*>YUQORI<\/text>/, 'this week’s alternating lesson carries a ▲ YUQORI chip');
+  assert.ok(/<g opacity="0\.55">/.test(upper), "the other week's lesson is faded");
+  // lower week: the roles swap
+  const lower = renderSvg(grp, idx, null, { lang: 'uz', parity: 'B' });
+  assert.match(lower, /fill="#8E24AA"\/>\s*<path[^>]*fill="#FFFFFF"\/>\s*<text[^>]*>Quyi hafta<\/text>/, 'lower week: the lower-week pill is the filled one');
+  assert.match(lower, />Hisob<\/text>/);
+  assert.match(lower, /<text[^>]*>YUQORI<\/text>/);
+  // unknown week type → no highlight, no badge, no legend (both kinds are shown with a tag)
+  const none = renderSvg(grp, idx, null, { lang: 'uz', parity: null });
+  assert.ok(!none.includes(PURPLE) && !/Yuqori hafta<\/text>/.test(none) && !/shu haftadagi/.test(none), 'unknown week type → plain picture');
+  // Russian / English: the words of the picture are translated
+  setSubjects({ 'Hisob': ['Математический анализ', 'Calculus'] });
+  const ru = renderSvg(grp, idx, null, { lang: 'ru', parity: 'A' });
+  assert.match(ru, />Верхняя неделя</); assert.match(ru, />Нижняя неделя</); assert.match(ru, /Расписание на неделю/); assert.match(ru, /Понедельник/); assert.match(ru, /Математический анализ/); assert.match(ru, /1 пара/);
+  assert.ok(!/Dushanba|para<|YUQORI/.test(ru), 'no Uzbek chrome in the Russian picture');
+  const en = renderSvg(grp, idx, null, { lang: 'en', parity: 'B' });
+  assert.match(en, />Lower week</); assert.match(en, />Upper week</); assert.match(en, /Weekly timetable/); assert.match(en, /Monday/); assert.match(en, /Period 1/); assert.match(en, /this week’s classes/);
+  assert.ok(!/Dushanba|para<|Quyi hafta/.test(en), 'no Uzbek chrome in the English picture');
+  setSubjects({});
+}
 
 console.log('All unit tests passed ✅');
