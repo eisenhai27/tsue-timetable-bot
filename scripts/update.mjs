@@ -7,7 +7,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { buildAll, diffLessons, pickTimetable, groupId } from '../src/build.mjs';
-import { tashkentNow, addDays, ymd, parseSubject, setSubjects, hasSubject } from '../src/shared.mjs';
+import { tashkentNow, addDays, ymd, parseSubject, setSubjects, hasSubject, displayMonday } from '../src/shared.mjs';
 
 const BASE = process.env.EDUPAGE_URL || 'https://tsue.edupage.org';
 const DATA = path.resolve('docs/data');
@@ -158,7 +158,12 @@ async function main() {
   for (const [id, r] of Object.entries(built.rooms)) if (await writeIfChanged(path.join(DATA, 'r', `${id}.json`), r)) written++;
   await writeIfChanged(path.join(DATA, 'people.json'), built.people);
   await writeIfChanged(path.join(DATA, 'busy.json'), built.busy);
-  const indexOut = { ...built.index, changedAt: changes.length || firstRun ? nowIso : oldIndex?.changedAt || nowIso };
+  // imgMonday = the week the weekly pictures are drawn for (they colour that week's upper/lower lessons). It changes on Sunday, which
+  // makes this file change → the Action redraws the pictures and redeploys; the bot only sends a picture while this matches its own week.
+  const imgMonday = weekA ? ymd(displayMonday(now)) : undefined;
+  const workerUrl = String(process.env.WORKER_URL || '').replace(/\/+$/, '');
+  const api = /^https:\/\/[\w.-]+(:\d+)?$/.test(workerUrl) ? workerUrl : undefined; // the Mini App's "send to chat" button calls the bot's Worker here
+  const indexOut = { ...built.index, imgMonday, api, changedAt: changes.length || firstRun ? nowIso : oldIndex?.changedAt || nowIso };
   if (await writeIfChanged(path.join(DATA, 'index.json'), indexOut)) written++;
 
   await fs.mkdir(OUT, { recursive: true });
