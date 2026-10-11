@@ -39,7 +39,7 @@ function stub(mode) {
     const rec = (n) => (...a) => window.__tg.calls.push([n, ...a.map(x => typeof x === 'function' ? 'fn' : x)]);
     window.Telegram = { WebApp: {
       initData: kb ? '' : 'query_id=AAA&user=%7B%22id%22%3A1%7D&hash=abc', initDataUnsafe: kb ? {} : { user: { id: 1, language_code: 'ru' } },
-      platform: 'android', version: '8.0', colorScheme: 'light', themeParams: {},
+      platform: 'android', version: '8.0', colorScheme: window.__dark ? 'dark' : 'light', themeParams: {},
       isVersionAtLeast: () => true,
       ready: rec('ready'), expand: rec('expand'), setHeaderColor: rec('setHeaderColor'), setBackgroundColor: rec('setBackgroundColor'), disableVerticalSwipes: rec('noSwipe'),
       onEvent: rec('onEvent'), offEvent: rec('offEvent'), openTelegramLink: rec('openTelegramLink'), openLink: rec('openLink'),
@@ -100,7 +100,7 @@ try {
     ok((await txt(s.page, '.htitle .t1')).includes(gname), `${L}: hero shows group name`);
     const navT = (await txt(s.page, '.nav')).replace(/\s+/g, ' ');
     ok(L === 'ru' ? /Расписание.*Поиск.*Свободные/.test(navT) : /Timetable.*Search.*Free rooms/.test(navT), `${L}: nav translated: ${navT}`);
-    ok(!(await s.page.locator('#weekPic').count()), `${L}: weekly picture button hidden (the picture is Uzbek only)`);
+    ok((await s.page.locator('#weekPic').count()) === 1, `${L}: weekly picture button is shown (pictures exist in every language)`);
     for (const tab of ['tt', 'search', 'free']) {
       await s.page.click(`.nav button[data-tab="${tab}"]`); await settle(s.page, 450);
       const chrome = (await txt(s.page, CHROME));
@@ -388,6 +388,83 @@ try {
       ok((await s.page.locator('.empty .big:has-text("📡")').count()) === 0, 'offline relaunch has no error screen');
       await ctx.close();
     }
+  }
+
+  // ---------------- 10) light / dark switch: ☀️/🌙 in every header, remembered, Auto resets to the phone's theme
+  {
+    s = await open({ mode: 'web', hash: `#g=${gid}&l=en` });
+    ok((await s.page.locator('.hero .themebtn').count()) === 1, 'theme button sits in the header');
+    const isDark = () => s.page.evaluate(() => document.documentElement.classList.contains('dark'));
+    ok(!(await isDark()), 'light phone → starts light');
+    ok((await txt(s.page, '.hero .themebtn')).trim() === '🌙', 'light mode offers the moon');
+    await s.page.click('.hero .themebtn'); await settle(s.page, 200);
+    ok(await isDark(), 'tap → dark');
+    ok((await txt(s.page, '.hero .themebtn')).trim() === '☀️', 'dark mode offers the sun');
+    ok(await s.page.evaluate(() => localStorage.getItem('tt_theme')) === '"dark"', 'choice saved (tt_theme)');
+    await s.page.reload(); await settle(s.page, 600);
+    ok(await isDark(), 'dark is remembered after reload');
+    await s.page.click('.hero .themebtn'); await settle(s.page, 200);
+    ok(!(await isDark()), 'tap again → light');
+    // the Auto / ☀️ / 🌙 pills on the search screen
+    await s.page.click('#goSearch'); await settle(s.page, 400);
+    ok((await s.page.locator('[data-theme]').count()) === 3, 'search screen has Auto / light / dark pills');
+    await s.page.click('[data-theme="dark"]'); await settle(s.page, 200);
+    ok(await isDark() && (await s.page.locator('[data-theme="dark"].on').count()) === 1, 'dark pill → dark and highlighted');
+    await s.page.click('[data-theme="auto"]'); await settle(s.page, 200);
+    ok(!(await isDark()) && await s.page.evaluate(() => localStorage.getItem('tt_theme')) === 'null', 'Auto → back to the phone theme (light here)');
+    ok(s.errs.length === 0, 'theme errors ' + s.errs.join(';'));
+    await s.ctx.close();
+    // inside Telegram with a dark client: starts dark, an explicit light choice wins over Telegram
+    const ctxD = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' });
+    await ctxD.addInitScript(() => { window.__dark = true; }); // the stub reads this → Telegram reports its dark theme
+    s = await open({ mode: 'tg', hash: `#g=${gid}&l=en`, ctx: ctxD });
+    ok(await isDark(), 'Telegram dark → app dark');
+    await s.page.click('.hero .themebtn'); await settle(s.page, 200);
+    ok(!(await isDark()), 'explicit light beats the Telegram dark theme');
+    await s.ctx.close();
+  }
+  // ---------------- 11) weekly picture in every language + "send to chat" from inside Telegram
+  {
+    const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' };
+    for (const [L, kind, id] of [['uz', 'g', gid], ['ru', 'g', gid], ['en', 'g', gid], ['ru', 't', tid], ['en', 't', tid]]) {
+      s = await open({ mode: 'tg', hash: `#${kind}=${id}&l=${L}` });
+      let posted = null, answer = { ok: true };
+      await s.page.route('**/api/week-pic', (r) => {
+        if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
+        posted = JSON.parse(r.request().postData() || '{}');
+        return r.fulfill({ status: 200, headers: { ...CORS, 'content-type': 'application/json' }, body: JSON.stringify(answer) });
+      });
+      ok((await s.page.locator('#weekPic').count()) === 1, `${L}/${kind}: weekly picture button shown`);
+      await s.page.click('#weekPic'); await settle(s.page, 250);
+      const src = (await s.page.getAttribute('#sheet img', 'src')) || '';
+      const want = `img/${L === 'uz' ? '' : L + '/'}${kind}/${id}.png`;
+      ok(src.startsWith(want + '?'), `${L}/${kind}: picture path is ${want}, got ${src}`);
+      ok((await s.page.locator('#sendPic').count()) === 1, `${L}/${kind}: "send to chat" button inside Telegram`);
+      await s.page.click('#sendPic'); await settle(s.page, 400);
+      ok(posted && posted.type === kind && posted.id === id && posted.lang === L && /hash=/.test(posted.initData || ''), `${L}/${kind}: request carries signed initData, id, language: ${JSON.stringify(posted)}`);
+      ok(/✅/.test(await txt(s.page, '#sendPicMsg')), `${L}/${kind}: success message ${await txt(s.page, '#sendPicMsg')}`);
+      if (L === 'ru' && kind === 'g') {
+        await shot(s.page, '11-send-ok');
+        answer = { ok: false };
+        await s.page.evaluate(() => { document.querySelector('#sendPic').disabled = false; });
+        await s.page.click('#sendPic'); await settle(s.page, 400);
+        ok(/Start/.test(await txt(s.page, '#sendPicMsg')) && !(await s.page.locator('#sendPic[disabled]').count()), 'failed send → hint to press Start, button usable again');
+      }
+      ok(s.errs.length === 0, `${L}/${kind}: errors ${s.errs.join(';')}`);
+      await s.ctx.close();
+    }
+    // plain browser (no Telegram): the picture can be looked at, but there is nobody to send it to
+    s = await open({ mode: 'web', hash: `#g=${gid}&l=ru` });
+    await s.page.click('#weekPic'); await settle(s.page, 250);
+    ok((await s.page.locator('#sheet img').count()) === 1 && (await s.page.locator('#sendPic').count()) === 0, 'browser: picture shown, no send button');
+    await s.ctx.close();
+    // pictures drawn for another week than the current one are not shown (a few minutes around the Sunday switch)
+    const ctxS = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' });
+    await ctxS.route('**/data/index.json', async (r) => { const j = JSON.parse(fs.readFileSync(path.join(ROOT, 'data/index.json'), 'utf8')); j.weekA = '2026-08-31'; j.imgMonday = '2001-01-01'; await r.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(j) }); });
+    s = await open({ mode: 'tg', hash: `#g=${gid}&l=en`, ctx: ctxS });
+    await s.page.click('#weekPic'); await settle(s.page, 250);
+    ok((await s.page.locator('#sheet img').count()) === 0 && /not ready/i.test(await txt(s.page, '#sheet .picmiss')), 'stale pictures → "not ready yet" instead of last week’s picture');
+    await s.ctx.close();
   }
 } finally {
   await browser.close();
