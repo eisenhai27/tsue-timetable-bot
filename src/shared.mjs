@@ -330,6 +330,12 @@ export function weekParity(weekA, date) {
   return ((diff % 2) + 2) % 2 === 0 ? 'A' : 'B';
 }
 
+/** The Monday of the week the "Week" button / the weekly post / the weekly picture show: the coming week on Sunday, otherwise this one. */
+export const displayMonday = (now) => mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
+
+/** Where the weekly picture lives on the site: Uzbek (the original) at img/g/<id>.png, the others at img/ru/g/… and img/en/g/… */
+export const weekImgPath = (kind, id, lang) => `img/${lang === 'ru' || lang === 'en' ? lang + '/' : ''}${kind === 't' ? 't' : 'g'}/${id}.png`;
+
 export function fmtDate(d, lang) {
   const L = tr(lang);
   const day = d.getUTCDate();
