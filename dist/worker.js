@@ -351,6 +351,8 @@ function weekParity(weekA, date) {
   const diff = Math.round((mondayOf(date) - base) / (7 * DAY_MS));
   return (diff % 2 + 2) % 2 === 0 ? "A" : "B";
 }
+var displayMonday = (now) => mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
+var weekImgPath = (kind, id, lang) => `img/${lang === "ru" || lang === "en" ? lang + "/" : ""}${kind === "t" ? "t" : "g"}/${id}.png`;
 function fmtDate(d, lang) {
   const L = tr(lang);
   const day = d.getUTCDate();
@@ -708,6 +710,7 @@ var worker_default = {
     const url = new URL(request.url);
     try {
       if (request.method === "POST" && url.pathname === "/tg") return await onWebhook(request, env);
+      if (url.pathname === "/api/week-pic") return await onWeekPic(request, env);
       if (url.pathname === "/setup") return await onSetup(url, env);
       if (url.pathname.startsWith("/internal/")) return await onInternal(request, url, env);
       return new Response("TDIU Jadval bot is running \u2705", { headers: { "content-type": "text/plain; charset=utf-8" } });
@@ -955,6 +958,73 @@ async function onSetup(url, env) {
   out.description = await tg(env, "setMyShortDescription", { short_description: "Talaba va o'qituvchilar uchun jadval, bo'sh xonalar va o'zgarishlar \u2014 hammasi bir joyda. Jadval o'zgarsa, birinchi siz bilasiz." });
   const ok = Object.values(out).every((r) => r.ok);
   return json({ ok, hint: ok ? "All set! Open your bot in Telegram and press Start." : "Some steps failed \u2014 see details.", ...out });
+}
+var appOrigin = (env) => {
+  try {
+    return new URL(siteUrl(env)).origin;
+  } catch {
+    return "*";
+  }
+};
+var corsFor = (env) => ({
+  "access-control-allow-origin": appOrigin(env),
+  "access-control-allow-methods": "POST, OPTIONS",
+  "access-control-allow-headers": "content-type",
+  "access-control-max-age": "86400",
+  vary: "origin"
+});
+var jsonCors = (env, obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json", ...corsFor(env) } });
+async function hmacSha256(key, data) {
+  const k = await crypto.subtle.importKey("raw", typeof key === "string" ? new TextEncoder().encode(key) : key, { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  return new Uint8Array(await crypto.subtle.sign("HMAC", k, new TextEncoder().encode(data)));
+}
+async function verifyInitData(env, initData) {
+  if (typeof initData !== "string" || initData.length > 4096 || !env.BOT_TOKEN) return null;
+  const p = new URLSearchParams(initData);
+  const hash = p.get("hash");
+  p.delete("hash");
+  if (!hash) return null;
+  const check = [...p.entries()].sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([k, v]) => `${k}=${v}`).join("\n");
+  const secret = await hmacSha256("WebAppData", env.BOT_TOKEN);
+  const sig = [...await hmacSha256(secret, check)].map((b) => b.toString(16).padStart(2, "0")).join("");
+  if (!await safeEqual(sig, hash)) return null;
+  const age = Date.now() / 1e3 - Number(p.get("auth_date") || 0);
+  if (!(age > -300 && age < 86400)) return null;
+  try {
+    const u = JSON.parse(p.get("user") || "");
+    return u && Number.isSafeInteger(u.id) ? u : null;
+  } catch {
+    return null;
+  }
+}
+var lastWeekPic = /* @__PURE__ */ new Map();
+async function onWeekPic(request, env) {
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(env) });
+  if (request.method !== "POST") return jsonCors(env, { ok: false, error: "method" }, 405);
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") return jsonCors(env, { ok: false, error: "bad request" }, 400);
+  const user = await verifyInitData(env, body.initData);
+  if (!user) return jsonCors(env, { ok: false, error: "auth" }, 401);
+  const type = body.type === "t" ? "t" : body.type === "g" ? "g" : null;
+  const id = String(body.id ?? "");
+  if (!type || !/^[\w-]{1,40}$/.test(id)) return jsonCors(env, { ok: false, error: "bad request" }, 400);
+  const lang = LANGS.includes(body.lang) ? body.lang : "uz";
+  const last = lastWeekPic.get(user.id) || 0;
+  if (Date.now() - last < 4e3) return jsonCors(env, { ok: false, error: "wait" }, 429);
+  if (lastWeekPic.size > 500) lastWeekPic.clear();
+  lastWeekPic.set(user.id, Date.now());
+  await loadSubjects(env);
+  const [index, ent] = await Promise.all([getIndex(env), type === "t" ? getTeacher(env, id) : getGroup(env, id)]);
+  if (!index || !ent) return jsonCors(env, { ok: false, error: "no data" }, 404);
+  const group = type === "t" ? { ...ent, kind: "t" } : ent;
+  const monday = displayMonday(tashkentNow());
+  let r = null;
+  if (!index.weekA || index.imgMonday === ymd(monday)) {
+    const photo = `${siteUrl(env)}/${weekImgPath(type, group.id ?? id, lang)}?v=${group.v || index.tt?.num || ""}&w=${ymd(monday)}`;
+    r = await tg(env, "sendPhoto", { chat_id: user.id, photo, caption: fmtWeekCaption(group, index, monday, lang), parse_mode: "HTML" });
+  }
+  if (!r?.ok) r = await send(env, user.id, fmtWeek(group, index, monday, lang));
+  return jsonCors(env, { ok: !!r?.ok });
 }
 async function onInternal(request, url, env) {
   if (!await safeEqual(request.headers.get("x-admin-key"), env.ADMIN_KEY)) return new Response("Forbidden", { status: 403 });
@@ -1362,9 +1432,10 @@ async function sendSchedule(env, chatId, row, what) {
   const kb = await appButton(env, row);
   if (kb) extra.reply_markup = kb;
   if (what === "week") {
-    const monday = mondayOf(weekday(now) === 6 ? addDays(now, 1) : now);
-    if (row.lang !== "uz") return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra);
-    const photo = `${siteUrl(env)}/img/${isTeacher(row) ? "t" : "g"}/${group.id}.png?v=${group.v || index.tt?.num || ""}`;
+    const monday = displayMonday(now);
+    const fresh = !index.weekA || index.imgMonday === ymd(monday);
+    if (!fresh) return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra);
+    const photo = `${siteUrl(env)}/${weekImgPath(isTeacher(row) ? "t" : "g", group.id, row.lang)}?v=${group.v || index.tt?.num || ""}&w=${ymd(monday)}`;
     const r = await tg(env, "sendPhoto", { chat_id: chatId, photo, caption: fmtWeekCaption(group, index, monday, row.lang), parse_mode: "HTML", ...extra });
     if (r.ok) return r;
     return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra);
