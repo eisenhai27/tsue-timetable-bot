@@ -197,6 +197,7 @@ html.dark .nav button.on{color:#fff}
 .sheet .kv .v{flex:1}
 .sheet .kv button{color:var(--link);text-align:left;font-weight:700}
 .sheet img{width:100%;border-radius:14px;display:block}
+.sheet img[hidden]{display:none}
 .foot{margin:22px 2px 8px;font-size:12px;color:var(--hint);text-align:center;font-weight:600;line-height:1.6}
 .foot b{color:var(--navy)} .foot a.author{color:var(--link);font-weight:800;text-decoration:none} html.dark .foot b{color:#A9C8F2}
 .sig{display:inline-flex;align-items:center;gap:6px}
@@ -209,6 +210,7 @@ button.mark{border:0}
 button.htitle{display:block;color:inherit;text-align:left;font:inherit}
 .langbtn{flex:none;background:rgba(255,255,255,.14);color:#fff;border-radius:999px;padding:6px 10px;font-weight:800;font-size:12.5px;letter-spacing:.02em;white-space:nowrap}
 .langbtn:active{background:rgba(255,255,255,.26)}
+.themebtn{padding:6px 9px;font-size:14px;line-height:1;margin-right:-6px}
 .hero .star{padding:6px 2px}
 .pillrow{display:flex;flex-wrap:wrap;gap:8px;margin:14px 2px 0}
 .pillrow .pill{font-size:13px}
@@ -361,7 +363,23 @@ const html = document.documentElement;
 // "not Telegram" — the platform field tells the truth. (Before, those launches skipped ready()/expand()/BackButton.)
 const tg = window.Telegram && window.Telegram.WebApp;
 const inTg = !!(tg && (tg.initData || (tg.platform && tg.platform !== 'unknown')));
-const darkNow = () => (inTg && tg.colorScheme ? tg.colorScheme === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches));
+// Theme: follows Telegram / the phone until the user picks light or dark with the ☀️/🌙 button (kept in tt_theme: 'light' | 'dark' | none = auto)
+let themePref = null;
+try { const v = JSON.parse(localStorage.getItem('tt_theme')); if (v === 'light' || v === 'dark') themePref = v; } catch {}
+const darkNow = () => (themePref ? themePref === 'dark' : inTg && tg.colorScheme ? tg.colorScheme === 'dark' : !!(window.matchMedia && matchMedia('(prefers-color-scheme: dark)').matches));
+const themeBtn = () => `<button class="langbtn themebtn" data-theme-toggle aria-label="theme" title="${darkNow() ? '☀️' : '🌙'}">${darkNow() ? '☀️' : '🌙'}</button>`;
+function setTheme(v) { // v = 'light' | 'dark' | null (auto)
+  themePref = v === 'light' || v === 'dark' ? v : null;
+  store.set('theme', themePref);
+  html.classList.toggle('dark', darkNow());
+  paintTg();
+  document.querySelectorAll('.themebtn').forEach(b => { b.textContent = darkNow() ? '☀️' : '🌙'; });
+  document.querySelectorAll('[data-theme]').forEach(b => b.classList.toggle('on', (b.dataset.theme === 'auto' ? null : b.dataset.theme) === themePref));
+}
+document.addEventListener('click', (e) => {
+  const b = e.target.closest && e.target.closest('[data-theme-toggle]');
+  if (b) { haptic(); setTheme(darkNow() ? 'light' : 'dark'); }
+});
 function paintTg() {
   if (!inTg) return;
   try { tg.setHeaderColor('#0B3F7A'); } catch {}
@@ -396,12 +414,12 @@ const I = {
     pickT:"O'zingizni tanlang", pickTSub:'Familiyangizni yozing, masalan Karimov', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
     changedAt:(d)=>`${d} da yangilandi`, newTT:"Yangi jadval e'lon qilindi", lecture:"Ma'ruza", seminar:'Seminar', lab:'Laboratoriya', practice:'Amaliy',
     free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…',
-    teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar', validity:'Amal qiladi', lang:'Til', langTitle:'Tilni tanlang',
+    teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar', validity:'Amal qiladi', lang:'Til', langTitle:'Tilni tanlang', theme:'Mavzu', themeAuto:'Avto',
     breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi',
     inMin:(m)=>`${dur(m,'soat','daq')} dan so'ng`, left:(m)=>`${dur(m,'soat','daq')} qoldi`,
     whoAreYou:'Siz kimsiz?', whoSub:'Jadvalingiz har safar bir bosishda ochiladi', iStudent:'Talaba', iStudentSub:'Guruhimning jadvali', iTeacher:"O'qituvchi", iTeacherSub:"O'z dars jadvalim",
     mine:'Mening jadvalim', makeMine:'Meniki qilish', backMine:'Mening jadvalim', vDay:'Kun', vWeek:'Hafta', noRoom:"xona ko'rsatilmagan",
-    teacherSub:(g,n)=>`${g} ta guruh · ${n} ta dars`, changeRole:'Rolni almashtirish', cancel:'Bekor qilish', picMissing:'Rasm hali tayyor emas',
+    teacherSub:(g,n)=>`${g} ta guruh · ${n} ta dars`, changeRole:'Rolni almashtirish', cancel:'Bekor qilish', picMissing:'Rasm hali tayyor emas', sendPic:'Chatga yuborish', sending:'Yuborilmoqda…', sentPic:'Rasm chatga yuborildi ✅', sendFail:"Yuborib bo'lmadi — botni oching va Start bosing",
     shareText:'dars jadvali (TDIU Jadval)', weekN:'hafta', ofWord:'dan',
     navWhere:'Ustoz', whereT:'Ustoz qayerda?', whereSub:"O'qituvchi hozir qaysi xonada ekanini bilib oling", whereHint:"Familiyani yozing — ustoz hozir qayerdaligini ko'rsatamiz",
     whNow:'Hozir darsda', whBetween:"Hozir dars yo'q", whBefore:'Bugungi dars hali boshlanmagan', whAfter:'Bugungi darslar tugagan', whOff:"Bugun dars yo'q",
@@ -423,12 +441,12 @@ const I = {
     pickT:'Выберите себя', pickTSub:'Введите фамилию, например Karimov или Каримов', nothing:'Ничего не найдено', changed:'Расписание изменилось',
     changedAt:(d)=>`обновлено ${d}`, newTT:'Опубликовано новое расписание', lecture:'Лекция', seminar:'Семинар', lab:'Лаб.', practice:'Практика',
     free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} ${plRu(n,'свободная аудитория','свободные аудитории','свободных аудиторий')}`, filterRoom:'Номер аудитории…',
-    teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы', validity:'Действует', lang:'Язык', langTitle:'Выберите язык',
+    teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы', validity:'Действует', lang:'Язык', langTitle:'Выберите язык', theme:'Тема', themeAuto:'Авто',
     breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое',
     inMin:(m)=>`через ${dur(m,'ч','мин')}`, left:(m)=>`осталось ${dur(m,'ч','мин')}`,
     whoAreYou:'Кто вы?', whoSub:'Ваше расписание будет открываться одним касанием', iStudent:'Студент', iStudentSub:'Расписание моей группы', iTeacher:'Преподаватель', iTeacherSub:'Моё расписание занятий',
     mine:'Моё расписание', makeMine:'Сделать моим', backMine:'Моё расписание', vDay:'День', vWeek:'Неделя', noRoom:'аудитория не указана',
-    teacherSub:(g,n)=>`${g} ${plRu(g,'группа','группы','групп')} · ${n} ${plRu(n,'пара','пары','пар')}`, changeRole:'Сменить роль', cancel:'Отмена', picMissing:'Картинка ещё не готова',
+    teacherSub:(g,n)=>`${g} ${plRu(g,'группа','группы','групп')} · ${n} ${plRu(n,'пара','пары','пар')}`, changeRole:'Сменить роль', cancel:'Отмена', picMissing:'Картинка ещё не готова', sendPic:'Отправить в чат', sending:'Отправляю…', sentPic:'Картинка отправлена в чат ✅', sendFail:'Не получилось — откройте бота и нажмите Start',
     shareText:'расписание (TDIU Jadval)', weekN:'неделя', ofWord:'из',
     navWhere:'Препод', whereT:'Где препод?', whereSub:'Узнайте, в какой аудитории сейчас преподаватель', whereHint:'Введите фамилию — покажем, где преподаватель сейчас',
     whNow:'Сейчас на паре', whBetween:'Сейчас пары нет', whBefore:'Сегодняшние пары ещё не начались', whAfter:'Сегодняшние пары закончились', whOff:'Сегодня пар нет',
@@ -450,12 +468,12 @@ const I = {
     pickT:'Pick yourself', pickTSub:'Type your surname, e.g. Karimov', nothing:'Nothing found', changed:'Timetable changed',
     changedAt:(d)=>`updated ${d}`, newTT:'New timetable published', lecture:'Lecture', seminar:'Seminar', lab:'Lab', practice:'Practice',
     free:'Free rooms', freeFor:(d,p)=>`${d}, period ${p}`, freeCount:(n)=>`${n} free room${n === 1 ? '' : 's'}`, filterRoom:'Room number…',
-    teacher:'Teacher', room:'Room', groupsL:'Groups', validity:'Valid', lang:'Language', langTitle:'Choose language',
+    teacher:'Teacher', room:'Room', groupsL:'Groups', validity:'Valid', lang:'Language', langTitle:'Choose language', theme:'Theme', themeAuto:'Auto',
     breakMin:(m)=>`${m} min break`, error:"Couldn't load data. Check your connection and try again.", retry:'Retry', new:'New',
     inMin:(m)=>`in ${dur(m,'h','min')}`, left:(m)=>`${dur(m,'h','min')} left`,
     whoAreYou:'Who are you?', whoSub:'Your timetable will open in one tap', iStudent:'Student', iStudentSub:"My group's timetable", iTeacher:'Teacher', iTeacherSub:'My teaching timetable',
     mine:'My timetable', makeMine:'Make it mine', backMine:'My timetable', vDay:'Day', vWeek:'Week', noRoom:'no room given',
-    teacherSub:(g,n)=>`${g} group${g === 1 ? '' : 's'} · ${n} class${n === 1 ? '' : 'es'}`, changeRole:'Change role', cancel:'Cancel', picMissing:'Picture is not ready yet',
+    teacherSub:(g,n)=>`${g} group${g === 1 ? '' : 's'} · ${n} class${n === 1 ? '' : 'es'}`, changeRole:'Change role', cancel:'Cancel', picMissing:'Picture is not ready yet', sendPic:'Send to chat', sending:'Sending…', sentPic:'Picture sent to your chat ✅', sendFail:"Couldn't send — open the bot and press Start",
     shareText:'timetable (TDIU Jadval)', weekN:'week', ofWord:'of',
     navWhere:'Teacher', whereT:'Where is the teacher?', whereSub:'See which room a teacher is in right now', whereHint:"Type a surname — we'll show where the teacher is now",
     whNow:'In class right now', whBetween:'No class right now', whBefore:"Today's classes haven't started", whAfter:"Today's classes are over", whOff:'No classes today',
@@ -587,6 +605,12 @@ function parity(weekA, d) {
   const diff = Math.round((monday(d) - base) / (7 * DAY));
   return ((diff % 2) + 2) % 2 === 0 ? 'A' : 'B';
 }
+// Weekly pictures (drawn by the GitHub Action in uz / ru / en for the week that is on now; Sunday → the coming week).
+// Same rules as the bot: a picture counts only while index.imgMonday is that week's Monday.
+const dispMonday = (d) => monday(wd(d) === 6 ? addD(d, 1) : d);
+const picPath = (type, id) => `img/${lang === 'ru' || lang === 'en' ? lang + '/' : ''}${type === 't' ? 't' : 'g'}/${id}.png`;
+const picFresh = () => !INDEX.weekA || INDEX.imgMonday === dispMonday(nowT()).toISOString().slice(0, 10);
+const API_URL = 'https://tsue-timetable-bot.shavkatxolmamatov27.workers.dev'; // the bot's Worker; index.json can override it (api)
 
 // ---------------------------------------------------------------- utils
 const $ = (s, r = document) => r.querySelector(s);
@@ -782,7 +806,7 @@ function renderOnboarding() {
   app.innerHTML = `<div class="wrap">
     <div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">TDIU Jadval</div><div class="t2">${esc(L.whoSub)}</div></div>
-      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div></div>
+      ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div></div>
     <div class="who"><h2>${esc(L.whoAreYou)}</h2>
       <button class="rolecard" data-role="g"><span class="re">🎓</span><span class="rt"><b>${esc(L.iStudent)}</b><small>${esc(L.iStudentSub)}</small></span><span class="chev">›</span></button>
       <button class="rolecard" data-role="t"><span class="re">👨‍🏫</span><span class="rt"><b>${esc(L.iTeacher)}</b><small>${esc(L.iTeacherSub)}</small></span><span class="chev">›</span></button>
@@ -805,7 +829,7 @@ function heroHtml(v, sub, extra) {
   return `<div class="hero"><div class="rings"><i></i><i></i></div>
     <div class="hrow"><button class="mark" id="goSearch" aria-label="search"><img src="icon-192.png" alt=""></button>
     <button class="htitle" id="goSearch2"><div class="t1">${esc(v ? v.name : 'TDIU Jadval')}${v ? ' <small>▾</small>' : ''}</div><div class="t2">${pin}${esc(sub || 'TDIU Jadval')}</div></button>
-    <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button>
+    ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button>
     ${v && !isMine(v) ? `<button class="star ${fav ? 'on' : ''}" id="favBtn" aria-label="favorite">${fav ? '★' : '☆'}</button>` : ''}</div>${extra || ''}</div>`;
 }
 function footHtml(label) {
@@ -1021,7 +1045,7 @@ const renderTimetable = safe(async function () {
       <div class="days">${dayBtns}</div>`;
 
   const vm = `<div class="vm" role="tablist"><button class="${week ? '' : 'on'}" data-vm="day">📅 ${esc(L.vDay)}</button><button class="${week ? 'on' : ''}" data-vm="week">🗓 ${esc(L.vWeek)}</button></div>`;
-  const pic = (v.type !== 'r' && lang === 'uz') ? `<button class="act" id="weekPic">🖼 ${esc(L.weekPic)}</button>` : '';
+  const pic = v.type !== 'r' ? `<button class="act" id="weekPic">🖼 ${esc(L.weekPic)}</button>` : '';
   const shr = v.type !== 'r' ? `<button class="act" id="shareBtn">↗ ${esc(L.share)}</button>` : '';
   const actions = (pic || shr) ? `<div class="actions">${pic}${shr}</div>` : '';
 
@@ -1122,9 +1146,26 @@ const renderTimetable = safe(async function () {
   const wp = $('#weekPic');
   if (wp) wp.onclick = () => {
     haptic();
-    const src = `img/${v.type}/${v.id}.png?v=${data.v || ''}`;
-    openSheet(`<h3>${esc(v.name)} — ${esc(L.weekPic)}</h3><a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${esc(v.name)}"></a><div class="muted small picmiss" hidden>${esc(L.picMissing)}</div>`);
+    const ready = picFresh();
+    const src = `${picPath(v.type, v.id)}?v=${data.v || ''}&w=${INDEX.imgMonday || ''}`;
+    const canSend = !!(inTg && tg.initData);
+    openSheet(`<h3>${esc(v.name)} — ${esc(L.weekPic)}</h3>${ready ? `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${esc(v.name)}"></a>` : ''}<div class="muted small picmiss" ${ready ? 'hidden' : ''}>${esc(L.picMissing)}</div>`
+      + (canSend ? `<div class="actions" style="margin-top:12px"><button class="act" id="sendPic">📨 ${esc(L.sendPic)}</button></div><div class="muted small picmiss" id="sendPicMsg" aria-live="polite"></div>` : ''));
     const im = $('#sheet img'); if (im) im.onerror = () => { im.hidden = true; $('#sheet .picmiss').hidden = false; };
+    const sp = $('#sendPic');
+    if (sp) sp.onclick = async () => {
+      // Asks the bot to post the picture (in the Mini App's language) into this user's own chat. Telegram's signed initData proves who asks.
+      const msg = $('#sendPicMsg'); sp.disabled = true; msg.textContent = L.sending;
+      try {
+        const r = await fetch(`${String(INDEX.api || API_URL).replace(/\/+$/, '')}/api/week-pic`, {
+          method: 'POST', headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ initData: tg.initData, type: v.type, id: v.id, lang }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (j.ok) { msg.textContent = L.sentPic; if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); return; }
+      } catch {}
+      msg.textContent = L.sendFail; sp.disabled = false;
+    };
   };
   const sh = $('#shareBtn');
   if (sh) sh.onclick = () => {
@@ -1173,11 +1214,11 @@ function renderSearch() {
   const backRow = p ? `<div class="pillrow"><button class="pill" id="pickBack">← ${esc(L.changeRole)}</button></div>` : '';
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(title)}</div><div class="t2">${esc(sub)}</div></div>
-      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
+      ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
       <label class="search">🔎<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(p === 't' ? L.teacherPh : L.searchPh)}" value="${esc(S.q)}"></label></div>
       ${backRow}${seg}
     <div id="res"></div>
-    <div class="foot"><span class="muted">${esc(L.lang)}:</span> ${['uz', 'ru', 'en'].map(l => `<button class="pill ${l === lang ? 'on' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`).join(' ')}${S.mine && !p ? `<br><button class="pill" id="roleBtn" style="margin-top:10px">🔄 ${esc(L.changeRole)}</button>` : ''}</div>${footHtml('')}</div>`;
+    <div class="foot"><span class="muted">${esc(L.lang)}:</span> ${['uz', 'ru', 'en'].map(l => `<button class="pill ${l === lang ? 'on' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`).join(' ')}<br><span class="muted">${esc(L.theme)}:</span> ${['auto', 'light', 'dark'].map(t => `<button class="pill ${(t === 'auto' ? null : t) === themePref ? 'on' : ''}" data-theme="${t}">${t === 'auto' ? esc(L.themeAuto) : t === 'light' ? '☀️' : '🌙'}</button>`).join(' ')}${S.mine && !p ? `<br><button class="pill" id="roleBtn" style="margin-top:10px">🔄 ${esc(L.changeRole)}</button>` : ''}</div>${footHtml('')}</div>`;
   const inp = $('#q');
   inp.oninput = () => { S.q = inp.value; drawResults(); };
   if (!S.mine || S.q || p) setTimeout(() => inp.focus(), 50);
@@ -1186,6 +1227,7 @@ function renderSearch() {
   const rb = $('#roleBtn'); if (rb) rb.onclick = () => { S.onboard = true; S.tab = 'tt'; render(); };
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { haptic(); S.filter = b.dataset.f; app.querySelectorAll('[data-f]').forEach(x => x.classList.toggle('on', x === b)); drawResults(); });
   app.querySelectorAll('[data-lang]').forEach(b => b.onclick = () => setLang(b.dataset.lang));
+  app.querySelectorAll('[data-theme]').forEach(b => b.onclick = () => { haptic(); setTheme(b.dataset.theme === 'auto' ? null : b.dataset.theme); });
   drawResults();
 }
 function bindRows(root) {
@@ -1296,7 +1338,7 @@ const renderFree = safe(async function () {
   const head = isNow ? (cs.mode === 'now' ? L.freeNowT : L.freeNextT) : L.free;
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(head)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)}</div></div>
-      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
+      ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
       <div class="summary"><span class="bolt">🟢</span><span>${esc(L.freeCount(free.length))}</span></div></div>
     <div class="slotbar"><button class="pill now ${isNow ? 'on' : ''}" id="fNow">${isNow ? '' : '⚡ '}${esc(L.nowBtn)}</button>${[0, 1, 2, 3, 4, 5].map(d => `<button class="pill ${d === S.freeDay && !isNow ? 'on' : ''}" data-fd="${d}">${esc(L.dShort[d])}</button>`).join('')}</div>
     <div class="slotbar">${INDEX.periods.map(p => `<button class="pill ${p.p === S.freeP && !isNow ? 'on' : ''}" data-fp="${p.p}">${p.p} · ${esc(p.start)}</button>`).join('')}</div>
@@ -1419,7 +1461,7 @@ function whereHome() {
   seq++;
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(L.whereT)}</div><div class="t2">${esc(L.whereSub)}</div></div>
-      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
+      ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
       <label class="search">🔎<input id="wq" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(L.teacherPh)}" value="${esc(S.wq)}"></label></div>
     <div id="wres"></div>${footHtml('')}</div>`;
   $('#langBtn').onclick = langSheet;
@@ -1534,7 +1576,7 @@ async function whereCard(my, soft, y) {
     <div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><button class="mark" id="wBack" aria-label="back"><img src="icon-192.png" alt=""></button>
       <div class="htitle" style="cursor:default"><div class="t1">${esc(t.name)}</div><div class="t2">👨‍🏫 ${esc(L.whereT)}</div></div>
-      <button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button>
+      ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button>
       <button class="star ${fav ? 'on' : ''}" id="wFav" aria-label="favorite">${fav ? '★' : '☆'}</button></div></div>
     <div class="wcard st-${st.state}"><div class="wst">${st.state === 'now' ? '<i class="pulse"></i>' : ''}${esc(label)}</div>${main}</div>
     ${after}
