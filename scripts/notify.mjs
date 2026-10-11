@@ -17,7 +17,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import crypto from 'node:crypto';
-import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd } from '../src/shared.mjs';
+import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath } from '../src/shared.mjs';
 
 const { BOT_TOKEN, WORKER_URL, ADMIN_KEY } = process.env;
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/+$/, '');
@@ -145,7 +145,10 @@ async function loadGroup(sub) {
   }
   return groupCache.get(key);
 }
-const photoUrl = (sub, g, index) => (SITE_URL ? `${SITE_URL}/img/${kindOf(sub)}/${g.id}.png?v=${g.v || index.tt?.num || ''}` : null);
+// The picture is drawn (in the chat's language) for the week that is on — index.imgMonday — so it is only used for that week;
+// otherwise the text version goes out. Same rule as the Worker's "Week" button.
+const photoUrl = (sub, g, index, monday) => (SITE_URL && (!index.weekA || index.imgMonday === ymd(monday))
+  ? `${SITE_URL}/${weekImgPath(kindOf(sub), g.id, sub.lang)}?v=${g.v || index.tt?.num || ''}&w=${ymd(monday)}` : null);
 
 const STATE_FILE = path.join(DATA, 'state.json');
 async function readState() {
@@ -197,8 +200,7 @@ async function sendWeekly(index, once) {
     if (once?.has(sub.chat_id)) continue;
     const g = await loadGroup(sub);
     if (!g) continue;
-    // the picture is drawn in Uzbek → Russian / English readers get the text version with translated subjects
-    const photo = sub.lang === 'uz' ? photoUrl(sub, g, index) : null;
+    const photo = photoUrl(sub, g, index, monday);
     if (await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null)) once?.add(sub.chat_id);
     else failed++;
   }
