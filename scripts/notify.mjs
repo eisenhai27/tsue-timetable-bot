@@ -2,12 +2,10 @@
 //   node scripts/notify.mjs changes    → change alerts (uses .out/changes.json from update.mjs)
 //   node scripts/notify.mjs weekly     → the weekly timetable post (force-send now)
 //   node scripts/notify.mjs tomorrow   → short evening reminder of tomorrow's first class (force-send now)
-//   node scripts/notify.mjs auto       → checks Tashkent time + docs/data/state.json and sends
-//                                        weekly/tomorrow the first time each run reaches their
-//                                        window that day — safe to call every few minutes, since
-//                                        GitHub's own `schedule:` trigger can silently miss its
-//                                        exact minute on a quiet repo (state.json prevents resending — per chat, so even
-//                                        a run that crashes half-way never makes anyone get it twice).
+//   node scripts/notify.mjs auto       → checks Tashkent time and sends weekly/tomorrow to every chat that is due
+//                                        and has not been served today. Safe to call every few minutes: before messaging a
+//                                        chat it CLAIMS it in the bot's database (one atomic UPDATE per chat per day), so
+//                                        even two runs overlapping in time can never send the same message twice.
 //   node scripts/notify.mjs announce   → broadcasts env.ANNOUNCE_TEXT to every active chat (admin only,
 //                                        via the "Run workflow" announce field — reaches everyone with
 //                                        a group set, not just alert-subscribers)
@@ -16,8 +14,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import crypto from 'node:crypto';
-import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath } from '../src/shared.mjs';
+import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath, noTimetable } from '../src/shared.mjs';
 
 const { BOT_TOKEN, WORKER_URL, ADMIN_KEY } = process.env;
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/+$/, '');
@@ -25,6 +22,9 @@ const DRY = !!process.env.DRY_RUN;
 const TG = process.env.TG_API || 'https://api.telegram.org';
 const DATA = path.resolve('docs/data');
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+// FAKE_NOW (ms since epoch) is for the tests only: it pretends the run happens at that moment
+const nowTk = () => tashkentNow(process.env.FAKE_NOW ? Number(process.env.FAKE_NOW) : Date.now());
+const LOOKBACK_MIN = 240; // how far back a daily reminder is still sent when earlier runs missed it
 
 /** Network blips (ECONNRESET, timeouts, 5xx) are normal on a long send — retry a few times instead of crashing the run. */
 async function retrying(label, fn, tries = 5) {
@@ -59,15 +59,34 @@ async function worker(pathAndQuery, body) {
   });
 }
 
-async function* subscribers(mode, extraQuery = '') {
-  // Group chats have NEGATIVE ids (-100…), so paging must start far below zero — starting at 0 skipped every group chat.
+/** Pages of subscribers (arrays of rows). Group chats have NEGATIVE ids (-100…), so paging must start far below zero. */
+async function* subscriberPages(mode, extraQuery = '') {
   let after = -1e15;
   for (;;) {
     const page = await worker(`/internal/subs?mode=${mode}&after=${after}&limit=2000${extraQuery}`);
-    for (const s of page.rows) yield s;
+    if (page.rows.length) yield page.rows;
     if (!page.rows.length || page.next == null) break;
     after = page.next;
   }
+}
+async function* subscribers(mode, extraQuery = '') {
+  for await (const rows of subscriberPages(mode, extraQuery)) for (const s of rows) yield s;
+}
+
+/**
+ * Claim chats for today's message of this kind ('tmr' = daily reminder, 'wk' = weekly post). Returns the Set of chat ids
+ * THIS run may message: the database hands each chat out once per day, so a second run (or a re-run) gets none of them.
+ * If the claim itself fails we throw — better to skip a round than to risk sending twice.
+ */
+async function claim(kind, day, ids) {
+  if (DRY || !ids.length) return new Set(ids);
+  const r = await worker('/internal/claim', { kind, day, ids });
+  return new Set(r.claimed);
+}
+/** Give claims back after a send that failed for a reason worth retrying (the next run picks those chats up again). */
+async function unclaim(kind, day, ids) {
+  if (DRY || !ids.length) return;
+  try { await worker('/internal/unclaim', { kind, day, ids }); } catch (e) { console.warn('unclaim failed:', e.message); }
 }
 
 const removed = [];
@@ -150,32 +169,6 @@ async function loadGroup(sub) {
 const photoUrl = (sub, g, index, monday) => (SITE_URL && (!index.weekA || index.imgMonday === ymd(monday))
   ? `${SITE_URL}/${weekImgPath(kindOf(sub), g.id, sub.lang)}?v=${g.v || index.tt?.num || ''}&w=${ymd(monday)}` : null);
 
-const STATE_FILE = path.join(DATA, 'state.json');
-async function readState() {
-  try { return JSON.parse(await fs.readFile(STATE_FILE, 'utf8')); }
-  catch { return {}; }
-}
-async function writeState(state) {
-  if (DRY) return;
-  await fs.writeFile(STATE_FILE, JSON.stringify(state));
-}
-
-/**
- * Once-a-day guard for the scheduled sends (kind = 'tmr' | 'wk'). If a run dies half-way (dropped connection,
- * killed runner) the next run covers the same window again — this per-chat record makes sure nobody is served
- * twice that day. Chats are stored as 8-character keyed hashes, so no Telegram ids end up in the public repo.
- */
-const hid = (chatId) => crypto.createHmac('sha256', ADMIN_KEY || '').update(String(chatId)).digest('hex').slice(0, 8);
-function guard(state, kind, today) {
-  if (state.sent?.date !== today) state.sent = { date: today };
-  const set = new Set(state.sent[kind] || []);
-  const g = { dirty: false };
-  g.has = (id) => set.has(hid(id));
-  g.add = (id) => { set.add(hid(id)); g.dirty = true; };
-  g.flush = () => { if (g.dirty) state.sent[kind] = [...set]; };
-  return g;
-}
-
 async function sendChanges(index) {
   let changes = [];
   try { changes = JSON.parse(await fs.readFile('.out/changes.json', 'utf8')); } catch {}
@@ -190,48 +183,75 @@ async function sendChanges(index) {
   }
 }
 
-/** `once` (a guard) = scheduled run: skip chats already served today. Returns how many chats still need a retry. */
-async function sendWeekly(index, once) {
+/**
+ * The weekly timetable post. `day` (YYYY-MM-DD) = a scheduled run: only chats that have not had it today, each claimed
+ * before sending. No `day` = a manual force-send to everyone with the weekly post on (they are then marked as served,
+ * so the scheduled run does not send a second copy). Returns how many chats still need a retry.
+ */
+async function sendWeekly(index, day, force) {
   // Run on Sunday evening → next Monday. Any other day (a manual force-send) → this week's Monday.
-  const now = tashkentNow();
+  const now = nowTk();
   const monday = mondayOf(addDays(now, 1));
   let failed = 0;
-  for await (const sub of subscribers('weekly')) {
-    if (once?.has(sub.chat_id)) continue;
-    const g = await loadGroup(sub);
-    if (!g) continue;
-    const photo = photoUrl(sub, g, index, monday);
-    if (await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null)) once?.add(sub.chat_id);
-    else failed++;
+  for await (const page of subscriberPages('weekly', day && !force ? `&day=${day}` : '')) {
+    const todo = [];
+    for (const sub of page) {
+      const g = await loadGroup(sub);
+      if (g && !noTimetable(g)) todo.push({ sub, g }); // a group whose timetable is not on EduPage yet gets no weekly post
+    }
+    const mine = force || !day ? null : await claim('wk', day, todo.map((x) => x.sub.chat_id));
+    const retry = [];
+    const done = [];
+    for (const { sub, g } of todo) {
+      if (mine && !mine.has(sub.chat_id)) continue; // another run already took this chat today
+      const photo = g.lessons?.length ? photoUrl(sub, g, index, monday) : null;
+      if (await send(sub.chat_id, fmtWeek(g, index, monday, sub.lang), await keyboard(sub, g.id), photo ? { photo, caption: fmtWeekCaption(g, index, monday, sub.lang) } : null)) done.push(sub.chat_id);
+      else { failed++; retry.push(sub.chat_id); }
+    }
+    if (force && day) await claim('wk', day, done); // mark as served
+    if (mine) await unclaim('wk', day, retry);
   }
   return failed;
 }
 
 /**
  * The daily "tomorrow's classes" message — once a day, at each chat's own time (chats.remind_at, default 21:00,
- * changed with /time). `window` = [from, to] in minutes after midnight limits it to the chats whose time fell
- * inside that window since the last run (no window = everyone who has it on, for a manual send); `once` = the
- * per-chat guard that stops a re-run from serving anyone twice. Group chats get the full list of tomorrow's
- * classes, private chats a short "first class" ping. Free days stay silent.
+ * changed with /time). `window` = [from, to] in minutes after midnight limits it to the chats whose time lies in
+ * (from, to] (no window = everyone who has it on, for a manual send); `day` = the date of a scheduled run: chats are
+ * claimed in the bot's database before they are messaged, so nobody is served twice that day, whatever else is running.
+ * Group chats get the full list of tomorrow's classes, private chats a short "first class" ping. Free days stay silent.
  * Returns { n: sent now, failed: chats that still need a retry }.
  */
-async function sendTomorrow(index, window, once) {
-  const now = tashkentNow();
+async function sendTomorrow(index, window, day) {
+  const now = nowTk();
   const tomorrow = addDays(now, 1);
-  const q = window ? `&from=${window[0]}&to=${window[1]}` : '';
-  // Sunday evening: groups that get the weekly timetable post (it already shows Monday) skip this list,
-  // so a group still gets one message that day, not two.
-  const skip = new Set();
-  if (window && weekday(now) === 6) for await (const s of subscribers('weekly')) if (s.kind !== 'private') skip.add(s.chat_id);
+  const q = (window ? `&from=${window[0]}&to=${window[1]}` : '') + (day ? `&day=${day}` : '');
+  // Sunday evening: chats that get the weekly timetable post (it already shows Monday) skip this message,
+  // so a chat still gets one message that evening, not two. Looked up only when someone is actually due.
+  let skip = null;
+  const mustSkip = async (chatId) => {
+    if (!(window && weekday(now) === 6)) return false;
+    if (!skip) { skip = new Set(); for await (const s of subscribers('weekly')) skip.add(s.chat_id); }
+    return skip.has(chatId);
+  };
   let n = 0, failed = 0;
-  for await (const sub of subscribers('tomorrow', q)) {
-    if (skip.has(sub.chat_id) || once?.has(sub.chat_id)) continue;
-    const g = await loadGroup(sub);
-    if (!g) continue;
-    const text = sub.kind === 'private' ? fmtTomorrow(g, index, tomorrow, sub.lang) : fmtTomorrowFull(g, index, tomorrow, sub.lang);
-    if (!text) continue;
-    if (await send(sub.chat_id, text, await keyboard(sub, g.id))) { once?.add(sub.chat_id); n++; }
-    else failed++;
+  for await (const page of subscriberPages('tomorrow', q)) {
+    const todo = [];
+    for (const sub of page) {
+      if (await mustSkip(sub.chat_id)) continue;
+      const g = await loadGroup(sub);
+      if (!g) continue;
+      const text = sub.kind === 'private' ? fmtTomorrow(g, index, tomorrow, sub.lang) : fmtTomorrowFull(g, index, tomorrow, sub.lang);
+      if (text) todo.push({ sub, g, text });
+    }
+    const mine = day ? await claim('tmr', day, todo.map((x) => x.sub.chat_id)) : null;
+    const retry = [];
+    for (const { sub, g, text } of todo) {
+      if (mine && !mine.has(sub.chat_id)) continue; // another run already took this chat today
+      if (await send(sub.chat_id, text, await keyboard(sub, g.id))) n++;
+      else { failed++; retry.push(sub.chat_id); }
+    }
+    if (mine) await unclaim('tmr', day, retry);
   }
   return { n, failed };
 }
@@ -252,56 +272,32 @@ async function main() {
   const index = JSON.parse(await fs.readFile(path.join(DATA, 'index.json'), 'utf8'));
   // translated subject names for Russian / English readers
   try { setSubjects(JSON.parse(await fs.readFile(path.join(DATA, 'subjects.json'), 'utf8'))); } catch { console.warn('subjects.json not found — subject names stay in Uzbek'); }
-  const today = ymd(tashkentNow());
+  const today = ymd(nowTk());
 
   if (mode === 'changes') {
     await sendChanges(index);
   } else if (mode === 'weekly') {
-    // Explicit/manual force-send (e.g. the admin's "send now" checkbox). Still marks state so
-    // `auto` doesn't send a second copy later the same day.
-    await sendWeekly(index);
-    const state = await readState();
-    if (state.weeklySent !== today) { state.weeklySent = today; await writeState(state); }
+    // Explicit/manual force-send (e.g. the admin's "send now" checkbox) to everyone with the weekly post on. They are marked
+    // as served for today, so the scheduled run does not send a second copy later the same day.
+    await sendWeekly(index, today, true);
   } else if (mode === 'tomorrow') {
     await sendTomorrow(index); // manual force-send: everyone who has the reminder on, whatever their own time
-    // (does not touch state.tmr — chats still get their regular reminder at their own time)
+    // (does not mark anyone — chats still get their regular reminder at their own time)
   } else if (mode === 'auto') {
-    // Self-gating: run this on every trigger (every ~10 min via Cloudflare, plus GitHub's own
-    // best-effort schedule). It decides for itself whether it's time, and docs/data/state.json
-    // (committed to the repo) remembers what's already been sent today so nothing doubles up —
-    // this closes the gap left by GitHub's `schedule:` event sometimes missing its exact minute.
-    const state = await readState();
-    let changed = false;
-    const now = tashkentNow();
-    // Daily reminder: each chat has its own time. `tmr.min` = how far today's run has already got
-    // (minutes after midnight), so every chat is served once — even if a run or two were skipped.
+    // Self-gating: run this on every trigger (every ~10 min via Cloudflare, plus GitHub's own best-effort schedule).
+    // It decides for itself what is due, and the bot's database remembers who has been served today (see claim()), so
+    // runs may overlap, repeat or be skipped without anybody getting a message twice or missing it.
+    const now = nowTk();
+    // Daily reminder: each chat has its own time. A chat is due once its time has passed — but only looking back a few
+    // hours, so a chat that just moved its time to the early morning is not woken up with yesterday's news.
     const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
-    const from = state.tmr?.date === today ? state.tmr.min : -1;
-    const tmrOnce = guard(state, 'tmr', today);
-    const wkOnce = guard(state, 'wk', today);
-    try {
-      if (nowMin > from) {
-        const { n, failed } = await sendTomorrow(index, [from, nowMin], tmrOnce);
-        if (n > 0 || failed > 0) {
-          console.log(`auto: sent tomorrow's reminder to ${n} chats${failed ? `, ${failed} to retry` : ''}`);
-          // everyone served → move the window forward; some failed → keep its start so the next run tries them again
-          // (the per-chat guard makes sure the ones already served are not sent a second copy)
-          state.tmr = { date: today, min: failed ? from : nowMin }; // only saved when something went out (keeps the repo quiet)
-          changed = true;
-        }
-      }
-      if (weekday(now) === 6 && now.getUTCHours() >= 20 && state.weeklySent !== today) {
-        console.log('auto: sending weekly timetable');
-        const failed = await sendWeekly(index, wkOnce);
-        if (!failed) state.weeklySent = today;
-        changed = true;
-      }
-    } finally {
-      // Progress is always saved — even when something above threw — so a crashed run is never repeated in full.
-      tmrOnce.flush(); wkOnce.flush();
-      if (changed || tmrOnce.dirty || wkOnce.dirty) await writeState(state);
+    const from = Math.max(-1, nowMin - LOOKBACK_MIN);
+    const { n, failed } = await sendTomorrow(index, [from, nowMin], today);
+    if (n > 0 || failed > 0) console.log(`auto: sent tomorrow's reminder to ${n} chats${failed ? `, ${failed} to retry` : ''}`);
+    if (weekday(now) === 6 && now.getUTCHours() >= 20) {
+      const failedWeekly = await sendWeekly(index, today);
+      if (failedWeekly) console.log(`auto: weekly timetable — ${failedWeekly} chats to retry`);
     }
-    if (!changed) console.log('auto: nothing due yet today');
   } else if (mode === 'announce') {
     await sendAnnounce();
   } else {
