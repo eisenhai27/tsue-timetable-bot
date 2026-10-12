@@ -325,6 +325,7 @@ async function renderShard({ jobs, langs, outRoot, parity, monday, index, subjec
   for (const [k, id] of jobs) {
     const obj = JSON.parse(await fs.readFile(path.join(DATA, k, `${id}.json`), 'utf8'));
     const entity = k === 't' ? { ...obj, kind: 't' } : obj;
+    if (!(entity.lessons || []).length) continue; // no lessons yet (timetable not on EduPage) → nothing to draw; the bot sends a text note
     for (const lang of langs) {
       const png = renderPng(renderSvg(entity, index, logo, { lang, parity, monday: mon }));
       const job = shrink(png).then((buf) => fs.writeFile(path.join(outRoot, weekImgPath(k, id, lang)), buf).then(() => { n++; bytes += buf.length; }));
