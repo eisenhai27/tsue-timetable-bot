@@ -1,6 +1,6 @@
 // Offline + speed. The app shell is served from the cache at once and refreshed in the background (stale-while-revalidate);
 // timetable data is network-first with a short timeout, so a bad connection falls back to the last copy instead of hanging.
-const CACHE = 'tsue-v5';
+const CACHE = 'tsue-v6';
 const SHELL = ['./', './index.html', './manifest.webmanifest', './icon-192.png'];
 self.addEventListener('install', (e) => { e.waitUntil(caches.open(CACHE).then((c) => c.addAll(SHELL)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', (e) => {
