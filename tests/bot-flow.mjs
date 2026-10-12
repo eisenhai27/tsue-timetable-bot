@@ -395,6 +395,17 @@ check('mode=all includes a chat with alerts off', subsAll.rows.some((r) => r.cha
 check('mode=alerts excludes that same chat', !subsAlertsOnly.rows.some((r) => r.chat_id === 555), subsAlertsOnly);
 await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
 
+// mode=everyone also reaches private chats that never picked a group (they could not find theirs) — mode=all does not
+{
+  const lost = { id: 9555, type: 'private' }, lostUser = { id: 9555, first_name: 'Lost', language_code: 'uz' };
+  await post(msg('/start', lost, lostUser)); // starts the bot, never chooses a group
+  const ids = async (mode) => (await (await fetch(`${W}/internal/subs?mode=${mode}`, { headers: { 'x-admin-key': 'secretkey' } })).json()).rows.map((r) => r.chat_id);
+  const [all, everyone] = [await ids('all'), await ids('everyone')];
+  check('mode=everyone includes a private chat without a group', everyone.includes(9555), everyone);
+  check('mode=all still leaves it out', !all.includes(9555), all);
+  check('mode=everyone is a superset of mode=all', all.every((id) => everyone.includes(id)));
+}
+
 // ---- "Ustoz qayerda?" (where is the teacher)
 {
   const STATUS = /Hozir darsda|Hozir dars yo'q|Bugungi dars hali boshlanmagan|Bugungi darslar tugagan|Bugun dars yo'q/;
