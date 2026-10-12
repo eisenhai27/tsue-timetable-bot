@@ -408,7 +408,7 @@ const I = {
     monthsG:['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'],
     dateF:(d,m)=>`${d}-${m}`, goToday:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi',
     tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'Yuqori hafta', weekB:'Quyi hafta',
-    now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", noDay:"Dars yo'q", searchPh:"Guruh, o'qituvchi, xona…", teacherPh:'Familiya…',
+    now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", noTT:"Bu guruh uchun jadval hali EduPage'da kiritilmagan. Jadval paydo bo'lishi bilan shu yerda ko'rinadi.", noDay:"Dars yo'q", searchPh:"Guruh, o'qituvchi, xona…", teacherPh:'Familiya…',
     all:'Hammasi', groups:'Guruhlar', teachers:"O'qituvchilar", rooms:'Xonalar', recent:"So'nggi", favs:'Sevimlilar', browse:"Fakultet bo'yicha",
     searchSub:"Guruh, o'qituvchi yoki xona qidiring", pick:'Guruhingizni tanlang', pickSub:'Guruh nomini yozing, masalan 901',
     pickT:"O'zingizni tanlang", pickTSub:'Familiyangizni yozing, masalan Karimov', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
@@ -435,7 +435,7 @@ const I = {
     monthsG:['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
     dateF:(d,m)=>`${d} ${m}`, goToday:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все',
     tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Верхняя неделя', weekB:'Нижняя неделя',
-    now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', noDay:'Пар нет', searchPh:'Группа, преподаватель, ауд.…', teacherPh:'Фамилия…',
+    now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', noTT:'Для этой группы расписание в EduPage ещё не внесено. Как только оно появится, оно будет здесь.', noDay:'Пар нет', searchPh:'Группа, преподаватель, ауд.…', teacherPh:'Фамилия…',
     all:'Все', groups:'Группы', teachers:'Преподаватели', rooms:'Аудитории', recent:'Недавние', favs:'Избранное', browse:'По факультетам',
     searchSub:'Ищите группу, преподавателя или аудиторию', pick:'Выберите группу', pickSub:'Введите название группы, например 901',
     pickT:'Выберите себя', pickTSub:'Введите фамилию, например Karimov или Каримов', nothing:'Ничего не найдено', changed:'Расписание изменилось',
@@ -462,7 +462,7 @@ const I = {
     monthsG:['January','February','March','April','May','June','July','August','September','October','November','December'],
     dateF:(d,m)=>`${m} ${d}`, goToday:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All',
     tillEnd:'rest of the day', pairShort:'period', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Upper week', weekB:'Lower week',
-    now:'Now', next:'Next', noLessons:'No classes this day', noDay:'No classes', searchPh:'Group, teacher, room…', teacherPh:'Surname…',
+    now:'Now', next:'Next', noLessons:'No classes this day', noTT:'This group\'s timetable has not been entered in EduPage yet. It will show up here as soon as it appears.', noDay:'No classes', searchPh:'Group, teacher, room…', teacherPh:'Surname…',
     all:'All', groups:'Groups', teachers:'Teachers', rooms:'Rooms', recent:'Recent', favs:'Favorites', browse:'By faculty',
     searchSub:'Search a group, teacher or room', pick:'Pick your group', pickSub:'Type your group name, e.g. 901',
     pickT:'Pick yourself', pickTSub:'Type your surname, e.g. Karimov', nothing:'Nothing found', changed:'Timetable changed',
@@ -954,9 +954,12 @@ const renderTimetable = safe(async function () {
   const changedDays = new Set();
   for (const c of recentChanges) for (const dd of c.days) { changedDays.add(dd.d); for (const l of dd.added) newKeys.add(key(l)); }
 
+  // A group whose lessons are not on EduPage yet is told so, instead of looking like one big day off
+  const noTT = v.type === 'g' && !(data.lessons || []).length;
   // "Today" summary with a progress bar through the school day — the signature strip under the title
   let summary = '';
-  if (wd(now) < 6) {
+  if (noTT) summary = `<div class="summary"><span class="bolt">⏳</span><span>${esc(L.noTT)}</span></div>`;
+  else if (wd(now) < 6) {
     const pn = parity(INDEX.weekA, now);
     const todays = (data.lessons || []).filter(l => l.d === wd(now) && (!pn || !l.w || l.w === pn));
     if (todays.length) {
@@ -1004,7 +1007,7 @@ const renderTimetable = safe(async function () {
     body = parts.join('');
   } else {
     const list = lessonsOf(S.day);
-    if (!list.length) body = `<div class="empty"><div class="big">🎉</div>${esc(L.noLessons)}</div>`;
+    if (!list.length) body = noTT ? `<div class="empty"><div class="big">⏳</div>${esc(L.noTT)}</div>` : `<div class="empty"><div class="big">🎉</div>${esc(L.noLessons)}</div>`;
     else {
       const isToday = sameDay(date, now);
       let nextMarked = false, prevEnd = null;
