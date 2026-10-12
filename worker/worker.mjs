@@ -19,10 +19,10 @@
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
-  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath,
+  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable,
 } from '../src/shared.mjs';
 
-const PAGE = 30; // groups per page in the picker
+const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
 const TPAGE = 16; // teachers per page in the picker
 // Version of the reply keyboard (the buttons under the message box). Chats that have an older one get the new keyboard
 // once, together with a short "what's new" note, the next time they write to the bot.
@@ -171,6 +171,11 @@ async function db(env) {
         admin_msg_id INTEGER PRIMARY KEY,
         chat_id INTEGER NOT NULL,
         created_at INTEGER)`),
+      // Telegram update ids already handled: Telegram re-sends an update when our answer is slow, and without this every
+      // retry would repeat the whole reply (the "bot answers twice" problem)
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS updates (
+        update_id INTEGER PRIMARY KEY,
+        at INTEGER NOT NULL)`),
       // the admin's /stats: how often each action was used, per day (Tashkent date)
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS usage (
         day TEXT NOT NULL,
@@ -204,6 +209,15 @@ async function db(env) {
     if (!cols.some((c) => c.name === 'kbv')) {
       // kbv = which reply keyboard this chat has been given (see KB_VERSION)
       await addColumn('ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0');
+    }
+    // sent_tmr / sent_wk = the Tashkent date ('YYYY-MM-DD') on which this chat last got the daily reminder / the weekly post.
+    // The GitHub Action claims a chat here (atomically) before sending, so two runs overlapping in time can never both send.
+    {
+      const tn = tashkentNow();
+      const today = ymd(tn), nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+      // first time: whoever's reminder time has already passed today was served by the previous (git-based) mechanism
+      if (!cols.some((c) => c.name === 'sent_tmr')) await addColumn('ALTER TABLE chats ADD COLUMN sent_tmr TEXT', `UPDATE chats SET sent_tmr = '${today}' WHERE remind_at >= 0 AND remind_at <= ${nowMin}`);
+      if (!cols.some((c) => c.name === 'sent_wk')) await addColumn('ALTER TABLE chats ADD COLUMN sent_wk TEXT');
     }
     await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)').run();
     schemaReady = true;
@@ -383,7 +397,7 @@ async function onWeekPic(request, env) {
   const group = type === 't' ? { ...ent, kind: 't' } : ent;
   const monday = displayMonday(tashkentNow());
   let r = null;
-  if (!index.weekA || index.imgMonday === ymd(monday)) { // same freshness rule as the bot's own weekly post
+  if ((!index.weekA || index.imgMonday === ymd(monday)) && !noTimetable(group)) { // same freshness rule as the bot's own weekly post
     const photo = `${siteUrl(env)}/${weekImgPath(type, group.id ?? id, lang)}?v=${group.v || index.tt?.num || ''}&w=${ymd(monday)}`;
     r = await tg(env, 'sendPhoto', { chat_id: user.id, photo, caption: fmtWeekCaption(group, index, monday, lang), parse_mode: 'HTML' });
   }
@@ -409,11 +423,38 @@ async function onInternal(request, url, env) {
         binds.push(Number(url.searchParams.get('from') || -1), Number(url.searchParams.get('to')));
       }
     }
+    // day=YYYY-MM-DD → leave out the chats that already got this message on that day (see /internal/claim)
+    const day = url.searchParams.get('day');
+    if (day && /^\d{4}-\d{2}-\d{2}$/.test(day) && (mode === 'tomorrow' || mode === 'weekly')) {
+      const col = mode === 'weekly' ? 'sent_wk' : 'sent_tmr';
+      filter += ` AND (${col} IS NULL OR ${col} != ?)`;
+      binds.push(day);
+    }
     const { results } = await D
       .prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE group_id IS NOT NULL ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`)
       .bind(...binds, after, limit)
       .all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
+  }
+  // The scheduled sends (daily reminder / weekly post) CLAIM a chat before messaging it: one atomic UPDATE per chat that only
+  // succeeds for the first caller of the day, so even two Action runs overlapping in time can never send the same message twice.
+  // /internal/unclaim gives a claim back when the send failed for a reason worth retrying.
+  if ((url.pathname === '/internal/claim' || url.pathname === '/internal/unclaim') && request.method === 'POST') {
+    const body = await request.json().catch(() => null);
+    const col = body?.kind === 'wk' ? 'sent_wk' : body?.kind === 'tmr' ? 'sent_tmr' : null;
+    const ids = Array.isArray(body?.ids) ? body.ids.filter((x) => Number.isSafeInteger(x)).slice(0, 5000) : [];
+    if (!col || !/^\d{4}-\d{2}-\d{2}$/.test(String(body?.day)) || !ids.length) return json({ error: 'bad request' }, 400);
+    const claiming = url.pathname === '/internal/claim';
+    const stmts = [];
+    for (let i = 0; i < ids.length; i += 80) { // D1 allows 100 bound values per statement
+      const part = ids.slice(i, i + 80);
+      const marks = part.map(() => '?').join(',');
+      stmts.push(claiming
+        ? D.prepare(`UPDATE chats SET ${col} = ? WHERE chat_id IN (${marks}) AND (${col} IS NULL OR ${col} != ?) RETURNING chat_id`).bind(body.day, ...part, body.day)
+        : D.prepare(`UPDATE chats SET ${col} = NULL WHERE chat_id IN (${marks}) AND ${col} = ?`).bind(...part, body.day));
+    }
+    const res = await D.batch(stmts);
+    return json(claiming ? { claimed: res.flatMap((r) => (r.results || []).map((x) => x.chat_id)) } : { ok: true });
   }
   if (url.pathname === '/internal/cleanup' && request.method === 'POST') {
     const body = await request.json();
@@ -451,12 +492,27 @@ async function onWebhook(request, env) {
     return new Response('Forbidden', { status: 403 });
   }
   const update = await request.json();
+  if (await alreadyHandled(env, update.update_id)) return new Response('ok'); // a Telegram retry of an update we already answered
   await loadSubjects(env);
   if (update.message) await onMessage(env, update.message);
   else if (update.callback_query) await onCallback(env, update.callback_query);
   else if (update.my_chat_member) await onMyChatMember(env, update.my_chat_member);
   await track(env, update);
   return new Response('ok');
+}
+
+/** True when this update id was seen before (Telegram resends updates it thinks were not answered in time). Never throws. */
+async function alreadyHandled(env, id) {
+  if (!Number.isSafeInteger(id)) return false;
+  try {
+    const D = await db(env);
+    const r = await D.prepare('INSERT OR IGNORE INTO updates (update_id, at) VALUES (?, ?)').bind(id, Date.now()).run();
+    if (Math.random() < 0.02) await D.prepare('DELETE FROM updates WHERE at < ?').bind(Date.now() - 2 * 86400000).run();
+    return r.meta?.changes === 0;
+  } catch (e) {
+    console.warn('dedupe', e?.message);
+    return false;
+  }
 }
 
 /** Activity for the admin's /stats: when each chat last used the bot + a per-day count of every action. Never throws. */
@@ -829,7 +885,7 @@ async function sendSchedule(env, chatId, row, what) {
     // The weekly picture (drawn by the GitHub Action, in Uzbek / Russian / English) — easier to read than text, like the EduPage
     // grid. It is drawn for the week that is on right now (its upper/lower lessons are coloured), so when the site still holds
     // last week's pictures (a few minutes around the Sunday switch) the always-correct text version goes out instead.
-    const fresh = !index.weekA || index.imgMonday === ymd(monday);
+    const fresh = (!index.weekA || index.imgMonday === ymd(monday)) && !noTimetable(group); // no lessons → no picture, the text explains
     if (!fresh) return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra);
     const photo = `${siteUrl(env)}/${weekImgPath(isTeacher(row) ? 't' : 'g', group.id, row.lang)}?v=${group.v || index.tt?.num || ''}&w=${ymd(monday)}`;
     const r = await tg(env, 'sendPhoto', { chat_id: chatId, photo, caption: fmtWeekCaption(group, index, monday, row.lang), parse_mode: 'HTML', ...extra });
@@ -907,7 +963,7 @@ async function showFaculties(env, chatId, uid, lang, messageId) {
   const L = tr(lang);
   let index;
   try { index = await getIndex(env); } catch { return send(env, chatId, L.dataError); }
-  const kb = index.faculties.map((f, i) => [{ text: `🏛 ${f.name}`, callback_data: `f:${uid}:${i}` }]);
+  const kb = index.faculties.map((f, i) => [{ text: `🏛 ${f.name} · ${f.courses.reduce((n, c) => n + c.groups.length, 0)}`, callback_data: `f:${uid}:${i}` }]);
   kb.push(langRow(lang, `pick:${uid}`)); // language can be switched right here
   const text = `${L.chooseFaculty}\n\n${L.searchHint}`;
   if (messageId) return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } });
@@ -921,36 +977,80 @@ function langRow(current, suffix) {
 
 async function showCourses(env, chatId, uid, lang, fi, messageId) {
   const L = tr(lang);
-  const index = await getIndex(env);
+  let index;
+  try { index = await getIndex(env); } catch { return send(env, chatId, L.dataError); }
   const fac = index.faculties[fi];
   if (!fac) return showFaculties(env, chatId, uid, lang, messageId);
   if (fac.courses.length === 1) return showGroups(env, chatId, uid, lang, fi, 0, 0, messageId);
   const kb = [];
   for (let i = 0; i < fac.courses.length; i += 2) {
-    kb.push(fac.courses.slice(i, i + 2).map((c, j) => ({ text: `🎓 ${L.course(c.name)}`, callback_data: `c:${uid}:${fi}:${i + j}:0` })));
+    kb.push(fac.courses.slice(i, i + 2).map((c, j) => ({ text: `🎓 ${L.course(c.name)} · ${c.groups.length}`, callback_data: `c:${uid}:${fi}:${i + j}:0` })));
   }
   kb.push([{ text: L.back, callback_data: `F:${uid}` }]);
   return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text: `🏛 <b>${esc(fac.name)}</b>\n${L.chooseCourse}`, parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } });
 }
 
-async function showGroups(env, chatId, uid, lang, fi, ci, page, messageId) {
+// "Direction" (yo'nalish) of a group = the letters of its code before the number: "MO-901/26" → MO, "SFFFT-40-B-26" → SFFFT.
+// Courses with many groups (60–100) are split by direction first, so nobody has to page through a long alphabet soup.
+const LOOKALIKE = { А: 'A', В: 'B', Е: 'E', К: 'K', М: 'M', Н: 'H', О: 'O', Р: 'P', С: 'C', Т: 'T', Х: 'X', У: 'Y' };
+function dirOf(name) {
+  const t = String(name || '').trim();
+  let d = ((/^[^\d\-\s/.]+/.exec(t) || [t.split(/[\s-]/)[0]])[0] || '').toUpperCase();
+  if (/[A-Z]/.test(d)) d = d.replace(/[АВЕКМНОРСТХУ]/g, (c) => LOOKALIKE[c]); // a Cyrillic "Т" typed inside a Latin code is the same direction
+  return d || '—';
+}
+/** The directions of a course in order of first appearance: [{ key, groups }]. */
+function directionsOf(course) {
+  const by = new Map();
+  for (const g of course.groups) {
+    const k = dirOf(g[1]);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(g);
+  }
+  return [...by].map(([key, groups]) => ({ key, groups }));
+}
+
+/**
+ * Groups of a course. Small course → one page of buttons. Big course → first its directions, then the groups of the chosen
+ * direction (`di`), each paged by PAGE. page > 0 without a direction = the plain paged list of the whole course.
+ */
+async function showGroups(env, chatId, uid, lang, fi, ci, page, messageId, di = -1) {
   const L = tr(lang);
-  const index = await getIndex(env);
+  let index;
+  try { index = await getIndex(env); } catch { return send(env, chatId, L.dataError); }
   const fac = index.faculties[fi];
   const course = fac?.courses[ci];
   if (!course) return showFaculties(env, chatId, uid, lang, messageId);
-  const slice = course.groups.slice(page * PAGE, page * PAGE + PAGE);
+  page = Math.max(0, page | 0);
+  const toCourses = fac.courses.length > 1 ? `f:${uid}:${fi}` : `F:${uid}`;
+  const head = `🏛 <b>${esc(fac.name)}</b>${course.name ? ` · ${L.course(course.name)}` : ''}`;
+  let dirs = course.groups.length > PAGE ? directionsOf(course) : null;
+  if (dirs && (dirs.length < 2 || dirs.length > 16)) dirs = null; // a handful of directions helps; dozens of one-group "directions" (master's) do not → plain pages
+
+  if (dirs && di < 0 && page === 0) { // step: pick a direction
+    const kb = [];
+    for (let i = 0; i < dirs.length; i += 3) kb.push(dirs.slice(i, i + 3).map((d, j) => ({ text: `${d.key} · ${d.groups.length}`, callback_data: `d:${uid}:${fi}:${ci}:${i + j}:0` })));
+    kb.push([{ text: L.back, callback_data: toCourses }]);
+    return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text: `${head} · ${course.groups.length}\n${L.chooseDirection}`, parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } });
+  }
+
+  const dir = dirs && di >= 0 ? dirs[di] : null;
+  if (dirs && di >= 0 && !dir) return showGroups(env, chatId, uid, lang, fi, ci, 0, messageId);
+  const list = dir ? dir.groups : course.groups;
+  const pages = Math.max(1, Math.ceil(list.length / PAGE));
+  page = Math.min(page, pages - 1);
+  const slice = list.slice(page * PAGE, page * PAGE + PAGE);
+  const go = (p) => (dir ? `d:${uid}:${fi}:${ci}:${di}:${p}` : `c:${uid}:${fi}:${ci}:${p}`);
   const kb = [];
   for (let i = 0; i < slice.length; i += 3) {
     kb.push(slice.slice(i, i + 3).map(([id, name]) => ({ text: name, callback_data: `g:${uid}:${id}` })));
   }
-  const nav = [];
-  nav.push({ text: L.back, callback_data: fac.courses.length > 1 ? `f:${uid}:${fi}` : `F:${uid}` });
-  if (page > 0) nav.push({ text: '⬅️', callback_data: `c:${uid}:${fi}:${ci}:${page - 1}` });
-  if ((page + 1) * PAGE < course.groups.length) nav.push({ text: L.more, callback_data: `c:${uid}:${fi}:${ci}:${page + 1}` });
+  const nav = [{ text: L.back, callback_data: dirs ? `c:${uid}:${fi}:${ci}:0` : toCourses }];
+  if (page > 0) nav.push({ text: '⬅️', callback_data: go(page - 1) });
+  if (page + 1 < pages) nav.push({ text: L.more, callback_data: go(page + 1) });
   kb.push(nav);
-  const title = `🏛 <b>${esc(fac.name)}</b>${course.name ? ` · ${L.course(course.name)}` : ''}\n${L.chooseGroup}`;
-  return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text: title, parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } });
+  const where = `${head}${dir ? ` · ${esc(dir.key)}` : ''}${pages > 1 ? ` · ${page + 1}/${pages}` : ''}`;
+  return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text: `${where}\n${L.chooseGroup}`, parse_mode: 'HTML', reply_markup: { inline_keyboard: kb } });
 }
 
 const norm = (s) => String(s || '').toUpperCase().replace(/[^A-Z0-9А-ЯЁ]/g, '');
@@ -1148,10 +1248,11 @@ async function searchGroups(env, chatId, uid, lang, query) {
   }
   if (!hits.length) return searchTeachers(env, chatId, uid, lang, query, L.notFound); // maybe a teacher's surname
   hits.sort((a, b) => a[2] - b[2] || a[1].localeCompare(b[1], undefined, { numeric: true }));
-  const top = hits.slice(0, 24);
+  const top = hits.slice(0, PAGE);
   const kb = [];
   for (let i = 0; i < top.length; i += 3) kb.push(top.slice(i, i + 3).map(([id, name]) => ({ text: name, callback_data: `g:${uid}:${id}` })));
-  return send(env, chatId, `🔎 ${L.found}`, { reply_markup: { inline_keyboard: kb } });
+  // more matches than buttons → say so, the person types a bit more of the code
+  return send(env, chatId, `🔎 ${L.found}${hits.length > top.length ? ` ${top.length}/${hits.length}` : ''}`, { reply_markup: { inline_keyboard: kb } });
 }
 
 async function findGroupName(env, id) {
@@ -1197,8 +1298,19 @@ async function setRemindTime(env, chatId, row, arg) {
   if (!arg) return showRemindPicker(env, chatId, row, null);
   const m = parseClock(arg);
   if (m == null) return send(env, chatId, L.remindBad);
-  await updateChat(env, chatId, { remind_at: m });
+  await setRemindAt(env, chatId, m);
   return send(env, chatId, L.remindSet(m));
+}
+
+/**
+ * Saves a chat's daily reminder time. A time that has already passed today means "from tomorrow": without this the
+ * next scheduled run would find the chat due and send today's reminder at once, a second one if it was already sent.
+ */
+async function setRemindAt(env, chatId, m) {
+  const tn = tashkentNow();
+  const fields = { remind_at: m };
+  if (m >= 0 && m <= tn.getUTCHours() * 60 + tn.getUTCMinutes()) fields.sent_tmr = ymd(tn);
+  await updateChat(env, chatId, fields);
 }
 
 async function showRemindPicker(env, chatId, row, messageId) {
@@ -1237,6 +1349,15 @@ async function showSettings(env, chatId, row, messageId) {
   return send(env, chatId, text, { reply_markup: kb });
 }
 
+const recentTaps = new Map(); // "chat:message:data" → time of the last tap
+function repeatedTap(chatId, messageId, data) {
+  const k = `${chatId}:${messageId}:${data}`, now = Date.now();
+  const last = recentTaps.get(k);
+  if (recentTaps.size > 500) recentTaps.clear();
+  recentTaps.set(k, now);
+  return last != null && now - last < 6000;
+}
+
 async function onCallback(env, cb) {
   const msg = cb.message;
   if (!msg) return tg(env, 'answerCallbackQuery', { callback_query_id: cb.id });
@@ -1250,7 +1371,7 @@ async function onCallback(env, cb) {
   const isGroupChat = chat.type !== 'private';
 
   // Picker menus carry the id of the person who opened them
-  if (['f', 'c', 'F', 'g', 'R', 'RM', 'tL', 'tl', 'tp'].includes(kind)) {
+  if (['f', 'c', 'd', 'F', 'g', 'R', 'RM', 'tL', 'tl', 'tp'].includes(kind)) {
     const uid = Number(parts[1]);
     if (uid === 0 ? !(await isAdmin(env, chatId, cb)) : uid !== cb.from.id) {
       return tg(env, 'answerCallbackQuery', { callback_query_id: cb.id, text: uid === 0 ? L.onlyAdmins : L.notYourMenu, show_alert: true });
@@ -1260,6 +1381,8 @@ async function onCallback(env, cb) {
     return tg(env, 'answerCallbackQuery', { callback_query_id: cb.id, text: L.onlyAdmins, show_alert: true });
   }
   tg(env, 'answerCallbackQuery', { callback_query_id: cb.id }); // stop the loading spinner (no need to wait)
+  // the same "choose" button tapped twice within a few seconds: the first tap already did everything (and sent the follow-up messages)
+  if ((kind === 'g' || kind === 'tp') && repeatedTap(chatId, msg.message_id, cb.data)) return;
   if (kind === 'adm') {
     if (isAdminChat(env, chatId)) await sendStats(env, chatId, msg.message_id); // refresh — admin's own chat only
     return;
@@ -1287,7 +1410,7 @@ async function onCallback(env, cb) {
   }
   if (kind === 'rt') {
     const m = Math.max(-1, Math.min(1439, Number(parts[1]) || 0));
-    await updateChat(env, chatId, { remind_at: m });
+    await setRemindAt(env, chatId, m);
     return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: L.remindSet(m), parse_mode: 'HTML' });
   }
   if (kind === 'wh') return showWhere(env, chatId, lang, isGroupChat ? 'group' : 'private', parts[1], msg.message_id, (await myTeachers(env, row)).length > 0);
@@ -1298,6 +1421,7 @@ async function onCallback(env, cb) {
   if (kind === 'F') return showFaculties(env, chatId, parts[1], lang, msg.message_id);
   if (kind === 'f') return showCourses(env, chatId, parts[1], lang, Number(parts[2]), msg.message_id);
   if (kind === 'c') return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[4]), msg.message_id);
+  if (kind === 'd') return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[5]) || 0, msg.message_id, Number(parts[4]));
   if (kind === 'g') return chooseGroup(env, chat, Number(parts[1]), parts[2], msg.message_id, lang);
   // teachers / role (private chats only)
   if (['R', 'RM', 'tL', 'tl', 'tp'].includes(kind)) {
