@@ -131,7 +131,8 @@ async function main() {
     if (old && !firstRun) {
       const days = diffLessons(old.lessons, g.lessons);
       if (days.length) {
-        const newTT = old.tt?.num !== tt.num;
+        // a group that had no lessons at all and now has them: its timetable has just been published → "new timetable", not "changed"
+        const newTT = old.tt?.num !== tt.num || (!(old.lessons || []).length && g.lessons.length > 0);
         changes.push({ kind: 'g', id, newTT, days });
         history = [{ at: nowIso, newTT, days }, ...history].slice(0, KEEP_CHANGES);
       }
