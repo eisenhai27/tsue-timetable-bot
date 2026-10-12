@@ -2,14 +2,14 @@
 import crypto from 'node:crypto';
 const W = process.env.W || 'http://localhost:8787', M = 'http://localhost:8790';
 const secret = crypto.createHash('sha256').update('tg:secretkey').digest('hex').slice(0, 48);
-let uid = 1;
+let uid = Math.floor(Date.now() / 1000); // update ids must be new on every run: the Worker ignores ids it has already handled
 const post = (update) => fetch(W + '/tg', { method: 'POST', headers: { 'content-type': 'application/json', 'x-telegram-bot-api-secret-token': secret }, body: JSON.stringify({ update_id: uid++, ...update }) }).then((r) => r.status);
 const log = async () => (await fetch(M + '/__log')).json();
 const reset = () => fetch(M + '/__reset');
 const user = { id: 111, first_name: 'Ali', language_code: 'uz' };
 const priv = { id: 111, type: 'private' };
 const msg = (text, chat = priv, from = user) => ({ message: { message_id: 1, date: 0, chat, from, text } });
-const cb = (data, chat = priv, from = user) => ({ callback_query: { id: 'c' + uid, from, data, message: { message_id: 50, chat } } });
+const cb = (data, chat = priv, from = user, mid = 50) => ({ callback_query: { id: 'c' + uid, from, data, message: { message_id: mid, chat } } });
 let fails = 0;
 const check = (name, cond, extra) => { console.log((cond ? '✅' : '❌') + ' ' + name); if (!cond) { fails++; if (extra) console.log(JSON.stringify(extra, null, 1).slice(0, 1500)); } };
 const texts = (l) => l.map((c) => `${c.method}: ${(c.data.text || '').slice(0, 90).replace(/\n/g, ' ⏎ ')}`);
@@ -44,8 +44,34 @@ check('faculty → courses', l.some((c) => c.method === 'editMessageText' && /к
 
 await reset(); await post(cb('c:111:0:0:0'));
 l = await log();
-const grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
-check('course → groups', grpKb && grpKb[0][0].callback_data.startsWith('g:111:'), texts(l));
+const dirKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check('big course (77 groups) → directions first, each with its group count', dirKb?.[0]?.[0]?.callback_data === 'd:111:0:0:0:0' && /^MO · \d+$/.test(dirKb[0][0].text) && dirKb.flat().some((b) => /^MNP · \d+$/.test(b.text)), texts(l));
+check('directions menu has a Back button to the courses', dirKb?.at(-1)?.[0]?.callback_data === 'f:111:0', dirKb?.at(-1));
+await reset(); await post(cb('d:111:0:0:0:0'));
+l = await log();
+let grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check('direction MO → its 51 groups on two pages (36 + 15), all MO-…', grpKb && grpKb[0][0].callback_data.startsWith('g:111:') && grpKb.slice(0, -1).flat().length === 36 && grpKb.slice(0, -1).flat().every((b) => /^MO-/.test(b.text)) && /1\/2/.test(l.find((c) => c.method === 'editMessageText').data.text), texts(l));
+check('first page has Back (to directions) + More, no ⬅️', grpKb.at(-1).length === 2 && grpKb.at(-1)[0].callback_data === 'c:111:0:0:0' && grpKb.at(-1)[1].callback_data === 'd:111:0:0:0:1', grpKb.at(-1));
+await reset(); await post(cb('d:111:0:0:0:1'));
+l = await log();
+grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check('second page: the remaining 15 MO groups + ⬅️, no More', grpKb.slice(0, -1).flat().length === 15 && grpKb.at(-1).some((b) => b.text === '⬅️' && b.callback_data === 'd:111:0:0:0:0') && !grpKb.at(-1).some((b) => /Yana/.test(b.text)), texts(l));
+await reset(); await post(cb('c:111:1:0:0'));
+l = await log();
+grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check('small course (46 groups, only 2 directions I / IRB) → directions too; a 30-group course would list groups directly', grpKb?.flat().some((b) => /^I · \d+$/.test(b.text)), texts(l));
+await reset(); await post(cb('c:111:2:0:0'));
+l = await log();
+grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check('course with ≤36 groups → straight to the groups, no pages', grpKb && grpKb[0][0].callback_data.startsWith('g:111:') && grpKb.at(-1).length === 1, texts(l));
+await reset(); await post(cb('c:111:9:1:0'));
+l = await log();
+grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check("master's course with ~30 one-group directions → plain pages instead of a wall of direction buttons", grpKb && grpKb[0][0].callback_data.startsWith('g:111:'), texts(l));
+await reset(); await post(cb('c:111:0:0:1'));
+l = await log();
+grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
+check('old-style callback c:…:1 (page 1 of the whole course) still works', grpKb && grpKb[0][0].callback_data.startsWith('g:111:'), texts(l));
 
 await reset(); await post(cb('g:111:1thm8e1'));
 l = await log();
@@ -157,7 +183,7 @@ check('/feedback is forwarded to ADMIN_CHAT_ID as a DM', l.some((c) => c.method 
 
 // ---- group chats: daily "tomorrow's classes" reminder (default 21:00, admin can change the time)
 await post(cb('lang:uz:chat', grp)); // the group was switched to Russian above — back to Uzbek
-await reset(); await post(msg('/setgroup', grp)); await post(cb('g:111:1thm8e1', grp));
+await reset(); await post(msg('/setgroup', grp)); await post(cb('g:111:1thm8e1', grp, user, 51)); // (another picker message than the first time)
 l = await log();
 check('group link message announces the daily reminder at 21:00 and /time', l.some((c) => /ulandi/.test(c.data.text || '') && /21:00/.test(c.data.text) && /\/time/.test(c.data.text)), texts(l));
 await reset(); await post(msg('/time', grp, { id: 333, first_name: 'Vali' }));
@@ -196,6 +222,46 @@ await reset(); await post(cb('s:time', priv2, user2));
 l = await log();
 check('settings → reminder button opens the picker', l.some((c) => c.method === 'editMessageText' && c.data.reply_markup?.inline_keyboard?.flat().some((b) => b.callback_data === 'rt:1260')), texts(l));
 await post(msg('/time 21:00', priv2, user2));
+
+// ---- no duplicate sends: Telegram retries, overlapping Action runs, double taps, time changes
+await reset();
+const dupUpdate = { update_id: uid++, message: { message_id: 7, date: 0, chat: priv, from: user, text: '/help' } };
+const sendTwice = () => fetch(W + '/tg', { method: 'POST', headers: { 'content-type': 'application/json', 'x-telegram-bot-api-secret-token': secret }, body: JSON.stringify(dupUpdate) }).then((r) => r.status);
+await sendTwice(); await sendTwice();
+l = await log();
+check('the same update_id delivered twice (Telegram retry) is answered only once', l.filter((c) => c.method === 'sendMessage').length === 1, texts(l));
+
+const adm = { 'x-admin-key': 'secretkey', 'content-type': 'application/json' };
+const claimCall = (path, kind, day, ids) => fetch(W + path, { method: 'POST', headers: adm, body: JSON.stringify({ kind, day, ids }) }).then((r) => r.json());
+const subsDay = async (mode, day) => (await (await fetch(`${W}/internal/subs?mode=${mode}&day=${day}`, { headers: { 'x-admin-key': 'secretkey' } })).json()).rows.map((r) => r.chat_id);
+const D1 = '2030-01-01', D2 = '2030-01-02';
+check('daily reminder: chat 111 and the group are due on a day nobody was served', (await subsDay('tomorrow', D1)).includes(111) && (await subsDay('tomorrow', D1)).includes(-100500));
+const c1 = await claimCall('/internal/claim', 'tmr', D1, [111, -100500, 424242]);
+check('claim: the first run gets the chats (an unknown chat id is ignored)', c1.claimed?.includes(111) && c1.claimed.includes(-100500) && !c1.claimed.includes(424242), c1);
+const c2 = await claimCall('/internal/claim', 'tmr', D1, [111, -100500]);
+check('claim: a second, overlapping run gets NOTHING — nobody is messaged twice', c2.claimed?.length === 0, c2);
+check('subs?day= no longer lists the claimed chats, but does on the next day', !(await subsDay('tomorrow', D1)).includes(111) && (await subsDay('tomorrow', D2)).includes(111));
+check('weekly claims are independent of the daily ones', (await subsDay('weekly', D1)).includes(-100500));
+await claimCall('/internal/unclaim', 'tmr', D1, [111]);
+const c3 = await claimCall('/internal/claim', 'tmr', D1, [111, -100500]);
+check('unclaim (send failed) hands the chat out again, the others stay taken', c3.claimed?.length === 1 && c3.claimed[0] === 111, c3);
+check('claim rejects garbage', (await fetch(W + '/internal/claim', { method: 'POST', headers: adm, body: JSON.stringify({ kind: 'x', day: 'soon', ids: [1] }) })).status === 400);
+check('claim needs the admin key', (await fetch(W + '/internal/claim', { method: 'POST', body: '{}' })).status === 403);
+
+const todayTk = new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
+const nowMinTk = Math.floor(((Date.now() + 5 * 3600e3) % 86400e3) / 60e3);
+if (nowMinTk > 10) {
+  await post(msg('/time 00:05', priv2, user2));
+  check('a reminder time that has already passed today means "from tomorrow" (no instant extra reminder)', !(await subsDay('tomorrow', todayTk)).includes(555) && (await subsDay('tomorrow', '2030-02-02')).includes(555));
+  await post(msg('/time 21:00', priv2, user2));
+}
+// the same "choose group" button tapped twice → everything happens once
+await reset();
+const tapUser = { id: 9777, first_name: 'Tap', language_code: 'uz' }, tapChat = { id: 9777, type: 'private' };
+await post(msg('/start', tapChat, tapUser)); await reset();
+await post(cb('g:9777:fcrgrf', tapChat, tapUser)); await post(cb('g:9777:fcrgrf', tapChat, tapUser));
+l = await log();
+check('double tap on a group button → the confirmation and follow-ups are sent once', l.filter((c) => c.method === 'sendMessage' && /yana|Guruhdoshlaringizni/.test(c.data.text || '')).length === 1, texts(l));
 
 // ---- teachers
 const tUser = { id: 777, first_name: 'Dilshod', language_code: 'uz' };
