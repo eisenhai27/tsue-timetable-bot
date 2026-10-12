@@ -14,6 +14,7 @@ export const T = {
     chooseFaculty: '🏛 Fakultetni tanlang:',
     chooseCourse: '🎓 Kursni tanlang:',
     chooseGroup: '👥 Guruhni tanlang:',
+    chooseDirection: "🧭 Yo'nalishni tanlang:",
     course: (n) => (n ? `${n}-kurs` : 'Boshqa'),
     searchHint: '💡 Yoki guruh nomini yozing, masalan: <code>MO-901</code>',
     groupSet: (g) => `✅ Guruh saqlandi: <b>${g}</b>`,
@@ -21,6 +22,7 @@ export const T = {
     noGroup: "Siz hali guruh tanlamagansiz. /group buyrug'ini yuboring.",
     noGroupChat: "Bu chat hali guruhga ulanmagan. Chat admini /setgroup yuborsin.",
     noLessons: "Dars yo'q 🎉",
+    noTT: "⏳ Bu guruh uchun jadval hali EduPage'da kiritilmagan. Jadval paydo bo'lishi bilan sizga xabar beraman.",
     freeDay: "Bugun dars yo'q 🎉",
     today: 'Bugun',
     tomorrow: 'Ertaga',
@@ -105,6 +107,7 @@ export const T = {
     chooseFaculty: '🏛 Выберите факультет:',
     chooseCourse: '🎓 Выберите курс:',
     chooseGroup: '👥 Выберите группу:',
+    chooseDirection: '🧭 Выберите направление:',
     course: (n) => (n ? `${n} курс` : 'Другое'),
     searchHint: '💡 Или напишите название группы, например: <code>MO-901</code>',
     groupSet: (g) => `✅ Группа сохранена: <b>${g}</b>`,
@@ -112,6 +115,7 @@ export const T = {
     noGroup: 'Вы ещё не выбрали группу. Отправьте /group.',
     noGroupChat: 'Чат ещё не привязан к группе. Админ чата должен отправить /setgroup.',
     noLessons: 'Пар нет 🎉',
+    noTT: '⏳ Для этой группы расписание в EduPage ещё не внесено. Как только оно появится, я сообщу.',
     freeDay: 'Сегодня пар нет 🎉',
     today: 'Сегодня',
     tomorrow: 'Завтра',
@@ -196,6 +200,7 @@ export const T = {
     chooseFaculty: '🏛 Choose your faculty:',
     chooseCourse: '🎓 Choose your year:',
     chooseGroup: '👥 Choose your group:',
+    chooseDirection: '🧭 Choose a direction:',
     course: (n) => (n ? `Year ${n}` : 'Other'),
     searchHint: '💡 Or type your group name, e.g. <code>MO-901</code>',
     groupSet: (g) => `✅ Group saved: <b>${g}</b>`,
@@ -203,6 +208,7 @@ export const T = {
     noGroup: "You haven't picked a group yet. Send /group.",
     noGroupChat: "This chat isn't linked to a group yet. A chat admin should send /setgroup.",
     noLessons: 'No classes 🎉',
+    noTT: "⏳ This group's timetable has not been entered in EduPage yet. I'll let you know as soon as it appears.",
     freeDay: 'No classes today 🎉',
     today: 'Today',
     tomorrow: 'Tomorrow',
@@ -482,6 +488,9 @@ export function fmtLessonShort(l, periods, lang, parity) {
  * "Today" / "Tomorrow" message. When `nowDate` is the same day, the current and next
  * lessons are marked and past ones are dimmed.
  */
+/** A group whose lessons are not on EduPage yet (as opposed to a group with a free day / week). */
+export const noTimetable = (group) => !!group && Array.isArray(group.lessons) && group.lessons.length === 0;
+
 export function fmtDay(group, index, date, lang, nowDate) {
   const L = tr(lang);
   const w = words(lang);
@@ -492,7 +501,7 @@ export function fmtDay(group, index, date, lang, nowDate) {
   const span = ls.length ? ` · ${times(index.periods, ls[0]).a}–${hhmm(endM)}` : '';
   const head = [`📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''),
     `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}${span}` : ''}`].join('\n');
-  if (!ls.length) return `${head}\n\n${L.noLessons}`;
+  if (!ls.length) return `${head}\n\n${noTimetable(group) ? L.noTT : L.noLessons}`;
   const sameDay = nowDate && ymd(nowDate) === ymd(date);
   const nowM = sameDay ? nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes() : -1;
   let nextMarked = false;
@@ -604,7 +613,7 @@ export function fmtWeek(group, index, monday, lang) {
     if (!ls.length) continue;
     parts.push(`<b>${L.days[d]}</b> · ${words(lang).count(ls.length)}\n${ls.map((l) => fmtLessonShort(l, index.periods, lang, parity)).join('\n')}`);
   }
-  if (parts.length === 1) parts.push(words(lang).freeWeek);
+  if (parts.length === 1) parts.push(noTimetable(group) ? L.noTT : words(lang).freeWeek);
   return clip(parts.join('\n\n'));
 }
 
