@@ -210,4 +210,46 @@ setSubjects({});
   setSubjects({});
 }
 
+// ---- the class list structure (faculty / course / group headers as EduPage has them): every group must be reachable
+{
+  // [name, hasLesson] in EduPage order — modelled on the real TSUE list, including its awkward headers
+  const list = [
+    ['MENEJMENT FAKULTETI', 0], ['1 KURS', 0], ['MO-900/26', 1], ['MO-901/26', 0], ['-', 0], ['KREMS', 0], ['2 KURS', 0], ['MO-80/25', 1], ['4 KURS', 0], ['MO-25/23r', 1],
+    ['MASOFAVIY FAKULTETI', 0], ['1 KURS', 0], ['MIQT-900/26', 1], ['4 KURS', 0], ['MIQT-75/23', 1],
+    ['2-OT', 0], ['2-kurs', 0], ['I-900-2/26', 1], ['3-kurs', 0], ['I-80-2/25', 0],
+    ['DAVLAT AUDITI (3+1) QO\'SHMA TA\'LIM', 0], ['DA-450/26', 0], ['Magistratura', 0], ['DAMN-15', 1], ['12', 0],
+    ['KECHKI 1 KURS', 0], ['KI-900/26', 1], ['5 KURS', 0], ['KBIA-70/22', 0], ['SIRTQI 4-KURS', 0], ['SI-60/23', 1], ['инф-1', 1],
+  ];
+  const classes = list.map(([name], i) => ({ id: 'c' + i, name }));
+  const cards = [];
+  const lessons = [];
+  list.forEach(([, has], i) => { if (has) { lessons.push({ id: 'l' + i, classids: ['c' + i], subjectid: 's1', teacherids: [], durationperiods: 1 }); cards.push({ lessonid: 'l' + i, period: '1', days: '10000', weeks: '11', classroomids: [] }); } });
+  const synth = { r: { dbiAccessorRes: { tables: [
+    { id: 'classes', data_rows: classes }, { id: 'lessons', data_rows: lessons }, { id: 'cards', data_rows: cards },
+    { id: 'subjects', data_rows: [{ id: 's1', name: 'Math' }] }, { id: 'periods', data_rows: [{ period: '1', starttime: '08:00', endtime: '09:20' }] },
+  ] } } };
+  const b = buildAll(synth, { num: '1', from: '2026-09-07' });
+  const facs = Object.fromEntries(b.index.faculties.map((f) => [f.name, f]));
+  const courseNames = (f) => f.courses.map((c) => c.name || '-').join(',');
+  const all = b.index.faculties.flatMap((f) => f.courses.flatMap((c) => c.groups.map((g) => g[1])));
+  const groupNames = list.filter(([n, has]) => has || /^[A-Za-zА-Яа-я]+-/.test(n) && n !== '-' ).map(([n]) => n).filter((n) => !/KURS|kurs/i.test(n));
+  for (const n of groupNames) assert.ok(all.includes(n), `group ${n} is listed`);
+  assert.equal(all.length, groupNames.length, 'nothing but real groups is listed');
+  assert.deepEqual(b.index.faculties.map((f) => f.name), ['Menejment fakulteti', 'Masofaviy fakulteti', '2-OT', "Davlat auditi (3+1) qo'shma ta'lim", 'Magistratura', 'Kechki', 'Sirtqi'].filter((n) => facs[n]), 'faculty order');
+  assert.equal(courseNames(facs['Menejment fakulteti']), '1,2,4', '"KREMS" inside a faculty does not split it');
+  assert.equal(facs['Menejment fakulteti'].courses[0].groups.length, 2, 'a group without lessons (MO-901/26) is still listed');
+  assert.deepEqual(facs['Menejment fakulteti'].courses[0].groups[1], [groupId('MO-901/26'), 'MO-901/26', 0], 'and marked as "no lessons yet"');
+  assert.ok(facs['2-OT'] && courseNames(facs['2-OT']) === '2,3', '"2-OT" followed by "2-kurs" is its own faculty (the course numbers restart), not part of the previous one');
+  assert.equal(courseNames(facs['Masofaviy fakulteti']), '1,4', 'so Masofaviy keeps only its own courses');
+  assert.ok(facs["Davlat auditi (3+1) qo'shma ta'lim"]?.courses[0].groups.some((g) => g[1] === 'DA-450/26'), '"DAVLAT AUDITI (3+1)…" is a header, not a group of the section before it');
+  assert.ok(!facs['12'], 'a stray number is no faculty');
+  assert.equal(courseNames(facs['Kechki']), '1,5', 'a course whose groups all have no lessons yet is still there (Kechki 5-kurs)');
+  assert.equal(courseNames(facs['Sirtqi']), '4');
+  assert.equal(b.groups[groupId('MO-901/26')].lessons.length, 0, 'the empty group has a file, with no lessons');
+  assert.match(fmtDay(b.groups[groupId('MO-901/26')], b.index, new Date('2026-09-21T00:00:00Z'), 'uz'), /hali EduPage'da kiritilmagan/, 'and the day view says the timetable is not entered yet (not "no classes 🎉")');
+  assert.match(fmtWeek(b.groups[groupId('MO-901/26')], b.index, new Date('2026-09-21T00:00:00Z'), 'ru'), /ещё не внесено/);
+  assert.ok(facs['Sirtqi'].courses[0].groups.some((g) => g[1] === 'инф-1'), 'a Cyrillic group code is recognised as a group too');
+  assert.ok(buildAll(synth, { num: '1', from: '2026-09-07' }, { keepEmpty: false }).index.faculties.flatMap((f) => f.courses.flatMap((c) => c.groups)).every((g) => g[2] !== 0), 'keepEmpty:false restores the old behaviour');
+}
+
 console.log('All unit tests passed ✅');
