@@ -413,8 +413,9 @@ async function onInternal(request, url, env) {
     const after = Number(url.searchParams.get('after') || '-9999999999999');
     const limit = Math.min(5000, Number(url.searchParams.get('limit') || 2000));
     // 'all' = every chat with a group set, regardless of the alerts/weekly toggles (used for admin broadcasts)
+    // 'everyone' = like 'all', plus the private chats that never picked a group (people who started the bot but could not find theirs)
     // 'tomorrow' = the daily reminder: chats whose own time (remind_at) lies in (from, to] — or everyone who has it on when no window is given
-    let filter = mode === 'all' ? '' : `AND ${mode === 'weekly' ? 'weekly' : 'alerts'} = 1`;
+    let filter = mode === 'all' || mode === 'everyone' ? '' : `AND ${mode === 'weekly' ? 'weekly' : 'alerts'} = 1`;
     const binds = [];
     if (mode === 'tomorrow') {
       filter = 'AND remind_at >= 0';
@@ -431,7 +432,7 @@ async function onInternal(request, url, env) {
       binds.push(day);
     }
     const { results } = await D
-      .prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE group_id IS NOT NULL ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`)
+      .prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE ${mode === 'everyone' ? "(group_id IS NOT NULL OR kind = 'private')" : 'group_id IS NOT NULL'} ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`)
       .bind(...binds, after, limit)
       .all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
