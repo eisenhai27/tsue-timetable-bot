@@ -94,5 +94,28 @@ l = await log();
 check('Sunday, a later run: the weekly post is not sent again', to(l, -100777).length === 0 && to(l, 4003).length === 0, l.map((c) => c.data.chat_id));
 check('state.json is no longer written (no more "Notification state" commits)', !fs.existsSync(new URL('../docs/data/state.json', import.meta.url)));
 
+// ---- admin announcement: reaches everyone (also people who never picked a group), in their own language, with an invite button
+{
+  const [c5, u5] = mk(4010), [c6, u6] = mk(4011);
+  await post(msg('/start', c5, u5)); // never picks a group, Uzbek
+  await post(msg('/start', c6, u6)); await post(cb('lang:ru', c6, u6)); // never picks a group, Russian
+  await reset();
+  const ann = await new Promise((resolve) => {
+    const p = spawn('node', ['scripts/notify.mjs', 'announce'], { env: { ...env(sundayFake), ANNOUNCE_TEXT: '[uz] Salom UZ\\nikkinchi qator [ru] Привет RU [en] Hello EN' }, stdio: ['ignore', 'pipe', 'pipe'] });
+    let out = ''; p.stdout.on('data', (d) => (out += d)); p.stderr.on('data', (d) => (out += d));
+    p.on('close', (code) => resolve({ code, out }));
+  });
+  l = await log();
+  const sentTo = (id) => to(l, id).filter((c) => c.method === 'sendMessage');
+  const buttons = (id) => (sentTo(id)[0]?.data.reply_markup?.inline_keyboard || []).flat();
+  check('announce exits cleanly', ann.code === 0, ann.out);
+  check('announce: every chat gets exactly one message (students, the group chat, chats without a group)', [4001, 4002, 4003, -100777, 4010, 4011].every((id) => sentTo(id).length === 1), l.map((c) => c.data.chat_id));
+  check('announce: Uzbek chats get the Uzbek text, with the line break', /Salom UZ\nikkinchi qator/.test(sentTo(4001)[0]?.data.text || '') && !/Привет/.test(sentTo(4001)[0]?.data.text || ''), sentTo(4001)[0]?.data.text);
+  check('announce: the Russian chat gets the Russian text', /Привет RU/.test(sentTo(4011)[0]?.data.text || ''), sentTo(4011)[0]?.data.text);
+  check('announce: a student gets an "Invite friends" button that opens the share sheet with their group link', buttons(4001).some((b) => /^https:\/\/t\.me\/share\/url\?url=/.test(b.url || '') && (b.url || '').includes(encodeURIComponent('?start=g_' + GID)) && /Do'stlarni taklif/.test(b.text)), buttons(4001));
+  check('announce: the chat without a group gets the invite button (generic link) and an "open the app" button', buttons(4010).some((b) => /share\/url/.test(b.url || '') && !(b.url || '').includes('start')) && buttons(4010).some((b) => b.web_app), buttons(4010));
+  check('announce: the Russian chat\'s button is in Russian', buttons(4011).some((b) => /Пригласить друзей/.test(b.text)), buttons(4011));
+}
+
 console.log(fails ? `\n${fails} check(s) failed` : '\nAll notify checks passed ✅');
 process.exit(fails ? 1 : 0);
