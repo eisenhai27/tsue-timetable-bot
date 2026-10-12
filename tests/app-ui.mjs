@@ -466,6 +466,16 @@ try {
     ok((await s.page.locator('#sheet img').count()) === 0 && /not ready/i.test(await txt(s.page, '#sheet .picmiss')), 'stale pictures → "not ready yet" instead of last week’s picture');
     await s.ctx.close();
   }
+  // a group whose lessons are not on EduPage yet says so (instead of looking like one long day off)
+  {
+    const ctxE = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' });
+    await ctxE.route(`**/data/g/${gid}.json`, async (r) => { const j = JSON.parse(fs.readFileSync(path.join(ROOT, `data/g/${gid}.json`), 'utf8')); j.lessons = []; await r.fulfill({ contentType: 'application/json', body: JSON.stringify(j) }); });
+    const s = await open({ mode: 'web', hash: `#g=${gid}&l=en`, ctx: ctxE });
+    ok(/not been entered in EduPage yet/.test(await txt(s.page, '.summary')), 'empty group: the summary says the timetable is not entered yet');
+    ok(/not been entered/.test(await txt(s.page, '.empty')) && !/🎉/.test(await txt(s.page, '.empty')), 'empty group: the day view says so too (not "no classes 🎉")');
+    ok(s.errs.length === 0, `empty group: errors ${s.errs.join(';')}`);
+    await ctxE.close();
+  }
 } finally {
   await browser.close();
   server.close();
