@@ -22,9 +22,19 @@ const clean = (s) => String(s || '').trim().replace(/\s+/g, ' ');
 function prettyFaculty(s) {
   s = clean(s);
   if (s !== s.toUpperCase()) return s;
+  if (s.replace(/[^\p{L}]/gu, '').length <= 3) return s; // "2-OT" stays an acronym
   const low = s.toLowerCase();
   return low.charAt(0).toUpperCase() + low.slice(1);
 }
+
+/**
+ * Does this EduPage class name look like a real group ("MO-900/26", "SFFFT-40-B-26", "инф-1", "I-15R")?
+ * Section headers (faculty / course / "2-OT" / "DAVLAT AUDITI (3+1) …" / "12") do not: a group code has a letter
+ * followed straight away by a number. Together with "has lessons" this tells groups from headers — the old rule
+ * ("any name with a digit is a group") swallowed headers like "2-OT" and "DAVLAT AUDITI (3+1)" into the previous section.
+ */
+const GROUP_LIKE = /[\p{L}]['`’]?[-\s.]*\d/u;
+export const isGroupName = (name) => GROUP_LIKE.test(String(name || ''));
 
 /** Pick the timetable version that is valid on `dateStr` (YYYY-MM-DD). */
 export function pickTimetable(viewer, dateStr) {
@@ -61,6 +71,14 @@ export function buildAll(raw, tt, opts = {}) {
     .sort((a, b) => a.p - b.p);
   const periodNums = new Set(periods.map((p) => p.p));
 
+  // Classes that have at least one real lesson card (a class with lessons is certainly a group, not a header)
+  const withCards = new Set();
+  for (const card of T.cards || []) {
+    const lesson = lessonsById[card.lessonid];
+    if (!lesson || !periodNums.has(Number(card.period)) || !String(card.days || '').includes('1')) continue;
+    for (const cid of lesson.classids || []) withCards.add(cid);
+  }
+
   // 1) Walk the class list in order: headers (faculty / "N KURS" / "-") structure the real groups.
   const faculties = [];
   const facByKey = {};
@@ -75,6 +93,16 @@ export function buildAll(raw, tt, opts = {}) {
   const yy = Number(String(tt?.from || '').slice(2, 4)) || null; // "2026-09-07" -> 26 (this year's first-year intake)
   const classes = (T.classes || []).map((c) => ({ id: c.id, name: clean(c.name) })).filter((c) => c.name && !/^-+$/.test(c.name));
   const KURS = /^(.*?)\s*(\d)\s*[-.]?\s*(KURS|КУРС)\s*$/i;
+  // A course with an explicit "N KURS" header collects the groups under it; without one every group is placed by the
+  // intake year in its name (…/26 → 1st year when the timetable is from 2026).
+  const courseOf = (f, name) => {
+    const m = name.match(/[\/-]\s*(\d{2})\D*$/);
+    const guess = m && yy ? yy - Number(m[1]) + 1 : null;
+    const cname = guess >= 1 && guess <= 5 ? String(guess) : '';
+    let c = f.courses.find((x) => x.implicit && x.name === cname);
+    if (!c) { c = { name: cname, groups: [], implicit: true }; f.courses.push(c); }
+    return c;
+  };
   let fac = null;
   let course = null;
   for (let i = 0; i < classes.length; i++) {
@@ -88,29 +116,27 @@ export function buildAll(raw, tt, opts = {}) {
       fac.courses.push(course);
       continue;
     }
-    if (!/\d/.test(name)) {
-      // Header without digits = faculty. Exception: a label such as "KREMS" that sits inside a
-      // faculty and is followed by "2 KURS" (not "1 KURS") — keep the current faculty then.
+    if (!withCards.has(classes[i].id) && !isGroupName(name)) {
+      // A header: faculty / section. Purely numeric stray labels ("12") mean nothing. Exception: a label such as "KREMS"
+      // that sits inside a faculty and is followed by the NEXT course ("1 KURS" … "KREMS" "2 KURS") — keep the current
+      // faculty then. A label followed by a course that does not continue the numbering ("4 KURS" … "2-OT" "2-kurs")
+      // starts a new faculty.
+      if (/^[\d\s.,+\-/]+$/.test(name)) continue;
       const next = classes[i + 1]?.name.match(KURS);
-      if (fac && next && !next[1] && next[2] !== '1') continue;
+      const lastNum = fac ? Number([...fac.courses].reverse().find((c) => !c.implicit)?.name || 0) : 0;
+      if (fac && next && !next[1] && lastNum > 0 && Number(next[2]) > lastNum) continue;
       fac = openFaculty(name);
       course = null;
       continue;
     }
     if (!fac) fac = openFaculty('Boshqa');
-    if (!course) {
-      // No "N KURS" header yet: guess the year from the intake suffix (…/26 → 1st year when the timetable is from 2026)
-      const m = name.match(/[\/-]\s*(\d{2})\D*$/);
-      const guess = m && yy ? yy - Number(m[1]) + 1 : null;
-      course = { name: guess >= 1 && guess <= 5 ? String(guess) : '', groups: [] };
-      fac.courses.push(course);
-    }
+    const c = course && !course.implicit ? course : courseOf(fac, name);
     let id = groupId(name);
     while (usedIds.has(id)) id = id + 'x';
     usedIds.add(id);
-    const info = { id, name, fac: fac.name, course: course.name };
+    const info = { id, name, fac: fac.name, course: c.name, empty: !withCards.has(classes[i].id) };
     classInfo[classes[i].id] = info;
-    course.groups.push(info);
+    c.groups.push(info);
   }
 
   // 2) Lessons per group, per teacher and per room
@@ -181,9 +207,11 @@ export function buildAll(raw, tt, opts = {}) {
       const gs = [];
       for (const g of c.groups) {
         const lessons = dedupe(perGroup[g.id] || []);
-        if (!lessons.length && !opts.keepEmpty) continue;
+        // Groups without lessons (their timetable is not on EduPage yet) stay in the list too: students must be able to
+        // pick their group, and the bot tells them "no timetable yet" instead of the group silently not existing.
+        if (!lessons.length && opts.keepEmpty === false) continue;
         groups[g.id] = { id: g.id, name: g.name, fac: g.fac, course: g.course, tt, lessons };
-        gs.push([g.id, g.name]);
+        gs.push(lessons.length ? [g.id, g.name] : [g.id, g.name, 0]); // third value 0 = no lessons yet
       }
       if (gs.length) courses.push({ name: c.name, groups: gs });
     }
