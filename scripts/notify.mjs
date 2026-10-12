@@ -6,9 +6,9 @@
 //                                        and has not been served today. Safe to call every few minutes: before messaging a
 //                                        chat it CLAIMS it in the bot's database (one atomic UPDATE per chat per day), so
 //                                        even two runs overlapping in time can never send the same message twice.
-//   node scripts/notify.mjs announce   → broadcasts env.ANNOUNCE_TEXT to every active chat (admin only,
-//                                        via the "Run workflow" announce field — reaches everyone with
-//                                        a group set, not just alert-subscribers)
+//   node scripts/notify.mjs announce   → broadcasts env.ANNOUNCE_TEXT to every chat (admin only, via the "Run workflow"
+//                                        announce field) — also chats that never picked a group. Use "[uz] … [ru] … [en] …"
+//                                        to send each chat its own language; every message gets an "Invite friends" button
 //
 // Env: BOT_TOKEN, WORKER_URL, ADMIN_KEY, SITE_URL, ANNOUNCE_TEXT (for 'announce'). DRY_RUN=1 prints instead of sending.
 
@@ -256,14 +256,51 @@ async function sendTomorrow(index, window, day) {
   return { n, failed };
 }
 
+/** "[uz] … [ru] … [en] …" → { uz, ru, en } (a literal \n becomes a line break). Text without markers is sent to everyone as it is. */
+function announceTexts(raw) {
+  const marks = [...raw.matchAll(/\[(uz|ru|en)\]/gi)];
+  const clean = (t) => t.replace(/\\n/g, '\n').trim();
+  if (!marks.length) return { any: clean(raw) };
+  const out = {};
+  marks.forEach((m, i) => { out[m[1].toLowerCase()] = clean(raw.slice(m.index + m[0].length, marks[i + 1]?.index ?? raw.length)); });
+  return out;
+}
+
+async function botName() {
+  if (!botUsername && !DRY) { try { botUsername = (await retrying('getMe', () => tg('getMe', {}))).result?.username; } catch {} }
+  return botUsername;
+}
+
+/**
+ * Admin broadcast to EVERY chat — also the private chats that never picked a group (the people who could not find theirs).
+ * The text goes out in the chat's own language (see announceTexts); each message carries an "open the app" and an
+ * "Invite friends" button (Telegram's share sheet with a link to the bot — to the student's group when there is one).
+ */
 async function sendAnnounce() {
-  const text = (process.env.ANNOUNCE_TEXT || '').trim();
-  if (!text) { console.log('No announcement text set, nothing to send.'); return; }
-  for await (const sub of subscribers('all')) {
-    const g = await loadGroup(sub);
-    if (!g) continue;
-    await send(sub.chat_id, `📢 ${text}`, await keyboard(sub, g.id));
+  const raw = (process.env.ANNOUNCE_TEXT || '').trim();
+  if (!raw) { console.log('No announcement text set, nothing to send.'); return; }
+  const texts = announceTexts(raw);
+  const bot = await botName();
+  const seen = new Set();
+  let n = 0;
+  for await (const sub of subscribers('everyone')) {
+    if (seen.has(sub.chat_id)) continue; // never twice, even if paging overlaps
+    seen.add(sub.chat_id);
+    const L = tr(sub.lang);
+    const text = texts[sub.lang] || texts.uz || texts.any || Object.values(texts)[0];
+    const g = sub.group_id ? await loadGroup(sub) : null;
+    const rows = [];
+    if (g) rows.push(...((await keyboard(sub, g.id))?.inline_keyboard || []));
+    else if (sub.kind === 'private' && SITE_URL) rows.push([{ text: L.btnOpenInApp, web_app: { url: `${SITE_URL}/#l=${sub.lang}` } }]);
+    else if (bot) rows.push([{ text: L.btnOpenInApp, url: `https://t.me/${bot}` }]);
+    if (bot) {
+      const link = g && kindOf(sub) === 'g' ? `https://t.me/${bot}?start=g_${g.id}` : `https://t.me/${bot}`;
+      const shareText = g && kindOf(sub) === 'g' ? L.inviteShareText(g.name) : L.inviteShareGeneric;
+      rows.push([{ text: L.btnInvite, url: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(shareText)}` }]);
+    }
+    if (await send(sub.chat_id, `📢 ${text}`, rows.length ? { inline_keyboard: rows } : undefined)) n++;
   }
+  console.log(`announce: ${n} chats reached`);
 }
 
 async function main() {
