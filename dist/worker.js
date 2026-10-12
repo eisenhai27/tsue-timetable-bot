@@ -77,6 +77,7 @@ var T = {
 
 Guruhdoshlaringizni ham taklif qiling \u{1F447}` : "\u{1F44B} Guruhdoshlaringizni ham taklif qiling \u2014 ularga ham qulay bo'ladi!",
     inviteShareText: (g) => `TDIU Jadval \u2014 ${g} guruhi jadvalini ko'rsatadi va o'zgarsa darhol xabar beradi. Sinab ko'ring:`,
+    inviteShareGeneric: "TDIU Jadval \u2014 dars jadvalini ko'rsatadi va o'zgarsa darhol xabar beradi. Sinab ko'ring:",
     groupChatTip: "\u{1F4A1} <b>Maslahat:</b> botni guruh chatingizga ham qo'shing \u2014 u yerda /setgroup yuborsangiz, butun guruhga avtomatik xabar boradi.",
     feedbackPrompt: "\u270D\uFE0F Taklif yoki xatoni yozing:\n<code>/feedback Xona nomi noto'g'ri ko'rsatilyapti</code>",
     feedbackThanks: "\u2705 Rahmat! Xabaringiz qabul qilindi.",
@@ -184,6 +185,7 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
 
 \u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u0435 \u0438 \u0441\u0432\u043E\u0438\u0445 \u043E\u0434\u043D\u043E\u0433\u0440\u0443\u043F\u043F\u043D\u0438\u043A\u043E\u0432 \u{1F447}` : "\u041F\u0440\u0438\u0433\u043B\u0430\u0441\u0438\u0442\u0435 \u0441\u0432\u043E\u0438\u0445 \u043E\u0434\u043D\u043E\u0433\u0440\u0443\u043F\u043F\u043D\u0438\u043A\u043E\u0432 \u2014 \u0438\u043C \u0442\u043E\u0436\u0435 \u0431\u0443\u0434\u0435\u0442 \u0443\u0434\u043E\u0431\u043D\u043E!",
     inviteShareText: (g) => `TDIU Jadval \u2014 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0433\u0440\u0443\u043F\u043F\u044B ${g} \u0438 \u0441\u0440\u0430\u0437\u0443 \u0441\u043E\u043E\u0431\u0449\u0430\u0435\u0442 \u043E\u0431 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435:`,
+    inviteShareGeneric: "TDIU Jadval \u2014 \u043F\u043E\u043A\u0430\u0437\u044B\u0432\u0430\u0435\u0442 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0438 \u0441\u0440\u0430\u0437\u0443 \u0441\u043E\u043E\u0431\u0449\u0430\u0435\u0442 \u043E\u0431 \u0438\u0437\u043C\u0435\u043D\u0435\u043D\u0438\u044F\u0445. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435:",
     groupChatTip: "\u{1F4A1} <b>\u0421\u043E\u0432\u0435\u0442:</b> \u0434\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u0431\u043E\u0442\u0430 \u0438 \u0432 \u0447\u0430\u0442 \u0432\u0430\u0448\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u044B \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0442\u0430\u043C /setgroup, \u0438 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F \u0431\u0443\u0434\u0443\u0442 \u043F\u0440\u0438\u0445\u043E\u0434\u0438\u0442\u044C \u0432\u0441\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.",
     feedbackPrompt: "\u270D\uFE0F \u041D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0448\u0438\u0431\u043A\u0443:\n<code>/feedback \u041D\u0435\u0432\u0435\u0440\u043D\u043E \u0443\u043A\u0430\u0437\u0430\u043D\u0430 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F</code>",
     feedbackThanks: "\u2705 \u0421\u043F\u0430\u0441\u0438\u0431\u043E! \u0412\u0430\u0448\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u043E.",
@@ -291,6 +293,7 @@ ${t}`,
 
 Invite your groupmates too \u{1F447}` : "Invite your groupmates too \u2014 it'll be handy for them as well!",
     inviteShareText: (g) => `TDIU Jadval \u2014 shows ${g}'s timetable and tells you right away when it changes. Try it:`,
+    inviteShareGeneric: "TDIU Jadval \u2014 shows your timetable and tells you right away when it changes. Try it:",
     groupChatTip: "\u{1F4A1} <b>Tip:</b> add the bot to your group chat too \u2014 send /setgroup there and the whole group gets updates automatically.",
     feedbackPrompt: "\u270D\uFE0F Write your feedback or describe the bug:\n<code>/feedback The room number is shown wrong</code>",
     feedbackThanks: "\u2705 Thanks! Your message has been received.",
@@ -1051,7 +1054,7 @@ async function onInternal(request, url, env) {
     const mode = url.searchParams.get("mode");
     const after = Number(url.searchParams.get("after") || "-9999999999999");
     const limit = Math.min(5e3, Number(url.searchParams.get("limit") || 2e3));
-    let filter = mode === "all" ? "" : `AND ${mode === "weekly" ? "weekly" : "alerts"} = 1`;
+    let filter = mode === "all" || mode === "everyone" ? "" : `AND ${mode === "weekly" ? "weekly" : "alerts"} = 1`;
     const binds = [];
     if (mode === "tomorrow") {
       filter = "AND remind_at >= 0";
@@ -1066,7 +1069,7 @@ async function onInternal(request, url, env) {
       filter += ` AND (${col} IS NULL OR ${col} != ?)`;
       binds.push(day);
     }
-    const { results } = await D.prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE group_id IS NOT NULL ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`).bind(...binds, after, limit).all();
+    const { results } = await D.prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE ${mode === "everyone" ? "(group_id IS NOT NULL OR kind = 'private')" : "group_id IS NOT NULL"} ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`).bind(...binds, after, limit).all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
   }
   if ((url.pathname === "/internal/claim" || url.pathname === "/internal/unclaim") && request.method === "POST") {
