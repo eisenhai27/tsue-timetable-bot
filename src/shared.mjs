@@ -73,6 +73,7 @@ export const T = {
       ? `🎉 <b>${g}</b> guruhidan yana ${n} kishi botdan foydalanmoqda!\n\nGuruhdoshlaringizni ham taklif qiling 👇`
       : "👋 Guruhdoshlaringizni ham taklif qiling — ularga ham qulay bo'ladi!",
     inviteShareText: (g) => `TDIU Jadval — ${g} guruhi jadvalini ko'rsatadi va o'zgarsa darhol xabar beradi. Sinab ko'ring:`,
+    inviteShareGeneric: "TDIU Jadval — dars jadvalini ko'rsatadi va o'zgarsa darhol xabar beradi. Sinab ko'ring:",
     groupChatTip: "💡 <b>Maslahat:</b> botni guruh chatingizga ham qo'shing — u yerda /setgroup yuborsangiz, butun guruhga avtomatik xabar boradi.",
     feedbackPrompt: "✍️ Taklif yoki xatoni yozing:\n<code>/feedback Xona nomi noto'g'ri ko'rsatilyapti</code>",
     feedbackThanks: '✅ Rahmat! Xabaringiz qabul qilindi.',
@@ -166,6 +167,7 @@ export const T = {
       ? `🎉 Ещё ${n} человек из группы <b>${g}</b> уже пользуются ботом!\n\nПригласите и своих одногруппников 👇`
       : 'Пригласите своих одногруппников — им тоже будет удобно!',
     inviteShareText: (g) => `TDIU Jadval — показывает расписание группы ${g} и сразу сообщает об изменениях. Попробуйте:`,
+    inviteShareGeneric: 'TDIU Jadval — показывает расписание и сразу сообщает об изменениях. Попробуйте:',
     groupChatTip: '💡 <b>Совет:</b> добавьте бота и в чат вашей группы — отправьте там /setgroup, и уведомления будут приходить всей группе автоматически.',
     feedbackPrompt: "✍️ Напишите отзыв или опишите ошибку:\n<code>/feedback Неверно указана аудитория</code>",
     feedbackThanks: '✅ Спасибо! Ваше сообщение получено.',
@@ -259,6 +261,7 @@ export const T = {
       ? `🎉 ${n} more people from <b>${g}</b> already use the bot!\n\nInvite your groupmates too 👇`
       : 'Invite your groupmates too — it\'ll be handy for them as well!',
     inviteShareText: (g) => `TDIU Jadval — shows ${g}'s timetable and tells you right away when it changes. Try it:`,
+    inviteShareGeneric: 'TDIU Jadval — shows your timetable and tells you right away when it changes. Try it:',
     groupChatTip: '💡 <b>Tip:</b> add the bot to your group chat too — send /setgroup there and the whole group gets updates automatically.',
     feedbackPrompt: "✍️ Write your feedback or describe the bug:\n<code>/feedback The room number is shown wrong</code>",
     feedbackThanks: '✅ Thanks! Your message has been received.',
