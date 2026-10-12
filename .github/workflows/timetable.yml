@@ -41,7 +41,11 @@ jobs:
     environment:
       name: github-pages
     steps:
+      # ref: main = the newest commit at the moment THIS run starts. Without it a run that waited in the queue behind another
+      # one checks out the commit it was triggered at — a stale copy of the data, which made the bot treat old changes as new.
       - uses: actions/checkout@v4
+        with:
+          ref: main
 
       - uses: actions/setup-node@v4
         with:
@@ -66,7 +70,13 @@ jobs:
             echo "No data changes"
           else
             git commit -m "Timetable update $(date -u +'%Y-%m-%d %H:%M') UTC" -q
-            git push -q
+            # if main moved while we were working (a code push), put our data commit on top of it and try again
+            for i in 1 2 3 4 5; do
+              git push -q && exit 0
+              git pull --rebase -q origin main || { git rebase --abort || true; exit 1; }
+              sleep $((i * 2))
+            done
+            exit 1
           fi
 
       - name: Draw weekly timetable pictures
@@ -132,17 +142,3 @@ jobs:
           WORKER_URL: ${{ vars.WORKER_URL }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
         run: node scripts/stats.mjs
-
-      - name: Save notification state
-        # always(): even when sending hit an error half-way, what was already sent today must be saved, or the next run would send it again
-        if: always() && github.event_name != 'push'
-        run: |
-          git config user.name "timetable-bot"
-          git config user.email "timetable-bot@users.noreply.github.com"
-          if [ -f docs/data/state.json ]; then git add docs/data/state.json; fi
-          if git diff --cached --quiet; then
-            echo "No state changes"
-          else
-            git commit -m "Notification state $(date -u +'%Y-%m-%d %H:%M') UTC" -q
-            git push -q
-          fi
