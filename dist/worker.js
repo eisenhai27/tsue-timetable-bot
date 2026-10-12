@@ -13,6 +13,7 @@ var T = {
     chooseFaculty: "\u{1F3DB} Fakultetni tanlang:",
     chooseCourse: "\u{1F393} Kursni tanlang:",
     chooseGroup: "\u{1F465} Guruhni tanlang:",
+    chooseDirection: "\u{1F9ED} Yo'nalishni tanlang:",
     course: (n) => n ? `${n}-kurs` : "Boshqa",
     searchHint: "\u{1F4A1} Yoki guruh nomini yozing, masalan: <code>MO-901</code>",
     groupSet: (g) => `\u2705 Guruh saqlandi: <b>${g}</b>`,
@@ -23,6 +24,7 @@ var T = {
     noGroup: "Siz hali guruh tanlamagansiz. /group buyrug'ini yuboring.",
     noGroupChat: "Bu chat hali guruhga ulanmagan. Chat admini /setgroup yuborsin.",
     noLessons: "Dars yo'q \u{1F389}",
+    noTT: "\u23F3 Bu guruh uchun jadval hali EduPage'da kiritilmagan. Jadval paydo bo'lishi bilan sizga xabar beraman.",
     freeDay: "Bugun dars yo'q \u{1F389}",
     today: "Bugun",
     tomorrow: "Ertaga",
@@ -118,6 +120,7 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     chooseFaculty: "\u{1F3DB} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0444\u0430\u043A\u0443\u043B\u044C\u0442\u0435\u0442:",
     chooseCourse: "\u{1F393} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043A\u0443\u0440\u0441:",
     chooseGroup: "\u{1F465} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u0443:",
+    chooseDirection: "\u{1F9ED} \u0412\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u043D\u0430\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435:",
     course: (n) => n ? `${n} \u043A\u0443\u0440\u0441` : "\u0414\u0440\u0443\u0433\u043E\u0435",
     searchHint: "\u{1F4A1} \u0418\u043B\u0438 \u043D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043D\u0430\u0437\u0432\u0430\u043D\u0438\u0435 \u0433\u0440\u0443\u043F\u043F\u044B, \u043D\u0430\u043F\u0440\u0438\u043C\u0435\u0440: <code>MO-901</code>",
     groupSet: (g) => `\u2705 \u0413\u0440\u0443\u043F\u043F\u0430 \u0441\u043E\u0445\u0440\u0430\u043D\u0435\u043D\u0430: <b>${g}</b>`,
@@ -128,6 +131,7 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     noGroup: "\u0412\u044B \u0435\u0449\u0451 \u043D\u0435 \u0432\u044B\u0431\u0440\u0430\u043B\u0438 \u0433\u0440\u0443\u043F\u043F\u0443. \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 /group.",
     noGroupChat: "\u0427\u0430\u0442 \u0435\u0449\u0451 \u043D\u0435 \u043F\u0440\u0438\u0432\u044F\u0437\u0430\u043D \u043A \u0433\u0440\u0443\u043F\u043F\u0435. \u0410\u0434\u043C\u0438\u043D \u0447\u0430\u0442\u0430 \u0434\u043E\u043B\u0436\u0435\u043D \u043E\u0442\u043F\u0440\u0430\u0432\u0438\u0442\u044C /setgroup.",
     noLessons: "\u041F\u0430\u0440 \u043D\u0435\u0442 \u{1F389}",
+    noTT: "\u23F3 \u0414\u043B\u044F \u044D\u0442\u043E\u0439 \u0433\u0440\u0443\u043F\u043F\u044B \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u0432 EduPage \u0435\u0449\u0451 \u043D\u0435 \u0432\u043D\u0435\u0441\u0435\u043D\u043E. \u041A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u043E\u043D\u043E \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F, \u044F \u0441\u043E\u043E\u0431\u0449\u0443.",
     freeDay: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043F\u0430\u0440 \u043D\u0435\u0442 \u{1F389}",
     today: "\u0421\u0435\u0433\u043E\u0434\u043D\u044F",
     tomorrow: "\u0417\u0430\u0432\u0442\u0440\u0430",
@@ -223,6 +227,7 @@ ${t}`,
     chooseFaculty: "\u{1F3DB} Choose your faculty:",
     chooseCourse: "\u{1F393} Choose your year:",
     chooseGroup: "\u{1F465} Choose your group:",
+    chooseDirection: "\u{1F9ED} Choose a direction:",
     course: (n) => n ? `Year ${n}` : "Other",
     searchHint: "\u{1F4A1} Or type your group name, e.g. <code>MO-901</code>",
     groupSet: (g) => `\u2705 Group saved: <b>${g}</b>`,
@@ -233,6 +238,7 @@ ${t}`,
     noGroup: "You haven't picked a group yet. Send /group.",
     noGroupChat: "This chat isn't linked to a group yet. A chat admin should send /setgroup.",
     noLessons: "No classes \u{1F389}",
+    noTT: "\u23F3 This group's timetable has not been entered in EduPage yet. I'll let you know as soon as it appears.",
     freeDay: "No classes today \u{1F389}",
     today: "Today",
     tomorrow: "Tomorrow",
@@ -562,6 +568,7 @@ function fmtLessonShort(l, periods, lang, parity) {
   if (l.w && !parity) s += ` \xB7 <i>${l.w === "A" ? tr(lang).weekA : tr(lang).weekB}</i>`;
   return s;
 }
+var noTimetable = (group) => !!group && Array.isArray(group.lessons) && group.lessons.length === 0;
 function fmtDay(group, index, date, lang, nowDate) {
   const L = tr(lang);
   const w = words(lang);
@@ -576,7 +583,7 @@ function fmtDay(group, index, date, lang, nowDate) {
   ].join("\n");
   if (!ls.length) return `${head}
 
-${L.noLessons}`;
+${noTimetable(group) ? L.noTT : L.noLessons}`;
   const sameDay = nowDate && ymd(nowDate) === ymd(date);
   const nowM = sameDay ? nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes() : -1;
   let nextMarked = false;
@@ -680,7 +687,7 @@ function fmtWeek(group, index, monday, lang) {
     parts.push(`<b>${L.days[d]}</b> \xB7 ${words(lang).count(ls.length)}
 ${ls.map((l) => fmtLessonShort(l, index.periods, lang, parity)).join("\n")}`);
   }
-  if (parts.length === 1) parts.push(words(lang).freeWeek);
+  if (parts.length === 1) parts.push(noTimetable(group) ? L.noTT : words(lang).freeWeek);
   return clip(parts.join("\n\n"));
 }
 function fmtWeekCaption(group, index, monday, lang) {
@@ -701,7 +708,7 @@ function clip(s) {
 }
 
 // worker/worker.mjs
-var PAGE = 30;
+var PAGE = 36;
 var TPAGE = 16;
 var KB_VERSION = 2;
 var CALENDAR_ENABLED = false;
@@ -826,6 +833,11 @@ async function db(env) {
         admin_msg_id INTEGER PRIMARY KEY,
         chat_id INTEGER NOT NULL,
         created_at INTEGER)`),
+      // Telegram update ids already handled: Telegram re-sends an update when our answer is slow, and without this every
+      // retry would repeat the whole reply (the "bot answers twice" problem)
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS updates (
+        update_id INTEGER PRIMARY KEY,
+        at INTEGER NOT NULL)`),
       // the admin's /stats: how often each action was used, per day (Tashkent date)
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS usage (
         day TEXT NOT NULL,
@@ -853,6 +865,12 @@ async function db(env) {
     }
     if (!cols.some((c) => c.name === "kbv")) {
       await addColumn("ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0");
+    }
+    {
+      const tn = tashkentNow();
+      const today = ymd(tn), nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+      if (!cols.some((c) => c.name === "sent_tmr")) await addColumn("ALTER TABLE chats ADD COLUMN sent_tmr TEXT", `UPDATE chats SET sent_tmr = '${today}' WHERE remind_at >= 0 AND remind_at <= ${nowMin}`);
+      if (!cols.some((c) => c.name === "sent_wk")) await addColumn("ALTER TABLE chats ADD COLUMN sent_wk TEXT");
     }
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)").run();
     schemaReady = true;
@@ -1019,7 +1037,7 @@ async function onWeekPic(request, env) {
   const group = type === "t" ? { ...ent, kind: "t" } : ent;
   const monday = displayMonday(tashkentNow());
   let r = null;
-  if (!index.weekA || index.imgMonday === ymd(monday)) {
+  if ((!index.weekA || index.imgMonday === ymd(monday)) && !noTimetable(group)) {
     const photo = `${siteUrl(env)}/${weekImgPath(type, group.id ?? id, lang)}?v=${group.v || index.tt?.num || ""}&w=${ymd(monday)}`;
     r = await tg(env, "sendPhoto", { chat_id: user.id, photo, caption: fmtWeekCaption(group, index, monday, lang), parse_mode: "HTML" });
   }
@@ -1042,8 +1060,29 @@ async function onInternal(request, url, env) {
         binds.push(Number(url.searchParams.get("from") || -1), Number(url.searchParams.get("to")));
       }
     }
+    const day = url.searchParams.get("day");
+    if (day && /^\d{4}-\d{2}-\d{2}$/.test(day) && (mode === "tomorrow" || mode === "weekly")) {
+      const col = mode === "weekly" ? "sent_wk" : "sent_tmr";
+      filter += ` AND (${col} IS NULL OR ${col} != ?)`;
+      binds.push(day);
+    }
     const { results } = await D.prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE group_id IS NOT NULL ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`).bind(...binds, after, limit).all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
+  }
+  if ((url.pathname === "/internal/claim" || url.pathname === "/internal/unclaim") && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const col = body?.kind === "wk" ? "sent_wk" : body?.kind === "tmr" ? "sent_tmr" : null;
+    const ids = Array.isArray(body?.ids) ? body.ids.filter((x) => Number.isSafeInteger(x)).slice(0, 5e3) : [];
+    if (!col || !/^\d{4}-\d{2}-\d{2}$/.test(String(body?.day)) || !ids.length) return json({ error: "bad request" }, 400);
+    const claiming = url.pathname === "/internal/claim";
+    const stmts = [];
+    for (let i = 0; i < ids.length; i += 80) {
+      const part = ids.slice(i, i + 80);
+      const marks = part.map(() => "?").join(",");
+      stmts.push(claiming ? D.prepare(`UPDATE chats SET ${col} = ? WHERE chat_id IN (${marks}) AND (${col} IS NULL OR ${col} != ?) RETURNING chat_id`).bind(body.day, ...part, body.day) : D.prepare(`UPDATE chats SET ${col} = NULL WHERE chat_id IN (${marks}) AND ${col} = ?`).bind(...part, body.day));
+    }
+    const res = await D.batch(stmts);
+    return json(claiming ? { claimed: res.flatMap((r) => (r.results || []).map((x) => x.chat_id)) } : { ok: true });
   }
   if (url.pathname === "/internal/cleanup" && request.method === "POST") {
     const body = await request.json();
@@ -1076,12 +1115,25 @@ async function onWebhook(request, env) {
     return new Response("Forbidden", { status: 403 });
   }
   const update = await request.json();
+  if (await alreadyHandled(env, update.update_id)) return new Response("ok");
   await loadSubjects(env);
   if (update.message) await onMessage(env, update.message);
   else if (update.callback_query) await onCallback(env, update.callback_query);
   else if (update.my_chat_member) await onMyChatMember(env, update.my_chat_member);
   await track(env, update);
   return new Response("ok");
+}
+async function alreadyHandled(env, id) {
+  if (!Number.isSafeInteger(id)) return false;
+  try {
+    const D = await db(env);
+    const r = await D.prepare("INSERT OR IGNORE INTO updates (update_id, at) VALUES (?, ?)").bind(id, Date.now()).run();
+    if (Math.random() < 0.02) await D.prepare("DELETE FROM updates WHERE at < ?").bind(Date.now() - 2 * 864e5).run();
+    return r.meta?.changes === 0;
+  } catch (e) {
+    console.warn("dedupe", e?.message);
+    return false;
+  }
 }
 async function track(env, update) {
   try {
@@ -1433,7 +1485,7 @@ async function sendSchedule(env, chatId, row, what) {
   if (kb) extra.reply_markup = kb;
   if (what === "week") {
     const monday = displayMonday(now);
-    const fresh = !index.weekA || index.imgMonday === ymd(monday);
+    const fresh = (!index.weekA || index.imgMonday === ymd(monday)) && !noTimetable(group);
     if (!fresh) return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra);
     const photo = `${siteUrl(env)}/${weekImgPath(isTeacher(row) ? "t" : "g", group.id, row.lang)}?v=${group.v || index.tt?.num || ""}&w=${ymd(monday)}`;
     const r = await tg(env, "sendPhoto", { chat_id: chatId, photo, caption: fmtWeekCaption(group, index, monday, row.lang), parse_mode: "HTML", ...extra });
@@ -1505,7 +1557,7 @@ async function showFaculties(env, chatId, uid, lang, messageId) {
   } catch {
     return send(env, chatId, L.dataError);
   }
-  const kb = index.faculties.map((f, i) => [{ text: `\u{1F3DB} ${f.name}`, callback_data: `f:${uid}:${i}` }]);
+  const kb = index.faculties.map((f, i) => [{ text: `\u{1F3DB} ${f.name} \xB7 ${f.courses.reduce((n, c) => n + c.groups.length, 0)}`, callback_data: `f:${uid}:${i}` }]);
   kb.push(langRow(lang, `pick:${uid}`));
   const text = `${L.chooseFaculty}
 
@@ -1518,37 +1570,80 @@ function langRow(current, suffix) {
 }
 async function showCourses(env, chatId, uid, lang, fi, messageId) {
   const L = tr(lang);
-  const index = await getIndex(env);
+  let index;
+  try {
+    index = await getIndex(env);
+  } catch {
+    return send(env, chatId, L.dataError);
+  }
   const fac = index.faculties[fi];
   if (!fac) return showFaculties(env, chatId, uid, lang, messageId);
   if (fac.courses.length === 1) return showGroups(env, chatId, uid, lang, fi, 0, 0, messageId);
   const kb = [];
   for (let i = 0; i < fac.courses.length; i += 2) {
-    kb.push(fac.courses.slice(i, i + 2).map((c, j) => ({ text: `\u{1F393} ${L.course(c.name)}`, callback_data: `c:${uid}:${fi}:${i + j}:0` })));
+    kb.push(fac.courses.slice(i, i + 2).map((c, j) => ({ text: `\u{1F393} ${L.course(c.name)} \xB7 ${c.groups.length}`, callback_data: `c:${uid}:${fi}:${i + j}:0` })));
   }
   kb.push([{ text: L.back, callback_data: `F:${uid}` }]);
   return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: `\u{1F3DB} <b>${esc(fac.name)}</b>
 ${L.chooseCourse}`, parse_mode: "HTML", reply_markup: { inline_keyboard: kb } });
 }
-async function showGroups(env, chatId, uid, lang, fi, ci, page, messageId) {
+var LOOKALIKE = { \u0410: "A", \u0412: "B", \u0415: "E", \u041A: "K", \u041C: "M", \u041D: "H", \u041E: "O", \u0420: "P", \u0421: "C", \u0422: "T", \u0425: "X", \u0423: "Y" };
+function dirOf(name) {
+  const t = String(name || "").trim();
+  let d = ((/^[^\d\-\s/.]+/.exec(t) || [t.split(/[\s-]/)[0]])[0] || "").toUpperCase();
+  if (/[A-Z]/.test(d)) d = d.replace(/[АВЕКМНОРСТХУ]/g, (c) => LOOKALIKE[c]);
+  return d || "\u2014";
+}
+function directionsOf(course) {
+  const by = /* @__PURE__ */ new Map();
+  for (const g of course.groups) {
+    const k = dirOf(g[1]);
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(g);
+  }
+  return [...by].map(([key, groups]) => ({ key, groups }));
+}
+async function showGroups(env, chatId, uid, lang, fi, ci, page, messageId, di = -1) {
   const L = tr(lang);
-  const index = await getIndex(env);
+  let index;
+  try {
+    index = await getIndex(env);
+  } catch {
+    return send(env, chatId, L.dataError);
+  }
   const fac = index.faculties[fi];
   const course = fac?.courses[ci];
   if (!course) return showFaculties(env, chatId, uid, lang, messageId);
-  const slice = course.groups.slice(page * PAGE, page * PAGE + PAGE);
+  page = Math.max(0, page | 0);
+  const toCourses = fac.courses.length > 1 ? `f:${uid}:${fi}` : `F:${uid}`;
+  const head = `\u{1F3DB} <b>${esc(fac.name)}</b>${course.name ? ` \xB7 ${L.course(course.name)}` : ""}`;
+  let dirs = course.groups.length > PAGE ? directionsOf(course) : null;
+  if (dirs && (dirs.length < 2 || dirs.length > 16)) dirs = null;
+  if (dirs && di < 0 && page === 0) {
+    const kb2 = [];
+    for (let i = 0; i < dirs.length; i += 3) kb2.push(dirs.slice(i, i + 3).map((d, j) => ({ text: `${d.key} \xB7 ${d.groups.length}`, callback_data: `d:${uid}:${fi}:${ci}:${i + j}:0` })));
+    kb2.push([{ text: L.back, callback_data: toCourses }]);
+    return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: `${head} \xB7 ${course.groups.length}
+${L.chooseDirection}`, parse_mode: "HTML", reply_markup: { inline_keyboard: kb2 } });
+  }
+  const dir = dirs && di >= 0 ? dirs[di] : null;
+  if (dirs && di >= 0 && !dir) return showGroups(env, chatId, uid, lang, fi, ci, 0, messageId);
+  const list = dir ? dir.groups : course.groups;
+  const pages = Math.max(1, Math.ceil(list.length / PAGE));
+  page = Math.min(page, pages - 1);
+  const slice = list.slice(page * PAGE, page * PAGE + PAGE);
+  const go = (p) => dir ? `d:${uid}:${fi}:${ci}:${di}:${p}` : `c:${uid}:${fi}:${ci}:${p}`;
   const kb = [];
   for (let i = 0; i < slice.length; i += 3) {
     kb.push(slice.slice(i, i + 3).map(([id, name]) => ({ text: name, callback_data: `g:${uid}:${id}` })));
   }
-  const nav = [];
-  nav.push({ text: L.back, callback_data: fac.courses.length > 1 ? `f:${uid}:${fi}` : `F:${uid}` });
-  if (page > 0) nav.push({ text: "\u2B05\uFE0F", callback_data: `c:${uid}:${fi}:${ci}:${page - 1}` });
-  if ((page + 1) * PAGE < course.groups.length) nav.push({ text: L.more, callback_data: `c:${uid}:${fi}:${ci}:${page + 1}` });
+  const nav = [{ text: L.back, callback_data: dirs ? `c:${uid}:${fi}:${ci}:0` : toCourses }];
+  if (page > 0) nav.push({ text: "\u2B05\uFE0F", callback_data: go(page - 1) });
+  if (page + 1 < pages) nav.push({ text: L.more, callback_data: go(page + 1) });
   kb.push(nav);
-  const title = `\u{1F3DB} <b>${esc(fac.name)}</b>${course.name ? ` \xB7 ${L.course(course.name)}` : ""}
-${L.chooseGroup}`;
-  return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: title, parse_mode: "HTML", reply_markup: { inline_keyboard: kb } });
+  const where = `${head}${dir ? ` \xB7 ${esc(dir.key)}` : ""}${pages > 1 ? ` \xB7 ${page + 1}/${pages}` : ""}`;
+  return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: `${where}
+${L.chooseGroup}`, parse_mode: "HTML", reply_markup: { inline_keyboard: kb } });
 }
 var norm = (s) => String(s || "").toUpperCase().replace(/[^A-Z0-9А-ЯЁ]/g, "");
 var CYR = { \u0430: "a", \u0431: "b", \u0432: "v", \u0433: "g", \u0434: "d", \u0435: "e", \u0451: "yo", \u0436: "j", \u0437: "z", \u0438: "i", \u0439: "y", \u043A: "k", \u043B: "l", \u043C: "m", \u043D: "n", \u043E: "o", \u043F: "p", \u0440: "r", \u0441: "s", \u0442: "t", \u0443: "u", \u0444: "f", \u0445: "x", \u0446: "ts", \u0447: "ch", \u0448: "sh", \u0449: "sh", \u044A: "", \u044B: "i", \u044C: "", \u044D: "e", \u044E: "yu", \u044F: "ya", \u045E: "o", \u049B: "q", \u0493: "g", \u04B3: "h" };
@@ -1759,10 +1854,10 @@ async function searchGroups(env, chatId, uid, lang, query) {
   }
   if (!hits.length) return searchTeachers(env, chatId, uid, lang, query, L.notFound);
   hits.sort((a, b) => a[2] - b[2] || a[1].localeCompare(b[1], void 0, { numeric: true }));
-  const top = hits.slice(0, 24);
+  const top = hits.slice(0, PAGE);
   const kb = [];
   for (let i = 0; i < top.length; i += 3) kb.push(top.slice(i, i + 3).map(([id, name]) => ({ text: name, callback_data: `g:${uid}:${id}` })));
-  return send(env, chatId, `\u{1F50E} ${L.found}`, { reply_markup: { inline_keyboard: kb } });
+  return send(env, chatId, `\u{1F50E} ${L.found}${hits.length > top.length ? ` ${top.length}/${hits.length}` : ""}`, { reply_markup: { inline_keyboard: kb } });
 }
 async function findGroupName(env, id) {
   const index = await getIndex(env);
@@ -1799,8 +1894,14 @@ async function setRemindTime(env, chatId, row, arg) {
   if (!arg) return showRemindPicker(env, chatId, row, null);
   const m = parseClock(arg);
   if (m == null) return send(env, chatId, L.remindBad);
-  await updateChat(env, chatId, { remind_at: m });
+  await setRemindAt(env, chatId, m);
   return send(env, chatId, L.remindSet(m));
+}
+async function setRemindAt(env, chatId, m) {
+  const tn = tashkentNow();
+  const fields = { remind_at: m };
+  if (m >= 0 && m <= tn.getUTCHours() * 60 + tn.getUTCMinutes()) fields.sent_tmr = ymd(tn);
+  await updateChat(env, chatId, fields);
 }
 async function showRemindPicker(env, chatId, row, messageId) {
   const L = tr(row.lang);
@@ -1838,6 +1939,14 @@ async function showSettings(env, chatId, row, messageId) {
   if (messageId) return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", reply_markup: kb });
   return send(env, chatId, text, { reply_markup: kb });
 }
+var recentTaps = /* @__PURE__ */ new Map();
+function repeatedTap(chatId, messageId, data) {
+  const k = `${chatId}:${messageId}:${data}`, now = Date.now();
+  const last = recentTaps.get(k);
+  if (recentTaps.size > 500) recentTaps.clear();
+  recentTaps.set(k, now);
+  return last != null && now - last < 6e3;
+}
 async function onCallback(env, cb) {
   const msg = cb.message;
   if (!msg) return tg(env, "answerCallbackQuery", { callback_query_id: cb.id });
@@ -1849,7 +1958,7 @@ async function onCallback(env, cb) {
   const lang = row.lang;
   const L = tr(lang);
   const isGroupChat = chat.type !== "private";
-  if (["f", "c", "F", "g", "R", "RM", "tL", "tl", "tp"].includes(kind)) {
+  if (["f", "c", "d", "F", "g", "R", "RM", "tL", "tl", "tp"].includes(kind)) {
     const uid = Number(parts[1]);
     if (uid === 0 ? !await isAdmin(env, chatId, cb) : uid !== cb.from.id) {
       return tg(env, "answerCallbackQuery", { callback_query_id: cb.id, text: uid === 0 ? L.onlyAdmins : L.notYourMenu, show_alert: true });
@@ -1859,6 +1968,7 @@ async function onCallback(env, cb) {
     return tg(env, "answerCallbackQuery", { callback_query_id: cb.id, text: L.onlyAdmins, show_alert: true });
   }
   tg(env, "answerCallbackQuery", { callback_query_id: cb.id });
+  if ((kind === "g" || kind === "tp") && repeatedTap(chatId, msg.message_id, cb.data)) return;
   if (kind === "adm") {
     if (isAdminChat(env, chatId)) await sendStats(env, chatId, msg.message_id);
     return;
@@ -1885,7 +1995,7 @@ async function onCallback(env, cb) {
   }
   if (kind === "rt") {
     const m = Math.max(-1, Math.min(1439, Number(parts[1]) || 0));
-    await updateChat(env, chatId, { remind_at: m });
+    await setRemindAt(env, chatId, m);
     return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: L.remindSet(m), parse_mode: "HTML" });
   }
   if (kind === "wh") return showWhere(env, chatId, lang, isGroupChat ? "group" : "private", parts[1], msg.message_id, (await myTeachers(env, row)).length > 0);
@@ -1905,6 +2015,7 @@ async function onCallback(env, cb) {
   if (kind === "F") return showFaculties(env, chatId, parts[1], lang, msg.message_id);
   if (kind === "f") return showCourses(env, chatId, parts[1], lang, Number(parts[2]), msg.message_id);
   if (kind === "c") return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[4]), msg.message_id);
+  if (kind === "d") return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[5]) || 0, msg.message_id, Number(parts[4]));
   if (kind === "g") return chooseGroup(env, chat, Number(parts[1]), parts[2], msg.message_id, lang);
   if (["R", "RM", "tL", "tl", "tp"].includes(kind)) {
     if (isGroupChat) return;
