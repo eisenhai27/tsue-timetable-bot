@@ -1,0 +1,12 @@
+# Weekly check for updates of the GitHub Actions and npm packages the project uses, so security fixes arrive as pull requests.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5

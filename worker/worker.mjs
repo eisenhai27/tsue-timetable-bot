@@ -29,23 +29,24 @@ const TPAGE = 16; // teachers per page in the picker
 const KB_VERSION = 2;
 const CALENDAR_ENABLED = false; // the /calendar command + button are hidden for now; flip to true to bring them back
 
+// Headers added to EVERY response: nothing here is meant to be framed, sniffed, cached or leak a referrer.
+const SECURITY_HEADERS = {
+  'x-content-type-options': 'nosniff',
+  'x-frame-options': 'DENY',
+  'referrer-policy': 'no-referrer',
+  'content-security-policy': "default-src 'none'; frame-ancestors 'none'",
+  'strict-transport-security': 'max-age=31536000',
+  'cache-control': 'no-store',
+};
+function withSecurityHeaders(res) {
+  const headers = new Headers(res.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 export default {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    try {
-      if (request.method === 'POST' && url.pathname === '/tg') return await onWebhook(request, env);
-      if (url.pathname === '/api/week-pic') return await onWeekPic(request, env);
-      if (url.pathname === '/setup') return await onSetup(url, env);
-      if (url.pathname.startsWith('/internal/')) return await onInternal(request, url, env);
-      return new Response('TDIU Jadval bot is running ✅', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
-    } catch (e) {
-      console.error(e.stack || e);
-      // Always answer 200 to Telegram so it doesn't retry the same broken update forever
-      if (url.pathname === '/tg') return new Response('ok');
-      // Don't leak internal details (D1/Telegram error text, stack info) to whoever sent the request —
-      // the real message is in the Cloudflare dashboard's Logs tab for us to debug.
-      return new Response('Something went wrong. Try again shortly.', { status: 500 });
-    }
+    return withSecurityHeaders(await route(request, env));
   },
 
   // GitHub's own `schedule:` trigger is "best effort" and can silently go quiet for hours on a
@@ -70,6 +71,24 @@ export default {
   },
 };
 
+async function route(request, env) {
+  const url = new URL(request.url);
+  try {
+    if (request.method === 'POST' && url.pathname === '/tg') return await onWebhook(request, env);
+    if (url.pathname === '/api/week-pic') return await onWeekPic(request, env);
+    if (url.pathname === '/setup') return await onSetup(request, url, env);
+    if (url.pathname.startsWith('/internal/')) return await onInternal(request, url, env);
+    return new Response('TDIU Jadval bot is running ✅', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
+  } catch (e) {
+    console.error(e.stack || e);
+    // Always answer 200 to Telegram so it doesn't retry the same broken update forever
+    if (url.pathname === '/tg') return new Response('ok');
+    // Don't leak internal details (D1/Telegram error text, stack info) to whoever sent the request —
+    // the real message is in the Cloudflare dashboard's Logs tab for us to debug.
+    return new Response('Something went wrong. Try again shortly.', { status: 500 });
+  }
+}
+
 // ---------------------------------------------------------------- helpers
 
 async function sha256hex(s) {
@@ -78,15 +97,62 @@ async function sha256hex(s) {
 }
 // Constant-time-ish comparison for secrets: hashing both sides first means the result is always
 // a same-length compare, so a caller can't learn anything about ADMIN_KEY from response timing.
+// FAILS CLOSED: if either side is empty (a key that was never configured, a request without the header) nothing matches —
+// otherwise "no ADMIN_KEY set" + "no header sent" would compare equal and open every admin endpoint.
 async function safeEqual(a, b) {
-  const [ha, hb] = await Promise.all([sha256hex(String(a ?? '')), sha256hex(String(b ?? ''))]);
+  if (a == null || b == null || String(a) === '' || String(b) === '') return false;
+  const [ha, hb] = await Promise.all([sha256hex(String(a)), sha256hex(String(b))]);
   return ha === hb;
 }
 const webhookSecret = async (env) => (await sha256hex('tg:' + env.ADMIN_KEY)).slice(0, 48);
+
+// Brake for password guessing: after AUTH_MAX wrong keys from one address within AUTH_WINDOW the address gets 429 for the rest
+// of the window, without even looking at the key. (Per Worker instance and best effort — the real protection is a long random
+// ADMIN_KEY; this just makes automated guessing pointless.)
+const AUTH_MAX = 15, AUTH_WINDOW = 10 * 60 * 1000;
+const authFails = new Map(); // ip → { n, since }
+const clientIp = (request) => request.headers.get('cf-connecting-ip') || 'unknown';
+function authBlocked(request) {
+  const r = authFails.get(clientIp(request));
+  if (!r) return false;
+  if (Date.now() - r.since > AUTH_WINDOW) { authFails.delete(clientIp(request)); return false; }
+  return r.n >= AUTH_MAX;
+}
+function noteAuthFail(request) {
+  const ip = clientIp(request), now = Date.now();
+  if (authFails.size > 2000) authFails.clear();
+  const r = authFails.get(ip);
+  if (!r || now - r.since > AUTH_WINDOW) authFails.set(ip, { n: 1, since: now });
+  else r.n++;
+}
+const tooManyAttempts = () => new Response('Too many attempts', { status: 429, headers: { 'retry-after': '600' } });
+
+// Brake for flooding: a person who sends more than FLOOD_MAX updates (messages + button taps) within FLOOD_WINDOW is ignored
+// until the window passes. Costs one Map lookup, so the flood never reaches the database.
+const FLOOD_MAX = 30, FLOOD_WINDOW = 10 * 1000;
+const floodSeen = new Map(); // user id → { n, since }
+function flooding(env, userId) {
+  if (!userId) return false;
+  const max = Number(env.FLOOD_MAX) > 0 ? Number(env.FLOOD_MAX) : FLOOD_MAX; // (the local test run raises it: a script is much faster than a person)
+  const now = Date.now();
+  if (floodSeen.size > 5000) floodSeen.clear();
+  const r = floodSeen.get(userId);
+  if (!r || now - r.since > FLOOD_WINDOW) { floodSeen.set(userId, { n: 1, since: now }); return false; }
+  return ++r.n > max;
+}
+
+/** Telegram ids in menu buttons come back from the client, so treat them as input: anything but a whole number never matches a person. */
+const asUid = (v) => { const n = Number(v); return Number.isSafeInteger(n) ? n : -1; };
+/** Ids of groups / teachers / rooms end up in file paths and cache keys. */
+const validId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id ?? ''));
 const siteUrl = (env) => String(env.SITE_URL || '').replace(/\/+$/, '');
 
+// TG_API exists only so the local tests can point the Worker at a fake Telegram. It is honoured for localhost alone: the bot
+// token is part of every request URL, so it must never be sent to any other host, whatever a variable says.
+const tgBase = (env) => (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(String(env.TG_API || '')) ? env.TG_API : 'https://api.telegram.org');
+
 async function tg(env, method, body) {
-  const res = await fetch(`${env.TG_API || 'https://api.telegram.org'}/bot${env.BOT_TOKEN}/${method}`, {
+  const res = await fetch(`${tgBase(env)}/bot${env.BOT_TOKEN}/${method}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -100,6 +166,7 @@ const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, 
 
 // Small in-memory cache (lives as long as the Worker instance, usually minutes)
 const cache = new Map();
+const CACHE_MAX = 120; // a Worker instance has ~128 MB; group files are big, so only the most recent ones are kept
 async function getData(env, file, ttlSec = 300) {
   const hit = cache.get(file);
   if (hit && hit.until > Date.now()) return hit.value;
@@ -110,12 +177,14 @@ async function getData(env, file, ttlSec = 300) {
     throw new Error(`data ${file}: HTTP ${res.status}`);
   }
   const value = await res.json();
+  cache.delete(file); // re-insert so the Map's order is "oldest first"
   cache.set(file, { value, until: Date.now() + ttlSec * 1000 });
+  while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
   return value;
 }
 const getIndex = (env) => getData(env, 'index.json');
-const getGroup = (env, id) => getData(env, `g/${id}.json`);
-const getTeacher = (env, id) => getData(env, `t/${id}.json`);
+const getGroup = async (env, id) => (validId(id) ? getData(env, `g/${id}.json`) : null);
+const getTeacher = async (env, id) => (validId(id) ? getData(env, `t/${id}.json`) : null);
 const getPeople = (env) => getData(env, 'people.json', 600);
 
 // Russian / English readers get translated subject names (docs/data/subjects.json). Loaded lazily and kept for
@@ -220,6 +289,8 @@ async function db(env) {
       if (!cols.some((c) => c.name === 'sent_wk')) await addColumn('ALTER TABLE chats ADD COLUMN sent_wk TEXT');
     }
     await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)').run();
+    // usage keys are a short fixed vocabulary now (see track()); drop the long junk keys anyone could have created before that
+    await env.DB.prepare('DELETE FROM usage WHERE length(k) > 30').run();
     schemaReady = true;
   }
   return env.DB;
@@ -307,8 +378,11 @@ async function addFeedback(env, chatId, name, text) {
 
 // ---------------------------------------------------------------- setup & internal API
 
-async function onSetup(url, env) {
-  if (!(await safeEqual(url.searchParams.get('key'), env.ADMIN_KEY))) return new Response('Wrong key', { status: 403 });
+async function onSetup(request, url, env) {
+  if (authBlocked(request)) return tooManyAttempts();
+  // the key may come in the X-Admin-Key header (kept out of URLs and logs) or, for opening the link in a browser, as ?key=
+  const key = request.headers.get('x-admin-key') || url.searchParams.get('key');
+  if (!(await safeEqual(key, env.ADMIN_KEY))) { noteAuthFail(request); return new Response('Wrong key', { status: 403 }); }
   const out = {};
   out.webhook = await tg(env, 'setWebhook', {
     url: `${url.origin}/tg`,
@@ -344,9 +418,10 @@ async function onSetup(url, env) {
 // The Mini App's "Send to chat" button calls this. Telegram signs the data it hands the Mini App (initData) with the bot token,
 // so we can tell who is asking; the picture always goes to that person's own chat, in the language the Mini App is showing.
 
-const appOrigin = (env) => { try { return new URL(siteUrl(env)).origin; } catch { return '*'; } };
+const appOrigin = (env) => { try { return new URL(siteUrl(env)).origin; } catch { return null; } };
+// only the Mini App's own address may call this from a browser (and a misconfigured SITE_URL means nobody, never "*")
 const corsFor = (env) => ({
-  'access-control-allow-origin': appOrigin(env), 'access-control-allow-methods': 'POST, OPTIONS',
+  ...(appOrigin(env) ? { 'access-control-allow-origin': appOrigin(env) } : {}), 'access-control-allow-methods': 'POST, OPTIONS',
   'access-control-allow-headers': 'content-type', 'access-control-max-age': '86400', vary: 'origin',
 });
 const jsonCors = (env, obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json', ...corsFor(env) } });
@@ -406,7 +481,8 @@ async function onWeekPic(request, env) {
 }
 
 async function onInternal(request, url, env) {
-  if (!(await safeEqual(request.headers.get('x-admin-key'), env.ADMIN_KEY))) return new Response('Forbidden', { status: 403 });
+  if (authBlocked(request)) return tooManyAttempts();
+  if (!(await safeEqual(request.headers.get('x-admin-key'), env.ADMIN_KEY))) { noteAuthFail(request); return new Response('Forbidden', { status: 403 }); }
   const D = await db(env);
   if (url.pathname === '/internal/subs') {
     const mode = url.searchParams.get('mode');
@@ -458,12 +534,15 @@ async function onInternal(request, url, env) {
     return json(claiming ? { claimed: res.flatMap((r) => (r.results || []).map((x) => x.chat_id)) } : { ok: true });
   }
   if (url.pathname === '/internal/cleanup' && request.method === 'POST') {
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== 'object') return json({ error: 'bad request' }, 400);
+    const remove = (Array.isArray(body.remove) ? body.remove : []).filter(Number.isSafeInteger).slice(0, 5000);
+    const migrate = (Array.isArray(body.migrate) ? body.migrate : []).filter((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isSafeInteger)).slice(0, 5000);
     const stmts = [];
-    for (const id of body.remove || []) stmts.push(D.prepare('DELETE FROM chats WHERE chat_id = ?').bind(id));
-    for (const [from, to] of body.migrate || []) stmts.push(D.prepare('UPDATE OR REPLACE chats SET chat_id = ? WHERE chat_id = ?').bind(to, from));
+    for (const id of remove) stmts.push(D.prepare('DELETE FROM chats WHERE chat_id = ?').bind(id));
+    for (const [from, to] of migrate) stmts.push(D.prepare('UPDATE OR REPLACE chats SET chat_id = ? WHERE chat_id = ?').bind(to, from));
     if (stmts.length) await D.batch(stmts);
-    return json({ ok: true, removed: (body.remove || []).length, migrated: (body.migrate || []).length });
+    return json({ ok: true, removed: remove.length, migrated: migrate.length });
   }
   if (url.pathname === '/internal/edupage' && request.method === 'POST') {
     // Relay for the GitHub Action: EduPage sometimes refuses GitHub's servers, so the Action
@@ -489,10 +568,19 @@ async function onInternal(request, url, env) {
 // ---------------------------------------------------------------- Telegram updates
 
 async function onWebhook(request, env) {
+  if (authBlocked(request)) return tooManyAttempts();
   if (!(await safeEqual(request.headers.get('x-telegram-bot-api-secret-token'), await webhookSecret(env)))) {
+    noteAuthFail(request);
     return new Response('Forbidden', { status: 403 });
   }
-  const update = await request.json();
+  if (Number(request.headers.get('content-length') || 0) > 1_000_000) return new Response('Too large', { status: 413 });
+  const update = await request.json().catch(() => null);
+  if (!update || typeof update !== 'object') return new Response('ok');
+  // The bot sits in group chats as an admin and so sees EVERY message there. Only commands (and the move-to-supergroup notice)
+  // need an answer: skip the rest before it costs a database write, so a busy or hostile group cannot eat the daily D1 quota.
+  const gm = update.message;
+  if (gm && gm.chat?.type !== 'private' && !gm.migrate_to_chat_id && !String(gm.text || '').startsWith('/')) return new Response('ok');
+  if (flooding(env, gm?.from?.id || update.callback_query?.from?.id)) return new Response('ok'); // one person hammering the bot: ignored for a few seconds
   if (await alreadyHandled(env, update.update_id)) return new Response('ok'); // a Telegram retry of an update we already answered
   await loadSubjects(env);
   if (update.message) await onMessage(env, update.message);
@@ -523,10 +611,12 @@ async function track(env, update) {
     const chat = m?.chat || c?.message?.chat;
     if (!chat) return;
     let k = null;
-    if (c) k = 'cb:' + String(c.data || '').split(':')[0];
+    // Anyone can type any command name or craft any callback data, so only a FIXED vocabulary is counted — everything else is
+    // "other". (Counting raw names let one person fill the usage table with endless junk keys and break the admin's /stats.)
+    if (c) { const kind = String(c.data || '').split(':')[0]; k = 'cb:' + (/^[A-Za-z]{1,4}$/.test(kind) ? kind : 'other'); }
     else if (m.text) {
       const cmd = parseCommand(m.text);
-      k = cmd ? cmd.cmd : BUTTONS[m.text.trim()] || (chat.type === 'private' ? (isWherePrompt(m.reply_to_message) ? 'where' : 'text') : null);
+      k = cmd ? (COUNTED_COMMANDS.has(cmd.cmd) ? cmd.cmd : 'other') : BUTTONS[m.text.trim()] || (chat.type === 'private' ? (isWherePrompt(m.reply_to_message) ? 'where' : 'text') : null);
     }
     if (!k) return; // ordinary group chatter (the bot is an admin there and sees every message) is not counted
     const now = Date.now();
@@ -540,6 +630,8 @@ async function track(env, update) {
   }
 }
 
+const COUNTED_COMMANDS = new Set(['today', 'tomorrow', 'week', 'settings', 'start', 'help', 'app', 'group', 'setgroup', 'unset', 'teacher', 'where', 'ustoz', 'find',
+  'feedback', 'time', 'remind', 'lang', 'language', 'calendar', 'stats', 'reply']);
 const USAGE_NAMES = {
   today: '📅 Bugungi darslar', tomorrow: '➡️ Ertangi darslar', week: '🗓 Haftalik jadval', settings: '⚙️ Sozlamalar',
   start: '▶️ /start', help: '❓ Yordam', app: '📱 /app', group: '👥 Guruh tanlash', teacher: "👨‍🏫 O'qituvchi bo'limi",
@@ -574,7 +666,7 @@ async function sendStats(env, chatId, editId) {
   const dm = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
   const feat = (rows) => {
     const list = rows.filter((x) => !x.k.startsWith('cb:') && x.k !== 'stats' && x.k !== 'reply').slice(0, 6);
-    return list.length ? list.map((x, i) => `${i + 1}. ${USAGE_NAMES[x.k] || '/' + esc(x.k)} — <b>${x.n}</b>`).join('\n') : '—';
+    return list.length ? list.map((x, i) => `${i + 1}. ${Object.hasOwn(USAGE_NAMES, x.k) ? USAGE_NAMES[x.k] : '/' + esc(x.k)} — <b>${x.n}</b>`).join('\n') : '—';
   };
   const taps = (rows) => rows.filter((x) => x.k.startsWith('cb:')).reduce((s, x) => s + x.n, 0);
   const since = first.results[0]?.d;
@@ -639,7 +731,7 @@ function appUrl(env, groupId, lang, role) {
 }
 
 // Button texts in every language → action
-const BUTTONS = {};
+const BUTTONS = Object.create(null);
 for (const l of LANGS) {
   BUTTONS[TEXTS[l].btnToday] = 'today';
   BUTTONS[TEXTS[l].btnTomorrow] = 'tomorrow';
@@ -799,6 +891,9 @@ async function privateMain(env, msg, command, flags) {
   if (action === 'feedback') {
     const text = command.arg;
     if (!text) return send(env, msg.chat.id, L.feedbackPrompt);
+    // at most 5 messages an hour per chat: feedback goes into the database AND straight to the admin's DMs
+    const recent = await (await db(env)).prepare('SELECT COUNT(*) AS n FROM feedback WHERE chat_id = ? AND created_at > ?').bind(msg.chat.id, Date.now() - 3600e3).first();
+    if ((recent?.n || 0) >= 5) return send(env, msg.chat.id, L.feedbackLimit);
     await addFeedback(env, msg.chat.id, msg.from?.username ? '@' + msg.from.username : msg.from?.first_name, text.slice(0, 2000));
     return send(env, msg.chat.id, L.feedbackThanks);
   }
@@ -1393,9 +1488,9 @@ async function onCallback(env, cb) {
     const newLang = LANGS.includes(parts[1]) ? parts[1] : 'uz';
     await updateChat(env, chatId, { lang: newLang });
     const L2 = tr(newLang);
-    if (parts[2] === 'pick') return showFaculties(env, chatId, parts[3], newLang, msg.message_id);
-    if (parts[2] === 'tpick') return showTeacherLetters(env, chatId, parts[3], newLang, msg.message_id);
-    if (parts[2] === 'role') return askRole(env, chatId, parts[3], newLang, msg.message_id, row.role);
+    if (parts[2] === 'pick') return showFaculties(env, chatId, asUid(parts[3]), newLang, msg.message_id);
+    if (parts[2] === 'tpick') return showTeacherLetters(env, chatId, asUid(parts[3]), newLang, msg.message_id);
+    if (parts[2] === 'role') return askRole(env, chatId, asUid(parts[3]), newLang, msg.message_id, row.role);
     if (parts[2] === 'chat') {
       return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: L2.groupSetChat(esc(row.group_name || ''), remindOf(row)), parse_mode: 'HTML', reply_markup: { inline_keyboard: [langRow(newLang, 'chat')] } });
     }
@@ -1414,15 +1509,16 @@ async function onCallback(env, cb) {
     await setRemindAt(env, chatId, m);
     return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: L.remindSet(m), parse_mode: 'HTML' });
   }
+  if (kind === 'wh' && !validId(parts[1])) return;
   if (kind === 'wh') return showWhere(env, chatId, lang, isGroupChat ? 'group' : 'private', parts[1], msg.message_id, (await myTeachers(env, row)).length > 0);
   if (kind === 'whm') { if (!(await whereList(env, chatId, lang, row, isGroupChat ? 'group' : 'private', msg.message_id))) return send(env, chatId, L.whereGroupHint); return; }
   if (kind === 'whq') return send(env, chatId, L.whereAsk, { reply_markup: { force_reply: true, input_field_placeholder: L.whereAskPh, selective: true } });
   if (kind === 'day') { if (!row.group_id) return; return onDayTab(env, row, msg, Number(parts[1]), Number(parts[2])); }
   if (kind === 'wk') { if (!row.group_id) return; return sendSchedule(env, chatId, row, 'week'); }
-  if (kind === 'F') return showFaculties(env, chatId, parts[1], lang, msg.message_id);
-  if (kind === 'f') return showCourses(env, chatId, parts[1], lang, Number(parts[2]), msg.message_id);
-  if (kind === 'c') return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[4]), msg.message_id);
-  if (kind === 'd') return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[5]) || 0, msg.message_id, Number(parts[4]));
+  if (kind === 'F') return showFaculties(env, chatId, asUid(parts[1]), lang, msg.message_id);
+  if (kind === 'f') return showCourses(env, chatId, asUid(parts[1]), lang, Number(parts[2]), msg.message_id);
+  if (kind === 'c') return showGroups(env, chatId, asUid(parts[1]), lang, Number(parts[2]), Number(parts[3]), Number(parts[4]), msg.message_id);
+  if (kind === 'd') return showGroups(env, chatId, asUid(parts[1]), lang, Number(parts[2]), Number(parts[3]), Number(parts[5]) || 0, msg.message_id, Number(parts[4]));
   if (kind === 'g') return chooseGroup(env, chat, Number(parts[1]), parts[2], msg.message_id, lang);
   // teachers / role (private chats only)
   if (['R', 'RM', 'tL', 'tl', 'tp'].includes(kind)) {
@@ -1430,11 +1526,11 @@ async function onCallback(env, cb) {
     if (kind === 'R') {
       const role = parts[2] === 't' ? 'teacher' : 'student';
       await setRole(env, chatId, row, role);
-      return role === 'teacher' ? showTeacherLetters(env, chatId, parts[1], lang, msg.message_id) : showFaculties(env, chatId, parts[1], lang, msg.message_id);
+      return role === 'teacher' ? showTeacherLetters(env, chatId, asUid(parts[1]), lang, msg.message_id) : showFaculties(env, chatId, asUid(parts[1]), lang, msg.message_id);
     }
-    if (kind === 'RM') return askRole(env, chatId, parts[1], lang, msg.message_id, row.role);
-    if (kind === 'tL') return showTeacherLetters(env, chatId, parts[1], lang, msg.message_id);
-    if (kind === 'tl') return showTeachers(env, chatId, parts[1], lang, parts[2], Number(parts[3]) || 0, msg.message_id);
+    if (kind === 'RM') return askRole(env, chatId, asUid(parts[1]), lang, msg.message_id, row.role);
+    if (kind === 'tL') return showTeacherLetters(env, chatId, asUid(parts[1]), lang, msg.message_id);
+    if (kind === 'tl') return showTeachers(env, chatId, asUid(parts[1]), lang, parts[2], Math.max(0, Number(parts[3]) | 0), msg.message_id);
     return chooseTeacher(env, chat, Number(parts[1]), parts[2], msg.message_id, lang);
   }
   if (kind === 's') {

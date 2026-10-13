@@ -134,6 +134,28 @@ Students ──> Telegram ──webhook──> Cloudflare Worker (buttons, /toda
   - The first run never sends alerts.
   - Chats that blocked or removed the bot are cleaned up automatically.
 
+## Security
+
+**What protects the bot**
+
+- **Secrets live only in Cloudflare and GitHub secrets** (`BOT_TOKEN`, `ADMIN_KEY`, optional `GITHUB_PAT`) — never in the code or the repository. Do not put them in `wrangler.toml`, the README or an issue.
+- **Telegram is verified:** every update must carry the secret header derived from `ADMIN_KEY` (anyone else gets 403). The Mini App's "Send to chat" button is checked against Telegram's signed `initData` (HMAC with the bot token, valid for 24 h), and the picture always goes to the person who asked.
+- **Admin endpoints** (`/setup`, `/internal/*`) need `ADMIN_KEY`. A missing or empty key never matches (the check fails closed), and 15 wrong keys from one address lock that address out for 10 minutes.
+- **Input is untrusted:** commands, button data and ids are checked before use (ids only `A–Z a–z 0–9 _ -`), all database queries are parameterised, all text sent to Telegram is HTML-escaped, and the usage statistics only count a fixed list of commands, so nobody can fill the database with junk.
+- **Spam brakes:** at most 5 feedback messages per chat per hour, one person sending more than 30 updates in 10 seconds is ignored, and ordinary group chatter never touches the database.
+- **Mini App:** a Content-Security-Policy limits it to its own files, Telegram's script and the bot's Worker; the signed `initData` is only ever sent to the Worker address written in `docs/index.html`.
+- **GitHub:** workflow actions are pinned to commit hashes, `npm ci` installs exactly the versions in `package-lock.json` and runs no install scripts, and Dependabot proposes updates weekly.
+
+**Do this once**
+
+1. Make `ADMIN_KEY` a long random value (at least 32 characters, e.g. `openssl rand -hex 32`) and **turn on two-step verification** for GitHub, Cloudflare and Telegram.
+2. In the GitHub repository: *Settings → Code security* → switch on **Secret scanning** with **Push protection** and **Dependabot alerts**.
+3. Give `GITHUB_PAT` only *Actions: read and write* on this one repository, with an expiry date.
+
+**Changing `ADMIN_KEY`** (do it if you ever shared or lost it): set the new value in **both** Cloudflare (*Worker → Settings → Variables*) and GitHub (*Settings → Secrets → ADMIN_KEY*), then open `https://YOUR-WORKER.workers.dev/setup?key=NEW_KEY` once — the webhook secret is derived from the key, so this step re-registers it.
+
+**If `BOT_TOKEN` leaks:** in @BotFather send `/revoke`, put the new token into Cloudflare and GitHub, then open the `/setup` link again.
+
 ## Limits (free plans)
 
 - **Cloudflare Workers:** 100,000 requests/day. Each student tap is one request, so that's enough for tens of thousands of daily users.

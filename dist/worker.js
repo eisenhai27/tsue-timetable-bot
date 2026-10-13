@@ -81,6 +81,7 @@ Guruhdoshlaringizni ham taklif qiling \u{1F447}` : "\u{1F44B} Guruhdoshlaringizn
     groupChatTip: "\u{1F4A1} <b>Maslahat:</b> botni guruh chatingizga ham qo'shing \u2014 u yerda /setgroup yuborsangiz, butun guruhga avtomatik xabar boradi.",
     feedbackPrompt: "\u270D\uFE0F Taklif yoki xatoni yozing:\n<code>/feedback Xona nomi noto'g'ri ko'rsatilyapti</code>",
     feedbackThanks: "\u2705 Rahmat! Xabaringiz qabul qilindi.",
+    feedbackLimit: "\u23F3 Bir soat ichida juda ko'p xabar yuborildi. Iltimos, birozdan keyin qayta urinib ko'ring.",
     adminReply: (t) => `\u{1F4AC} <b>TDIU Jadval jamoasidan javob:</b>
 
 ${t}`,
@@ -189,6 +190,7 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     groupChatTip: "\u{1F4A1} <b>\u0421\u043E\u0432\u0435\u0442:</b> \u0434\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u0431\u043E\u0442\u0430 \u0438 \u0432 \u0447\u0430\u0442 \u0432\u0430\u0448\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u044B \u2014 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0442\u0430\u043C /setgroup, \u0438 \u0443\u0432\u0435\u0434\u043E\u043C\u043B\u0435\u043D\u0438\u044F \u0431\u0443\u0434\u0443\u0442 \u043F\u0440\u0438\u0445\u043E\u0434\u0438\u0442\u044C \u0432\u0441\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u0435 \u0430\u0432\u0442\u043E\u043C\u0430\u0442\u0438\u0447\u0435\u0441\u043A\u0438.",
     feedbackPrompt: "\u270D\uFE0F \u041D\u0430\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u043F\u0438\u0448\u0438\u0442\u0435 \u043E\u0448\u0438\u0431\u043A\u0443:\n<code>/feedback \u041D\u0435\u0432\u0435\u0440\u043D\u043E \u0443\u043A\u0430\u0437\u0430\u043D\u0430 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F</code>",
     feedbackThanks: "\u2705 \u0421\u043F\u0430\u0441\u0438\u0431\u043E! \u0412\u0430\u0448\u0435 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u043F\u043E\u043B\u0443\u0447\u0435\u043D\u043E.",
+    feedbackLimit: "\u23F3 \u0417\u0430 \u043F\u043E\u0441\u043B\u0435\u0434\u043D\u0438\u0439 \u0447\u0430\u0441 \u043E\u0442\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u043E \u0441\u043B\u0438\u0448\u043A\u043E\u043C \u043C\u043D\u043E\u0433\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0439. \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \u0447\u0443\u0442\u044C \u043F\u043E\u0437\u0436\u0435.",
     adminReply: (t) => `\u{1F4AC} <b>\u041E\u0442\u0432\u0435\u0442 \u043A\u043E\u043C\u0430\u043D\u0434\u044B TDIU Jadval:</b>
 
 ${t}`,
@@ -297,6 +299,7 @@ Invite your groupmates too \u{1F447}` : "Invite your groupmates too \u2014 it'll
     groupChatTip: "\u{1F4A1} <b>Tip:</b> add the bot to your group chat too \u2014 send /setgroup there and the whole group gets updates automatically.",
     feedbackPrompt: "\u270D\uFE0F Write your feedback or describe the bug:\n<code>/feedback The room number is shown wrong</code>",
     feedbackThanks: "\u2705 Thanks! Your message has been received.",
+    feedbackLimit: "\u23F3 Too many messages in the last hour. Please try again a little later.",
     adminReply: (t) => `\u{1F4AC} <b>Reply from the TDIU Jadval team:</b>
 
 ${t}`,
@@ -715,20 +718,22 @@ var PAGE = 36;
 var TPAGE = 16;
 var KB_VERSION = 2;
 var CALENDAR_ENABLED = false;
+var SECURITY_HEADERS = {
+  "x-content-type-options": "nosniff",
+  "x-frame-options": "DENY",
+  "referrer-policy": "no-referrer",
+  "content-security-policy": "default-src 'none'; frame-ancestors 'none'",
+  "strict-transport-security": "max-age=31536000",
+  "cache-control": "no-store"
+};
+function withSecurityHeaders(res) {
+  const headers = new Headers(res.headers);
+  for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+  return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
 var worker_default = {
   async fetch(request, env, ctx) {
-    const url = new URL(request.url);
-    try {
-      if (request.method === "POST" && url.pathname === "/tg") return await onWebhook(request, env);
-      if (url.pathname === "/api/week-pic") return await onWeekPic(request, env);
-      if (url.pathname === "/setup") return await onSetup(url, env);
-      if (url.pathname.startsWith("/internal/")) return await onInternal(request, url, env);
-      return new Response("TDIU Jadval bot is running \u2705", { headers: { "content-type": "text/plain; charset=utf-8" } });
-    } catch (e) {
-      console.error(e.stack || e);
-      if (url.pathname === "/tg") return new Response("ok");
-      return new Response("Something went wrong. Try again shortly.", { status: 500 });
-    }
+    return withSecurityHeaders(await route(request, env));
   },
   // GitHub's own `schedule:` trigger is "best effort" and can silently go quiet for hours on a
   // low-traffic public repo (a known GitHub Actions limitation, not a bug in our workflow) — so
@@ -751,18 +756,75 @@ var worker_default = {
     if (!res.ok) console.error("GitHub dispatch failed:", res.status, await res.text().catch(() => ""));
   }
 };
+async function route(request, env) {
+  const url = new URL(request.url);
+  try {
+    if (request.method === "POST" && url.pathname === "/tg") return await onWebhook(request, env);
+    if (url.pathname === "/api/week-pic") return await onWeekPic(request, env);
+    if (url.pathname === "/setup") return await onSetup(request, url, env);
+    if (url.pathname.startsWith("/internal/")) return await onInternal(request, url, env);
+    return new Response("TDIU Jadval bot is running \u2705", { headers: { "content-type": "text/plain; charset=utf-8" } });
+  } catch (e) {
+    console.error(e.stack || e);
+    if (url.pathname === "/tg") return new Response("ok");
+    return new Response("Something went wrong. Try again shortly.", { status: 500 });
+  }
+}
 async function sha256hex(s) {
   const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 async function safeEqual(a, b) {
-  const [ha, hb] = await Promise.all([sha256hex(String(a ?? "")), sha256hex(String(b ?? ""))]);
+  if (a == null || b == null || String(a) === "" || String(b) === "") return false;
+  const [ha, hb] = await Promise.all([sha256hex(String(a)), sha256hex(String(b))]);
   return ha === hb;
 }
 var webhookSecret = async (env) => (await sha256hex("tg:" + env.ADMIN_KEY)).slice(0, 48);
+var AUTH_MAX = 15;
+var AUTH_WINDOW = 10 * 60 * 1e3;
+var authFails = /* @__PURE__ */ new Map();
+var clientIp = (request) => request.headers.get("cf-connecting-ip") || "unknown";
+function authBlocked(request) {
+  const r = authFails.get(clientIp(request));
+  if (!r) return false;
+  if (Date.now() - r.since > AUTH_WINDOW) {
+    authFails.delete(clientIp(request));
+    return false;
+  }
+  return r.n >= AUTH_MAX;
+}
+function noteAuthFail(request) {
+  const ip = clientIp(request), now = Date.now();
+  if (authFails.size > 2e3) authFails.clear();
+  const r = authFails.get(ip);
+  if (!r || now - r.since > AUTH_WINDOW) authFails.set(ip, { n: 1, since: now });
+  else r.n++;
+}
+var tooManyAttempts = () => new Response("Too many attempts", { status: 429, headers: { "retry-after": "600" } });
+var FLOOD_MAX = 30;
+var FLOOD_WINDOW = 10 * 1e3;
+var floodSeen = /* @__PURE__ */ new Map();
+function flooding(env, userId) {
+  if (!userId) return false;
+  const max = Number(env.FLOOD_MAX) > 0 ? Number(env.FLOOD_MAX) : FLOOD_MAX;
+  const now = Date.now();
+  if (floodSeen.size > 5e3) floodSeen.clear();
+  const r = floodSeen.get(userId);
+  if (!r || now - r.since > FLOOD_WINDOW) {
+    floodSeen.set(userId, { n: 1, since: now });
+    return false;
+  }
+  return ++r.n > max;
+}
+var asUid = (v) => {
+  const n = Number(v);
+  return Number.isSafeInteger(n) ? n : -1;
+};
+var validId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id ?? ""));
 var siteUrl = (env) => String(env.SITE_URL || "").replace(/\/+$/, "");
+var tgBase = (env) => /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(String(env.TG_API || "")) ? env.TG_API : "https://api.telegram.org";
 async function tg(env, method, body) {
-  const res = await fetch(`${env.TG_API || "https://api.telegram.org"}/bot${env.BOT_TOKEN}/${method}`, {
+  const res = await fetch(`${tgBase(env)}/bot${env.BOT_TOKEN}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body)
@@ -773,6 +835,7 @@ async function tg(env, method, body) {
 }
 var json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { "content-type": "application/json" } });
 var cache = /* @__PURE__ */ new Map();
+var CACHE_MAX = 120;
 async function getData(env, file, ttlSec = 300) {
   const hit = cache.get(file);
   if (hit && hit.until > Date.now()) return hit.value;
@@ -783,12 +846,14 @@ async function getData(env, file, ttlSec = 300) {
     throw new Error(`data ${file}: HTTP ${res.status}`);
   }
   const value = await res.json();
+  cache.delete(file);
   cache.set(file, { value, until: Date.now() + ttlSec * 1e3 });
+  while (cache.size > CACHE_MAX) cache.delete(cache.keys().next().value);
   return value;
 }
 var getIndex = (env) => getData(env, "index.json");
-var getGroup = (env, id) => getData(env, `g/${id}.json`);
-var getTeacher = (env, id) => getData(env, `t/${id}.json`);
+var getGroup = async (env, id) => validId(id) ? getData(env, `g/${id}.json`) : null;
+var getTeacher = async (env, id) => validId(id) ? getData(env, `t/${id}.json`) : null;
 var getPeople = (env) => getData(env, "people.json", 600);
 var subjectsAt = 0;
 async function loadSubjects(env) {
@@ -876,6 +941,7 @@ async function db(env) {
       if (!cols.some((c) => c.name === "sent_wk")) await addColumn("ALTER TABLE chats ADD COLUMN sent_wk TEXT");
     }
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)").run();
+    await env.DB.prepare("DELETE FROM usage WHERE length(k) > 30").run();
     schemaReady = true;
   }
   return env.DB;
@@ -948,8 +1014,13 @@ ${esc(text)}
     }
   }
 }
-async function onSetup(url, env) {
-  if (!await safeEqual(url.searchParams.get("key"), env.ADMIN_KEY)) return new Response("Wrong key", { status: 403 });
+async function onSetup(request, url, env) {
+  if (authBlocked(request)) return tooManyAttempts();
+  const key = request.headers.get("x-admin-key") || url.searchParams.get("key");
+  if (!await safeEqual(key, env.ADMIN_KEY)) {
+    noteAuthFail(request);
+    return new Response("Wrong key", { status: 403 });
+  }
   const out = {};
   out.webhook = await tg(env, "setWebhook", {
     url: `${url.origin}/tg`,
@@ -984,11 +1055,11 @@ var appOrigin = (env) => {
   try {
     return new URL(siteUrl(env)).origin;
   } catch {
-    return "*";
+    return null;
   }
 };
 var corsFor = (env) => ({
-  "access-control-allow-origin": appOrigin(env),
+  ...appOrigin(env) ? { "access-control-allow-origin": appOrigin(env) } : {},
   "access-control-allow-methods": "POST, OPTIONS",
   "access-control-allow-headers": "content-type",
   "access-control-max-age": "86400",
@@ -1048,7 +1119,11 @@ async function onWeekPic(request, env) {
   return jsonCors(env, { ok: !!r?.ok });
 }
 async function onInternal(request, url, env) {
-  if (!await safeEqual(request.headers.get("x-admin-key"), env.ADMIN_KEY)) return new Response("Forbidden", { status: 403 });
+  if (authBlocked(request)) return tooManyAttempts();
+  if (!await safeEqual(request.headers.get("x-admin-key"), env.ADMIN_KEY)) {
+    noteAuthFail(request);
+    return new Response("Forbidden", { status: 403 });
+  }
   const D = await db(env);
   if (url.pathname === "/internal/subs") {
     const mode = url.searchParams.get("mode");
@@ -1088,12 +1163,15 @@ async function onInternal(request, url, env) {
     return json(claiming ? { claimed: res.flatMap((r) => (r.results || []).map((x) => x.chat_id)) } : { ok: true });
   }
   if (url.pathname === "/internal/cleanup" && request.method === "POST") {
-    const body = await request.json();
+    const body = await request.json().catch(() => null);
+    if (!body || typeof body !== "object") return json({ error: "bad request" }, 400);
+    const remove = (Array.isArray(body.remove) ? body.remove : []).filter(Number.isSafeInteger).slice(0, 5e3);
+    const migrate = (Array.isArray(body.migrate) ? body.migrate : []).filter((p) => Array.isArray(p) && p.length === 2 && p.every(Number.isSafeInteger)).slice(0, 5e3);
     const stmts = [];
-    for (const id of body.remove || []) stmts.push(D.prepare("DELETE FROM chats WHERE chat_id = ?").bind(id));
-    for (const [from, to] of body.migrate || []) stmts.push(D.prepare("UPDATE OR REPLACE chats SET chat_id = ? WHERE chat_id = ?").bind(to, from));
+    for (const id of remove) stmts.push(D.prepare("DELETE FROM chats WHERE chat_id = ?").bind(id));
+    for (const [from, to] of migrate) stmts.push(D.prepare("UPDATE OR REPLACE chats SET chat_id = ? WHERE chat_id = ?").bind(to, from));
     if (stmts.length) await D.batch(stmts);
-    return json({ ok: true, removed: (body.remove || []).length, migrated: (body.migrate || []).length });
+    return json({ ok: true, removed: remove.length, migrated: migrate.length });
   }
   if (url.pathname === "/internal/edupage" && request.method === "POST") {
     const file = url.searchParams.get("file");
@@ -1114,10 +1192,17 @@ async function onInternal(request, url, env) {
   return new Response("Not found", { status: 404 });
 }
 async function onWebhook(request, env) {
+  if (authBlocked(request)) return tooManyAttempts();
   if (!await safeEqual(request.headers.get("x-telegram-bot-api-secret-token"), await webhookSecret(env))) {
+    noteAuthFail(request);
     return new Response("Forbidden", { status: 403 });
   }
-  const update = await request.json();
+  if (Number(request.headers.get("content-length") || 0) > 1e6) return new Response("Too large", { status: 413 });
+  const update = await request.json().catch(() => null);
+  if (!update || typeof update !== "object") return new Response("ok");
+  const gm = update.message;
+  if (gm && gm.chat?.type !== "private" && !gm.migrate_to_chat_id && !String(gm.text || "").startsWith("/")) return new Response("ok");
+  if (flooding(env, gm?.from?.id || update.callback_query?.from?.id)) return new Response("ok");
   if (await alreadyHandled(env, update.update_id)) return new Response("ok");
   await loadSubjects(env);
   if (update.message) await onMessage(env, update.message);
@@ -1144,10 +1229,12 @@ async function track(env, update) {
     const chat = m?.chat || c?.message?.chat;
     if (!chat) return;
     let k = null;
-    if (c) k = "cb:" + String(c.data || "").split(":")[0];
-    else if (m.text) {
+    if (c) {
+      const kind = String(c.data || "").split(":")[0];
+      k = "cb:" + (/^[A-Za-z]{1,4}$/.test(kind) ? kind : "other");
+    } else if (m.text) {
       const cmd = parseCommand(m.text);
-      k = cmd ? cmd.cmd : BUTTONS[m.text.trim()] || (chat.type === "private" ? isWherePrompt(m.reply_to_message) ? "where" : "text" : null);
+      k = cmd ? COUNTED_COMMANDS.has(cmd.cmd) ? cmd.cmd : "other" : BUTTONS[m.text.trim()] || (chat.type === "private" ? isWherePrompt(m.reply_to_message) ? "where" : "text" : null);
     }
     if (!k) return;
     const now = Date.now();
@@ -1160,6 +1247,30 @@ async function track(env, update) {
     console.warn("track", e?.message);
   }
 }
+var COUNTED_COMMANDS = /* @__PURE__ */ new Set([
+  "today",
+  "tomorrow",
+  "week",
+  "settings",
+  "start",
+  "help",
+  "app",
+  "group",
+  "setgroup",
+  "unset",
+  "teacher",
+  "where",
+  "ustoz",
+  "find",
+  "feedback",
+  "time",
+  "remind",
+  "lang",
+  "language",
+  "calendar",
+  "stats",
+  "reply"
+]);
 var USAGE_NAMES = {
   today: "\u{1F4C5} Bugungi darslar",
   tomorrow: "\u27A1\uFE0F Ertangi darslar",
@@ -1205,7 +1316,7 @@ async function sendStats(env, chatId, editId) {
   const dm2 = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
   const feat = (rows) => {
     const list = rows.filter((x) => !x.k.startsWith("cb:") && x.k !== "stats" && x.k !== "reply").slice(0, 6);
-    return list.length ? list.map((x, i) => `${i + 1}. ${USAGE_NAMES[x.k] || "/" + esc(x.k)} \u2014 <b>${x.n}</b>`).join("\n") : "\u2014";
+    return list.length ? list.map((x, i) => `${i + 1}. ${Object.hasOwn(USAGE_NAMES, x.k) ? USAGE_NAMES[x.k] : "/" + esc(x.k)} \u2014 <b>${x.n}</b>`).join("\n") : "\u2014";
   };
   const taps = (rows) => rows.filter((x) => x.k.startsWith("cb:")).reduce((s, x) => s + x.n, 0);
   const since = first.results[0]?.d;
@@ -1265,7 +1376,7 @@ function mainKeyboard(env, lang, groupId, role) {
 function appUrl(env, groupId, lang, role) {
   return `${siteUrl(env)}/#${groupId ? `${role === "teacher" ? "t" : "g"}=${groupId}&` : ""}l=${lang}`;
 }
-var BUTTONS = {};
+var BUTTONS = /* @__PURE__ */ Object.create(null);
 for (const l of LANGS) {
   BUTTONS[T[l].btnToday] = "today";
   BUTTONS[T[l].btnTomorrow] = "tomorrow";
@@ -1411,6 +1522,8 @@ async function privateMain(env, msg, command, flags) {
   if (action === "feedback") {
     const text = command.arg;
     if (!text) return send(env, msg.chat.id, L.feedbackPrompt);
+    const recent = await (await db(env)).prepare("SELECT COUNT(*) AS n FROM feedback WHERE chat_id = ? AND created_at > ?").bind(msg.chat.id, Date.now() - 36e5).first();
+    if ((recent?.n || 0) >= 5) return send(env, msg.chat.id, L.feedbackLimit);
     await addFeedback(env, msg.chat.id, msg.from?.username ? "@" + msg.from.username : msg.from?.first_name, text.slice(0, 2e3));
     return send(env, msg.chat.id, L.feedbackThanks);
   }
@@ -1980,9 +2093,9 @@ async function onCallback(env, cb) {
     const newLang = LANGS.includes(parts[1]) ? parts[1] : "uz";
     await updateChat(env, chatId, { lang: newLang });
     const L2 = tr(newLang);
-    if (parts[2] === "pick") return showFaculties(env, chatId, parts[3], newLang, msg.message_id);
-    if (parts[2] === "tpick") return showTeacherLetters(env, chatId, parts[3], newLang, msg.message_id);
-    if (parts[2] === "role") return askRole(env, chatId, parts[3], newLang, msg.message_id, row.role);
+    if (parts[2] === "pick") return showFaculties(env, chatId, asUid(parts[3]), newLang, msg.message_id);
+    if (parts[2] === "tpick") return showTeacherLetters(env, chatId, asUid(parts[3]), newLang, msg.message_id);
+    if (parts[2] === "role") return askRole(env, chatId, asUid(parts[3]), newLang, msg.message_id, row.role);
     if (parts[2] === "chat") {
       return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: L2.groupSetChat(esc(row.group_name || ""), remindOf(row)), parse_mode: "HTML", reply_markup: { inline_keyboard: [langRow(newLang, "chat")] } });
     }
@@ -2001,6 +2114,7 @@ async function onCallback(env, cb) {
     await setRemindAt(env, chatId, m);
     return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: L.remindSet(m), parse_mode: "HTML" });
   }
+  if (kind === "wh" && !validId(parts[1])) return;
   if (kind === "wh") return showWhere(env, chatId, lang, isGroupChat ? "group" : "private", parts[1], msg.message_id, (await myTeachers(env, row)).length > 0);
   if (kind === "whm") {
     if (!await whereList(env, chatId, lang, row, isGroupChat ? "group" : "private", msg.message_id)) return send(env, chatId, L.whereGroupHint);
@@ -2015,21 +2129,21 @@ async function onCallback(env, cb) {
     if (!row.group_id) return;
     return sendSchedule(env, chatId, row, "week");
   }
-  if (kind === "F") return showFaculties(env, chatId, parts[1], lang, msg.message_id);
-  if (kind === "f") return showCourses(env, chatId, parts[1], lang, Number(parts[2]), msg.message_id);
-  if (kind === "c") return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[4]), msg.message_id);
-  if (kind === "d") return showGroups(env, chatId, parts[1], lang, Number(parts[2]), Number(parts[3]), Number(parts[5]) || 0, msg.message_id, Number(parts[4]));
+  if (kind === "F") return showFaculties(env, chatId, asUid(parts[1]), lang, msg.message_id);
+  if (kind === "f") return showCourses(env, chatId, asUid(parts[1]), lang, Number(parts[2]), msg.message_id);
+  if (kind === "c") return showGroups(env, chatId, asUid(parts[1]), lang, Number(parts[2]), Number(parts[3]), Number(parts[4]), msg.message_id);
+  if (kind === "d") return showGroups(env, chatId, asUid(parts[1]), lang, Number(parts[2]), Number(parts[3]), Number(parts[5]) || 0, msg.message_id, Number(parts[4]));
   if (kind === "g") return chooseGroup(env, chat, Number(parts[1]), parts[2], msg.message_id, lang);
   if (["R", "RM", "tL", "tl", "tp"].includes(kind)) {
     if (isGroupChat) return;
     if (kind === "R") {
       const role = parts[2] === "t" ? "teacher" : "student";
       await setRole(env, chatId, row, role);
-      return role === "teacher" ? showTeacherLetters(env, chatId, parts[1], lang, msg.message_id) : showFaculties(env, chatId, parts[1], lang, msg.message_id);
+      return role === "teacher" ? showTeacherLetters(env, chatId, asUid(parts[1]), lang, msg.message_id) : showFaculties(env, chatId, asUid(parts[1]), lang, msg.message_id);
     }
-    if (kind === "RM") return askRole(env, chatId, parts[1], lang, msg.message_id, row.role);
-    if (kind === "tL") return showTeacherLetters(env, chatId, parts[1], lang, msg.message_id);
-    if (kind === "tl") return showTeachers(env, chatId, parts[1], lang, parts[2], Number(parts[3]) || 0, msg.message_id);
+    if (kind === "RM") return askRole(env, chatId, asUid(parts[1]), lang, msg.message_id, row.role);
+    if (kind === "tL") return showTeacherLetters(env, chatId, asUid(parts[1]), lang, msg.message_id);
+    if (kind === "tl") return showTeachers(env, chatId, asUid(parts[1]), lang, parts[2], Math.max(0, Number(parts[3]) | 0), msg.message_id);
     return chooseTeacher(env, chat, Number(parts[1]), parts[2], msg.message_id, lang);
   }
   if (kind === "s") {

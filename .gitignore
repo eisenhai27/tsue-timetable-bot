@@ -4,3 +4,4 @@ node_modules/
 .dev.vars
 docs/img/
 docs/data/ics/
+docs/data/state.json

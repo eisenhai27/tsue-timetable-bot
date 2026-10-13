@@ -11,6 +11,10 @@
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="TDIU Jadval">
+<!-- Content Security Policy: the page may load code only from itself and Telegram's own script, talk only to itself and the bot's Worker,
+     and cannot be framed into forms, plugins or a different <base>. (GitHub Pages cannot send headers, so it is a <meta>.) -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://tsue-timetable-bot.shavkatxolmamatov27.workers.dev; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta name="referrer" content="no-referrer">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -567,7 +571,9 @@ function lsPut(path, data) {
   }
 }
 /** Fresh enough in memory → that; otherwise one shared network request. */
+const DATA_PATH = /^(?:(?:index|people|busy|subjects)\.json|[gtr]\/[\w-]{1,40}\.json)$/;
 function load(path, maxAge = 90e3) {
+  if (!DATA_PATH.test(path)) return Promise.reject(new Error('bad path'));
   if (flight[path]) return flight[path];
   if (mem[path] && Date.now() - stamp[path] < maxAge) return Promise.resolve(mem[path]);
   const p = fetch('data/' + path, { cache: 'no-cache' }).then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -610,7 +616,7 @@ function parity(weekA, d) {
 const dispMonday = (d) => monday(wd(d) === 6 ? addD(d, 1) : d);
 const picPath = (type, id) => `img/${lang === 'ru' || lang === 'en' ? lang + '/' : ''}${type === 't' ? 't' : 'g'}/${id}.png`;
 const picFresh = () => !INDEX.weekA || INDEX.imgMonday === dispMonday(nowT()).toISOString().slice(0, 10);
-const API_URL = 'https://tsue-timetable-bot.shavkatxolmamatov27.workers.dev'; // the bot's Worker; index.json can override it (api)
+const API_URL = 'https://tsue-timetable-bot.shavkatxolmamatov27.workers.dev'; // the bot's Worker — fixed on purpose: the signed initData must never be sent to an address a data file names
 
 // ---------------------------------------------------------------- utils
 const $ = (s, r = document) => r.querySelector(s);
@@ -882,7 +888,7 @@ function lessonHtml(l, t, cls, state, v, isNew, par) {
     meta.push(`<div class="ln grp">👥 <div class="chips">${gs.map(g => chipBtn('g:' + g, g)).join('')}</div></div>`);
   }
   return `<div class="lesson t-${st.cls} ${cls}" role="button" tabindex="0">
-    <div class="time"><div class="a">${esc(t.a)}</div><div class="b">${esc(t.b)}</div><div class="n">${l.p} ${esc(L.pairShort)}</div></div>
+    <div class="time"><div class="a">${esc(t.a)}</div><div class="b">${esc(t.b)}</div><div class="n">${esc(l.p)} ${esc(L.pairShort)}</div></div>
     <div class="body">${state ? `<div>${state}</div>` : ''}${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}<div class="subj">${nameHtml(st)}</div>
     <div class="meta">${meta.join('')}</div></div></div>`;
 }
@@ -1150,7 +1156,7 @@ const renderTimetable = safe(async function () {
   if (wp) wp.onclick = () => {
     haptic();
     const ready = picFresh();
-    const src = `${picPath(v.type, v.id)}?v=${data.v || ''}&w=${INDEX.imgMonday || ''}`;
+    const src = esc(`${picPath(v.type, v.id)}?v=${data.v || ''}&w=${INDEX.imgMonday || ''}`);
     const canSend = !!(inTg && tg.initData);
     openSheet(`<h3>${esc(v.name)} — ${esc(L.weekPic)}</h3>${ready ? `<a href="${src}" target="_blank" rel="noopener"><img src="${src}" alt="${esc(v.name)}"></a>` : ''}<div class="muted small picmiss" ${ready ? 'hidden' : ''}>${esc(L.picMissing)}</div>`
       + (canSend ? `<div class="actions" style="margin-top:12px"><button class="act" id="sendPic">📨 ${esc(L.sendPic)}</button></div><div class="muted small picmiss" id="sendPicMsg" aria-live="polite"></div>` : ''));
@@ -1160,7 +1166,7 @@ const renderTimetable = safe(async function () {
       // Asks the bot to post the picture (in the Mini App's language) into this user's own chat. Telegram's signed initData proves who asks.
       const msg = $('#sendPicMsg'); sp.disabled = true; msg.textContent = L.sending;
       try {
-        const r = await fetch(`${String(INDEX.api || API_URL).replace(/\/+$/, '')}/api/week-pic`, {
+        const r = await fetch(`${API_URL}/api/week-pic`, {
           method: 'POST', headers: { 'content-type': 'application/json' },
           body: JSON.stringify({ initData: tg.initData, type: v.type, id: v.id, lang }),
         });
@@ -1183,7 +1189,7 @@ const renderTimetable = safe(async function () {
 function showLesson(l, v, par) {
   const st = splitType(l.s); const t = timeOf(l);
   const rows = [];
-  rows.push(`<div class="kv"><div class="k">🕘</div><div class="v">${esc(L.days[l.d])}, ${l.p} ${esc(L.pairShort)} · ${esc(t.a)}–${esc(t.b)}${l.w ? ` · ${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}` : ''}</div></div>`);
+  rows.push(`<div class="kv"><div class="k">🕘</div><div class="v">${esc(L.days[l.d])}, ${esc(l.p)} ${esc(L.pairShort)} · ${esc(t.a)}–${esc(t.b)}${l.w ? ` · ${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}` : ''}</div></div>`);
   if (st.type) rows.push(`<div class="kv"><div class="k">📘</div><div class="v">${esc(st.type)}</div></div>`);
   if (l.r) for (const r of splitList(l.r)) rows.push(`<div class="kv"><div class="k">🚪</div><div class="v"><button data-open="r:${esc(r)}">${esc(roomLabel(r))}</button></div></div>`);
   else if (v.type !== 'r') rows.push(`<div class="kv"><div class="k">🚪</div><div class="v muted">${esc(L.noRoom)}</div></div>`);
@@ -1204,7 +1210,7 @@ function closeSheet() { const s = $('#sheet'); if (s) s.innerHTML = ''; syncBack
 function entityRow(e, q) {
   const icon = e.type === 'g' ? '👥' : e.type === 't' ? '👤' : '🚪';
   const sub = e.sub || (e.type === 'g' ? '' : e.type === 't' ? L.teacher : L.room);
-  return `<button class="row" data-type="${e.type}" data-id="${esc(e.id)}"><span class="ri">${icon}</span><span class="rt"><div>${highlight(e.name, q)}</div><div class="rs">${esc(sub)}</div></span><span class="chev">›</span></button>`;
+  return `<button class="row" data-type="${esc(e.type)}" data-id="${esc(e.id)}"><span class="ri">${icon}</span><span class="rt"><div>${highlight(e.name, q)}</div><div class="rs">${esc(sub)}</div></span><span class="chev">›</span></button>`;
 }
 function renderSearch() {
   seq++;

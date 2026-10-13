@@ -11,7 +11,8 @@ cleanup() { for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; pkill -x work
 trap cleanup EXIT
 python3 -m http.server 1236 --directory docs >/dev/null 2>&1 & PIDS+=($!)
 node tests/mock-telegram.mjs >/dev/null 2>&1 & PIDS+=($!)
-npx wrangler dev --port 8787 --ip 127.0.0.1 >"${TMPDIR:-/tmp}/wrangler-test.log" 2>&1 & PIDS+=($!)
+npx wrangler dev --port 8787 --ip 127.0.0.1 --var FLOOD_MAX:100000 >"${TMPDIR:-/tmp}/wrangler-test.log" 2>&1 & PIDS+=($!)
 for i in $(seq 1 60); do curl -s localhost:8787/ >/dev/null && break; sleep 1; done
 node tests/bot-flow.mjs
 node tests/notify-dedupe.mjs
+node tests/security.mjs
