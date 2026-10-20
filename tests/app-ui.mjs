@@ -263,7 +263,7 @@ try {
 
     // -- home of the tab
     s = await openAt(at(during), '#tab=where&l=en');
-    ok((await s.page.locator('.nav button').count()) === 4, 'nav has four tabs');
+    ok((await s.page.locator('.nav button:visible').count()) === 4, 'nav shows four tabs (the owner-only announcement tab stays hidden)');
     ok(await s.page.locator('.nav button[data-tab="where"]').evaluate((b) => b.classList.contains('on')), '#tab=where opens the Teacher tab');
     ok(/Where is the teacher\?/.test(await txt(s.page, '.htitle .t1')), 'where tab title');
     ok((await s.page.locator('.wtips').count()) === 1, 'empty state shows the tips card');
@@ -475,6 +475,79 @@ try {
     ok(/not been entered/.test(await txt(s.page, '.empty')) && !/🎉/.test(await txt(s.page, '.empty')), 'empty group: the day view says so too (not "no classes 🎉")');
     ok(s.errs.length === 0, `empty group: errors ${s.errs.join(';')}`);
     await ctxE.close();
+  }
+
+  // ---------------- 12) the owner-only announcement ("E'lon") screen
+  {
+    const CORS = { 'access-control-allow-origin': '*', 'access-control-allow-headers': 'content-type', 'access-control-allow-methods': 'POST, OPTIONS' };
+    const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+    const fake = async (page, admin) => {
+      const seen = [];
+      let list = [];
+      await page.route('**/api/admin', (r) => {
+        if (r.request().method() === 'OPTIONS') return r.fulfill({ status: 204, headers: CORS });
+        const b = JSON.parse(r.request().postData() || '{}');
+        seen.push(b);
+        const h = { ...CORS, 'content-type': 'application/json' };
+        const out = (o, status = 200) => r.fulfill({ status, headers: h, body: JSON.stringify(o) });
+        if (b.op === 'me') return out({ ok: true, admin });
+        if (!admin) return out({ ok: false, error: 'forbidden' }, 403);
+        if (b.op === 'count') return out({ ok: true, n: b.filter.lang === 'ru' ? 7 : 42 });
+        if (b.op === 'photo') return out({ ok: true, photo: 'FILEID_1234567890' });
+        if (b.op === 'test') return out({ ok: true, sent: 1, n: 42 });
+        if (b.op === 'send') { list = [{ id: 9, created_at: Date.now(), total: b.confirm, sent: 0, failed: 0, status: 'queued' }]; return out({ ok: true, id: 9, total: b.confirm }); }
+        if (b.op === 'status') return out({ ok: true, list });
+        if (b.op === 'cancel') { list[0].status = 'cancelled'; return out({ ok: true, cancelled: true }); }
+        return out({ ok: false }, 400);
+      });
+      return seen;
+    };
+    // a stranger and a plain browser never see the tab
+    let s2 = await open({ mode: 'tg', hash: `#g=${gid}&l=uz`, ctx: await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' }) });
+    await fake(s2.page, false); await s2.page.reload(); await settle(s2.page, 600);
+    ok(await s2.page.locator('.nav [data-tab="admin"]').isHidden(), 'announcement tab: hidden for anyone but the owner');
+    await s2.ctx.close();
+    s2 = await open({ mode: 'web', hash: `#g=${gid}&l=uz` });
+    ok(await s2.page.locator('.nav [data-tab="admin"]').isHidden(), 'announcement tab: hidden in a plain browser');
+    await s2.ctx.close();
+
+    // the owner
+    s2 = await open({ mode: 'tg', hash: `#g=${gid}&l=uz`, ctx: await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' }) });
+    const seen = await fake(s2.page, true); await s2.page.reload(); await settle(s2.page, 700);
+    ok(await s2.page.locator('.nav [data-tab="admin"]').isVisible(), 'announcement tab: shown for the owner');
+    ok((await s2.page.locator('.nav button:visible').count()) === 5, 'announcement tab: five tabs fit');
+    await s2.page.click('.nav [data-tab="admin"]'); await settle(s2.page, 700);
+    ok(/E'lon yuborish/.test(await txt(s2.page, '.bc .t1')), 'announcement screen opens');
+    ok(await s2.page.locator('#bcTest').isDisabled() && await s2.page.locator('#bcSend').isDisabled(), 'announcement: test and send are off while the text is empty');
+    ok(/42 ta shaxsiy chat/.test(await txt(s2.page, '#bcCount')), 'announcement: live recipient count: ' + await txt(s2.page, '#bcCount'));
+    await s2.page.fill('textarea[data-text="uz"]', 'Salom <b>hammaga</b>');
+    ok(await s2.page.locator('#bcTest').isEnabled() && await s2.page.locator('#bcSend').isDisabled(), 'announcement: with a text, test is on but send still needs a test');
+    await s2.page.setInputFiles('#bcFile', { name: 'a.png', mimeType: 'image/png', buffer: PNG }); await settle(s2.page, 700);
+    const up = seen.find((b) => b.op === 'photo');
+    ok(up && /^data:image\/jpeg;base64,/.test(up.image), 'announcement: the picture is shrunk to a JPEG and uploaded');
+    ok(await s2.page.locator('.bcimg').count() === 1, 'announcement: picture preview shown');
+    await s2.page.fill('#bcUrl', 'https://example.com/club'); await s2.page.fill('input[data-btn="uz"]', 'Batafsil');
+    await s2.page.click('.bcpills [data-f="lang"][data-v="ru"]'); await settle(s2.page, 500);
+    ok(/7 ta shaxsiy chat/.test(await txt(s2.page, '#bcCount')), 'announcement: the audience filter updates the count');
+    ok((await s2.page.inputValue('textarea[data-text="uz"]')) === 'Salom <b>hammaga</b>', 'announcement: the text survives choosing a filter');
+    await s2.page.click('#bcTest'); await settle(s2.page, 500);
+    const t = seen.filter((b) => b.op === 'test').pop();
+    ok(t && t.payload.photo === 'FILEID_1234567890' && t.payload.btn.url === 'https://example.com/club' && t.payload.texts.uz === 'Salom <b>hammaga</b>' && t.filter.lang === 'ru', 'announcement: test carries text, photo, button and filter: ' + JSON.stringify(t));
+    ok(await s2.page.locator('#bcSend').isEnabled(), 'announcement: send unlocks after the test');
+    await s2.page.fill('textarea[data-text="uz"]', 'Salom <b>hammaga</b>!');
+    ok(await s2.page.locator('#bcSend').isDisabled(), 'announcement: editing the text after the test locks send again');
+    await s2.page.click('#bcTest'); await settle(s2.page, 500);
+    await s2.page.click('#bcSend'); await settle(s2.page, 300);
+    ok(/7/.test(await txt(s2.page, '#sheet .kv')) && await s2.page.locator('#bcYes').count() === 1, 'announcement: the confirmation shows the number of recipients');
+    await shot(s2.page, '12-announce-confirm');
+    await s2.page.click('#bcYes'); await settle(s2.page, 700);
+    const sd = seen.filter((b) => b.op === 'send').pop();
+    ok(sd && sd.confirm === 7, 'announcement: the confirmed count goes with the send: ' + JSON.stringify(sd && sd.confirm));
+    ok(/navbatga/i.test(await txt(s2.page, '#bcMsg')) && /#9/.test(await txt(s2.page, '#bcList')), 'announcement: queued message and the status list: ' + await txt(s2.page, '#bcList'));
+    await s2.page.click('[data-cancel="9"]'); await settle(s2.page, 600);
+    ok(/bekor qilindi/.test(await txt(s2.page, '#bcList')), 'announcement: cancel works');
+    ok(s2.errs.length === 0, 'announcement: no console errors: ' + s2.errs.join(';'));
+    await s2.ctx.close();
   }
 } finally {
   await browser.close();

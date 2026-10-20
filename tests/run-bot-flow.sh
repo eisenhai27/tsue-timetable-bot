@@ -16,3 +16,4 @@ for i in $(seq 1 60); do curl -s localhost:8787/ >/dev/null && break; sleep 1; d
 node tests/bot-flow.mjs
 node tests/notify-dedupe.mjs
 node tests/security.mjs
+node tests/broadcast.mjs

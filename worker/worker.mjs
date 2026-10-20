@@ -19,7 +19,7 @@
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
-  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable,
+  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX,
 } from '../src/shared.mjs';
 
 const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
@@ -56,26 +56,33 @@ export default {
   // a Cron Trigger for this Worker in the dashboard and set GITHUB_PAT + GITHUB_REPO to turn it
   // on; without them this quietly does nothing, so it's safe to leave unconfigured.
   async scheduled(event, env, ctx) {
-    if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
-    const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/timetable.yml/dispatches`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.GITHUB_PAT}`,
-        Accept: 'application/vnd.github+json',
-        'Content-Type': 'application/json',
-        'User-Agent': 'tdiu-jadval-cron',
-      },
-      body: JSON.stringify({ ref: 'main' }),
-    });
-    if (!res.ok) console.error('GitHub dispatch failed:', res.status, await res.text().catch(() => ''));
+    await dispatchWorkflow(env);
   },
 };
+
+/** Wakes the GitHub Action (it then sends whatever is due: reminders, weekly posts, queued announcements). Quietly does nothing without GITHUB_PAT. */
+async function dispatchWorkflow(env) {
+  if (!env.GITHUB_PAT || !env.GITHUB_REPO) return false;
+  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/timetable.yml/dispatches`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${env.GITHUB_PAT}`,
+      Accept: 'application/vnd.github+json',
+      'Content-Type': 'application/json',
+      'User-Agent': 'tdiu-jadval-cron',
+    },
+    body: JSON.stringify({ ref: 'main' }),
+  });
+  if (!res.ok) console.error('GitHub dispatch failed:', res.status, await res.text().catch(() => ''));
+  return res.ok;
+}
 
 async function route(request, env) {
   const url = new URL(request.url);
   try {
     if (request.method === 'POST' && url.pathname === '/tg') return await onWebhook(request, env);
     if (url.pathname === '/api/week-pic') return await onWeekPic(request, env);
+    if (url.pathname === '/api/admin') return await onAdminApi(request, env);
     if (url.pathname === '/setup') return await onSetup(request, url, env);
     if (url.pathname.startsWith('/internal/')) return await onInternal(request, url, env);
     return new Response('TDIU Jadval bot is running ✅', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
@@ -246,6 +253,26 @@ async function db(env) {
         update_id INTEGER PRIMARY KEY,
         at INTEGER NOT NULL)`),
       // the admin's /stats: how often each action was used, per day (Tashkent date)
+      // admin announcements ("E'lon"): the queue, who has been served (so a re-run never repeats), and the last test the admin looked at
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS broadcasts (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at INTEGER NOT NULL,
+        payload TEXT NOT NULL,
+        filter TEXT NOT NULL,
+        total INTEGER NOT NULL DEFAULT 0,
+        sent INTEGER NOT NULL DEFAULT 0,
+        failed INTEGER NOT NULL DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'queued',
+        lease_until INTEGER NOT NULL DEFAULT 0,
+        finished_at INTEGER)`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS broadcast_done (
+        bid INTEGER NOT NULL,
+        chat_id INTEGER NOT NULL,
+        ok INTEGER NOT NULL DEFAULT 1,
+        PRIMARY KEY (bid, chat_id))`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
+        k TEXT PRIMARY KEY,
+        v TEXT)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS usage (
         day TEXT NOT NULL,
         k TEXT NOT NULL,
@@ -480,6 +507,150 @@ async function onWeekPic(request, env) {
   return jsonCors(env, { ok: !!r?.ok });
 }
 
+
+// ---------------------------------------------------------------- Mini App → admin announcements ("E'lon")
+// Only the admin (ADMIN_CHAT_ID, proven by Telegram's signed initData) can use this. Flow: write → "send me a test" (the exact message
+// arrives in the admin's own chat) → confirm the number of recipients → the announcement is QUEUED here; the GitHub Action sends it
+// (the Worker's free plan allows too few outgoing requests per call for a mass send). Private chats only — never groups.
+
+const BC_TEXT_MAX = 3500, BC_BTN_MAX = 40, BC_PHOTO_MAX = 4 * 1024 * 1024, BC_TEST_TTL = 2 * 3600 * 1000;
+const isAdminUser = (env, u) => !!u && !!env.ADMIN_CHAT_ID && String(u.id) === String(env.ADMIN_CHAT_ID);
+
+function bcFilter(f) {
+  f = f && typeof f === 'object' ? f : {};
+  return {
+    lang: LANGS.includes(f.lang) ? f.lang : 'all',
+    role: f.role === 'student' || f.role === 'teacher' ? f.role : 'all',
+    group: validId(f.group) ? String(f.group) : '',
+    scope: f.scope === 'picked' ? 'picked' : 'all', // picked = only chats that chose a group / teacher
+  };
+}
+/** The audience as SQL. Always private chats: groups are never reached by an announcement. */
+function bcAudience(f) {
+  const w = ["kind = 'private'"], b = [];
+  if (f.lang !== 'all') { w.push('lang = ?'); b.push(f.lang); }
+  if (f.role !== 'all') { w.push('role = ?'); b.push(f.role); }
+  if (f.group) { w.push('group_id = ?'); b.push(f.group); }
+  if (f.scope === 'picked') w.push('group_id IS NOT NULL');
+  return { where: w.join(' AND '), binds: b };
+}
+const bcCount = async (D, f) => { const a = bcAudience(f); return (await D.prepare(`SELECT COUNT(*) AS n FROM chats WHERE ${a.where}`).bind(...a.binds).first())?.n || 0; };
+
+/** Checks and cleans the announcement from the Mini App; returns { p } or { error }. */
+function bcPayload(raw) {
+  if (!raw || typeof raw !== 'object') return { error: 'bad payload' };
+  const photo = typeof raw.photo === 'string' && /^[\w-]{10,200}$/.test(raw.photo) ? raw.photo : null;
+  const texts = {};
+  for (const l of LANGS) {
+    const t = String(raw.texts?.[l] ?? '').replace(/\r\n/g, '\n').trim();
+    if (t) texts[l] = t;
+  }
+  if (!Object.keys(texts).length) return { error: 'empty' };
+  for (const t of Object.values(texts)) {
+    if (t.length > BC_TEXT_MAX) return { error: 'too long' };
+    if (photo && (`📢 ${esc(t)}`).length > BC_CAPTION_MAX) return { error: 'caption too long' };
+  }
+  let btn = null;
+  if (raw.btn && (raw.btn.url || Object.values(raw.btn.text || {}).some(Boolean))) {
+    let u;
+    try { u = new URL(String(raw.btn.url || '')); } catch { return { error: 'bad link' }; }
+    if (u.protocol !== 'https:' || String(raw.btn.url).length > 500) return { error: 'bad link' };
+    const bt = {};
+    for (const l of LANGS) { const t = String(raw.btn.text?.[l] ?? '').trim().slice(0, BC_BTN_MAX); if (t) bt[l] = t; }
+    if (!Object.keys(bt).length) return { error: 'button text' };
+    btn = { text: bt, url: u.href };
+  }
+  return { p: { texts, photo, btn, app: raw.app !== false, invite: raw.invite !== false } };
+}
+
+async function bcPick(env) { // who/what the messages need: bot name (invite link) and site (Mini App link)
+  const me = await tg(env, 'getMe', {});
+  return { bot: me?.result?.username || null, site: siteUrl(env) || null };
+}
+
+async function onAdminApi(request, env) {
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsFor(env) });
+  if (request.method !== 'POST') return jsonCors(env, { ok: false, error: 'method' }, 405);
+  if (Number(request.headers.get('content-length') || 0) > 6 * 1024 * 1024) return jsonCors(env, { ok: false, error: 'too big' }, 413);
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+  const user = await verifyInitData(env, body.initData);
+  if (!user) return jsonCors(env, { ok: false, error: 'auth' }, 401);
+  if (body.op === 'me') return jsonCors(env, { ok: true, admin: isAdminUser(env, user) }); // anyone may ask; only the admin hears "yes"
+  if (!isAdminUser(env, user)) return jsonCors(env, { ok: false, error: 'forbidden' }, 403);
+  const D = await db(env);
+  const adminId = Number(env.ADMIN_CHAT_ID);
+
+  if (body.op === 'count') return jsonCors(env, { ok: true, n: await bcCount(D, bcFilter(body.filter)) });
+
+  if (body.op === 'photo') {
+    const m = /^data:image\/(jpeg|png);base64,([A-Za-z0-9+/=]+)$/.exec(String(body.image || ''));
+    if (!m) return jsonCors(env, { ok: false, error: 'bad image' }, 400);
+    let bin;
+    try { bin = Uint8Array.from(atob(m[2]), (c) => c.charCodeAt(0)); } catch { return jsonCors(env, { ok: false, error: 'bad image' }, 400); }
+    const magicOk = (bin[0] === 0xff && bin[1] === 0xd8) || (bin[0] === 0x89 && bin[1] === 0x50);
+    if (!magicOk || bin.length > BC_PHOTO_MAX) return jsonCors(env, { ok: false, error: 'bad image' }, 400);
+    // the picture is parked in the admin's own chat once; Telegram hands back a file_id that the Action reuses for everybody
+    const fd = new FormData();
+    fd.append('chat_id', String(adminId));
+    fd.append('disable_notification', 'true');
+    fd.append('caption', '📎 E\'lon rasmi saqlandi');
+    fd.append('photo', new Blob([bin], { type: m[1] === 'png' ? 'image/png' : 'image/jpeg' }), m[1] === 'png' ? 'e.png' : 'e.jpg');
+    const res = await fetch(`${tgBase(env)}/bot${env.BOT_TOKEN}/sendPhoto`, { method: 'POST', body: fd });
+    const j = await res.json().catch(() => ({ ok: false }));
+    const sizes = j.result?.photo;
+    const fileId = Array.isArray(sizes) && sizes.length ? sizes[sizes.length - 1].file_id : null;
+    if (!j.ok || !fileId) return jsonCors(env, { ok: false, error: 'upload failed' }, 502);
+    return jsonCors(env, { ok: true, photo: fileId });
+  }
+
+  if (body.op === 'test' || body.op === 'send') {
+    const c = bcPayload(body.payload);
+    if (c.error) return jsonCors(env, { ok: false, error: c.error }, 400);
+    const filter = bcFilter(body.filter);
+    const hash = await sha256hex(JSON.stringify([c.p, filter]));
+    if (body.op === 'test') {
+      const ctx = await bcPick(env);
+      const mine = await D.prepare('SELECT role, group_id FROM chats WHERE chat_id = ?').bind(adminId).first();
+      let sent = 0;
+      for (const lang of Object.keys(c.p.texts)) { // one preview per language the admin wrote
+        const m = bcMessage(c.p, { lang, role: mine?.role, group_id: mine?.group_id }, ctx);
+        const r = m.photo
+          ? await tg(env, 'sendPhoto', { chat_id: adminId, photo: m.photo.photo, caption: m.photo.caption, parse_mode: 'HTML', reply_markup: m.markup })
+          : await tg(env, 'sendMessage', { chat_id: adminId, text: m.text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: m.markup });
+        if (r?.ok) sent++;
+      }
+      if (!sent) return jsonCors(env, { ok: false, error: 'test failed' }, 502);
+      await D.prepare('INSERT OR REPLACE INTO admin_state (k, v) VALUES (?, ?)').bind('bc_test', JSON.stringify({ hash, at: Date.now() })).run();
+      return jsonCors(env, { ok: true, sent, n: await bcCount(D, filter) });
+    }
+    // send: only the very announcement + audience that was just tested, with the recipient count typed back as a confirmation
+    const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'bc_test'").first())?.v || 'null');
+    if (!st || st.hash !== hash || Date.now() - st.at > BC_TEST_TTL) return jsonCors(env, { ok: false, error: 'test first' }, 409);
+    const n = await bcCount(D, filter);
+    if (!n) return jsonCors(env, { ok: false, error: 'nobody' }, 400);
+    if (Number(body.confirm) !== n) return jsonCors(env, { ok: false, error: 'count changed', n }, 409);
+    const busy = await D.prepare("SELECT id FROM broadcasts WHERE status IN ('queued','sending') LIMIT 1").first();
+    if (busy) return jsonCors(env, { ok: false, error: 'busy', id: busy.id }, 409);
+    const ins = await D.prepare('INSERT INTO broadcasts (created_at, payload, filter, total) VALUES (?, ?, ?, ?) RETURNING id').bind(Date.now(), JSON.stringify(c.p), JSON.stringify(filter), n).first();
+    await D.prepare("DELETE FROM admin_state WHERE k = 'bc_test'").run(); // every send needs its own fresh test
+    const woke = await dispatchWorkflow(env);
+    return jsonCors(env, { ok: true, id: ins.id, total: n, woke });
+  }
+
+  if (body.op === 'status') {
+    const { results } = await D.prepare('SELECT id, created_at, total, sent, failed, status, finished_at FROM broadcasts ORDER BY id DESC LIMIT 5').all();
+    return jsonCors(env, { ok: true, list: results });
+  }
+  if (body.op === 'cancel') {
+    const id = Number(body.id);
+    if (!Number.isSafeInteger(id)) return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+    const r = await D.prepare("UPDATE broadcasts SET status = 'cancelled', finished_at = ? WHERE id = ? AND status IN ('queued','sending')").bind(Date.now(), id).run();
+    return jsonCors(env, { ok: true, cancelled: (r.meta?.changes || 0) > 0 });
+  }
+  return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+}
+
 async function onInternal(request, url, env) {
   if (authBlocked(request)) return tooManyAttempts();
   if (!(await safeEqual(request.headers.get('x-admin-key'), env.ADMIN_KEY))) { noteAuthFail(request); return new Response('Forbidden', { status: 403 }); }
@@ -556,6 +727,44 @@ async function onInternal(request, url, env) {
       body: await request.text(),
     });
     return new Response(res.body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
+  }
+  // ---- queued announcements, for the Action (see onAdminApi)
+  if (url.pathname === '/internal/broadcast/next') {
+    // hand out one job under a 10-minute lease: a crashed run's job is picked up again, two runs never work on one at once
+    const now = Date.now();
+    const row = await D.prepare("UPDATE broadcasts SET status = 'sending', lease_until = ? WHERE id = (SELECT id FROM broadcasts WHERE status = 'queued' OR (status = 'sending' AND lease_until < ?) ORDER BY id LIMIT 1) RETURNING id, payload, filter").bind(now + 10 * 60e3, now).first();
+    return json({ job: row ? { id: row.id, payload: JSON.parse(row.payload), filter: JSON.parse(row.filter) } : null });
+  }
+  if (url.pathname === '/internal/broadcast/chats') {
+    const id = Number(url.searchParams.get('id'));
+    const after = Number(url.searchParams.get('after') || '-9999999999999');
+    const limit = Math.min(500, Number(url.searchParams.get('limit') || 200));
+    const job = Number.isSafeInteger(id) ? await D.prepare('SELECT filter FROM broadcasts WHERE id = ?').bind(id).first() : null;
+    if (!job) return json({ error: 'not found' }, 404);
+    const a = bcAudience(bcFilter(JSON.parse(job.filter)));
+    const { results } = await D.prepare(`SELECT chat_id, lang, role, group_id FROM chats WHERE ${a.where} AND chat_id > ? AND chat_id NOT IN (SELECT chat_id FROM broadcast_done WHERE bid = ?) ORDER BY chat_id LIMIT ?`).bind(...a.binds, after, id, limit).all();
+    return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
+  }
+  if (url.pathname === '/internal/broadcast/progress' && request.method === 'POST') {
+    const body = await request.json().catch(() => null);
+    const id = Number(body?.id);
+    if (!Number.isSafeInteger(id)) return json({ error: 'bad request' }, 400);
+    const ids = (a) => (Array.isArray(a) ? a.filter(Number.isSafeInteger).slice(0, 500) : []);
+    const stmts = [
+      ...ids(body.done).map((c) => D.prepare('INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok) VALUES (?, ?, 1)').bind(id, c)),
+      ...ids(body.failed).map((c) => D.prepare('INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok) VALUES (?, ?, 0)').bind(id, c)),
+      D.prepare("UPDATE broadcasts SET sent = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 1), failed = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 0), lease_until = ?2 WHERE id = ?1").bind(id, Date.now() + 10 * 60e3),
+    ];
+    await D.batch(stmts);
+    const row = await D.prepare('SELECT status FROM broadcasts WHERE id = ?').bind(id).first();
+    return json({ status: row?.status || 'missing' }); // the Action stops when this says "cancelled"
+  }
+  if (url.pathname === '/internal/broadcast/finish' && request.method === 'POST') {
+    const body = await request.json().catch(() => null);
+    const id = Number(body?.id);
+    if (!Number.isSafeInteger(id)) return json({ error: 'bad request' }, 400);
+    await D.prepare("UPDATE broadcasts SET status = 'done', finished_at = ? WHERE id = ? AND status = 'sending'").bind(Date.now(), id).run();
+    return json({ ok: true });
   }
   if (url.pathname === '/internal/stats') {
     const r = await D.prepare(`SELECT kind, role, COUNT(*) AS n, SUM(group_id IS NOT NULL) AS with_group FROM chats GROUP BY kind, role`).all();

@@ -183,7 +183,8 @@ html.dark .pill.now{color:var(--bolt)} html.dark .pill.now.on{color:#3B2A00}
 
 /* ---- bottom nav */
 .nav{position:fixed;left:0;right:0;bottom:0;z-index:10;background:var(--card);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
-.nav .wrap{display:grid;grid-template-columns:repeat(4,1fr)}
+.nav .wrap{display:grid;grid-auto-flow:column;grid-auto-columns:1fr}
+.nav button[hidden]{display:none}
 .nav button{position:relative;padding:9px 0 10px;display:flex;flex-direction:column;align-items:center;gap:3px;font-size:11.5px;font-weight:700;color:var(--hint)}
 .nav button svg{width:22px;height:22px}
 .nav button.on{color:var(--navy)}
@@ -344,6 +345,24 @@ html.dark .wcard.st-between{--st:linear-gradient(135deg,#9A5200,#C77A1C)}
 .wtips b{font-size:15px}.wtips div{display:flex;gap:10px;align-items:center;font-weight:600;font-size:14px}
 .wtips i{font-style:normal;width:30px;height:30px;border-radius:10px;background:var(--soft);display:grid;place-items:center;flex:none}
 .wactions{display:flex;gap:8px;margin-top:14px}
+
+/* admin announcements */
+.bc{padding-bottom:30px}
+.bccard{margin-top:14px;padding:16px;border-radius:var(--r);background:var(--card);box-shadow:var(--shadow);display:flex;flex-direction:column;gap:8px}
+.bccard h3{margin:0 0 2px;font-size:16px;font-weight:800}
+.bclab{font-size:12.5px;font-weight:800;color:var(--hint);margin-top:4px}
+.bc textarea,.bc input[type=url],.bc input:not([type]),.bc input[list]{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);padding:11px 12px;font:600 15px/1.35 inherit;font-family:inherit;outline:0;resize:vertical}
+.bc textarea:focus,.bc input:focus{border-color:var(--blue)}
+.bcpills{display:flex;gap:6px;flex-wrap:wrap}.bcpills .pill.on{background:var(--navy);color:#fff}
+.bcchk{display:flex;gap:10px;align-items:center;font-weight:700;font-size:14px;margin-top:4px}
+.bcchk input{width:20px;height:20px;flex:none}
+.bccount{margin-top:6px;padding:12px;border-radius:12px;background:var(--soft);font-weight:800;text-align:center}
+.bcimg{width:100%;max-height:260px;object-fit:contain;border-radius:12px;background:var(--bg)}
+.bcgo{background:var(--navy);color:#fff}
+html.dark .bcgo{color:#fff}
+.bc .act:disabled,.bcgo:disabled{opacity:.45}
+.bcrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--text);font-weight:600}
+.bcrow:last-child{border-bottom:0}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 </style>
 </head>
@@ -354,6 +373,7 @@ html.dark .wcard.st-between{--st:linear-gradient(135deg,#9A5200,#C77A1C)}
   <button data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span data-t="navSearch"></span></button>
   <button data-tab="where"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span data-t="navWhere"></span></button>
   <button data-tab="free"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16M6 21V4a1 1 0 0 1 1-1h8l3 3v15"/><circle cx="14" cy="13" r="1" fill="currentColor"/></svg><span data-t="navFree"></span></button>
+  <button data-tab="admin" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1z"/><path d="M17 8.5a5 5 0 0 1 0 7"/></svg><span data-t="navAdmin"></span></button>
 </div></nav>
 <div id="sheet"></div>
 
@@ -405,7 +425,7 @@ const plRu = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && 
 const dur = (m, h, mi) => m >= 60 ? `${Math.floor(m / 60)} ${h}${m % 60 ? ' ' + (m % 60) + ' ' + mi : ''}` : `${m} ${mi}`;
 const I = {
   uz: { days:['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'], dShort:['Du','Se','Ch','Pa','Ju','Sh','Ya'],
-    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`,
+    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", navAdmin:"E'lon", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`,
     lessonsN:(n)=>`${n} ta dars`, groupsN:(n)=>`${n} ta guruh`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling",
     weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun',
     months:['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'],
@@ -432,7 +452,7 @@ const I = {
     whInline:{ now:'Hozir', next:'Keyingi' }, whAZ:'A–Z', whTips:["Ustoz hozir qaysi xonada", "Keyingi darsi qachon va qayerda", "Kun bo'yi tartibi"], whEmpty:"Ustozni qidiring yoki ro'yxatdan tanlang", whFavHint:'⭐ bosib sevimli qiling',
     myTeachers:'Mening ustozlarim', whBusyRoom:(n)=>`${n} ta dars`, whNoRoom:"xona ko'rsatilmagan", whWeekN:(s)=>`${s}`, nextWk:'Keyingi hafta', prevWk:"O'tgan hafta" },
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
+    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', navAdmin:'Объявление', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
     lessonsN:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, groupsN:(n)=>`${n} ${plRu(n,'группа','группы','групп')}`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте',
     weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня',
     months:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
@@ -459,7 +479,7 @@ const I = {
     whInline:{ now:'Сейчас', next:'Далее' }, whAZ:'А–Я', whTips:['В какой аудитории сейчас', 'Когда и где следующая пара', 'План на весь день'], whEmpty:'Найдите преподавателя или выберите из списка', whFavHint:'Нажмите ⭐, чтобы сохранить',
     myTeachers:'Мои преподаватели', whBusyRoom:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, whNoRoom:'аудитория не указана', whWeekN:(s)=>`${s}`, nextWk:'Следующая неделя', prevWk:'Прошлая неделя' },
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
+    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', navAdmin:'Announce', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
     lessonsN:(n)=>`${n} class${n === 1 ? '' : 'es'}`, groupsN:(n)=>`${n} group${n === 1 ? '' : 's'}`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy',
     weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today',
     months:['January','February','March','April','May','June','July','August','September','October','November','December'],
@@ -792,6 +812,7 @@ async function render() {
   try {
     await ensureIndex();
     if (my !== seq) return;
+    if (S.tab === 'admin' && S.admin) return renderAdmin();
     if (S.picking) return renderSearch();
     if (S.tab === 'search') return renderSearch();
     if (S.tab === 'free') return await renderFree();
@@ -1198,6 +1219,164 @@ function showLesson(l, v, par) {
   if (l.g) rows.push(`<div class="kv"><div class="k">🔹</div><div class="v">${esc(l.g)}</div></div>`);
   openSheet(`<h3>${nameHtml(st)}</h3>${rows.join('')}`);
   $('#sheet').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const e = entityOf(b.dataset.open); closeSheet(); if (e) openEntity(e); });
+}
+// ---- admin: announcements ("E'lon") — visible only to the bot's owner. The server decides who that is (Telegram's signed initData);
+// hiding the tab here is just a courtesy, every call is checked again on the server.
+const BC = { texts: { uz: '', ru: '', en: '' }, photo: null, photoView: null, btnUrl: '', btnText: { uz: '', ru: '', en: '' }, app: true, invite: true,
+  filter: { lang: 'all', role: 'all', group: '', groupName: '', scope: 'all' }, count: null, testedKey: null, msg: '', list: [], timer: null };
+async function adminCall(body) {
+  const r = await fetch(`${API_URL}/api/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData, ...body }) });
+  const j = await r.json().catch(() => ({}));
+  return { status: r.status, ...j };
+}
+async function checkAdmin() {
+  if (!(inTg && tg.initData)) return;
+  try {
+    const j = await adminCall({ op: 'me' });
+    if (j.ok && j.admin) { S.admin = true; const b = document.querySelector('.nav [data-tab="admin"]'); if (b) b.hidden = false; }
+  } catch {}
+}
+const bcFilter = () => ({ lang: BC.filter.lang, role: BC.filter.role, group: BC.filter.group, scope: BC.filter.scope });
+const bcPayload = () => ({ texts: BC.texts, photo: BC.photo, btn: BC.btnUrl.trim() ? { url: BC.btnUrl.trim(), text: BC.btnText } : null, app: BC.app, invite: BC.invite });
+const bcKey = () => JSON.stringify([bcPayload(), bcFilter()]);
+function bcReady() { return Object.values(BC.texts).some(t => t.trim()); }
+function bcGroups() { // every group name → id, for the "one group" filter
+  const out = [];
+  for (const f of (INDEX && INDEX.faculties) || []) for (const c of f.courses || []) for (const g of c.groups || []) out.push({ id: g[0], name: g[1] });
+  return out;
+}
+const bcStatusText = { queued: '⏳ navbatda', sending: '📤 yuborilmoqda', done: '✅ tugadi', cancelled: '🚫 bekor qilindi' };
+function renderAdmin() {
+  seq++;
+  const f = BC.filter;
+  const pills = (key, opts) => `<div class="bcpills">${opts.map(([v, t]) => `<button class="pill${f[key] === v ? ' on' : ''}" data-f="${key}" data-v="${esc(v)}">${esc(t)}</button>`).join('')}</div>`;
+  const ta = (l, flag) => `<label class="bclab">${flag} ${l === 'uz' ? "O'zbekcha" : l === 'ru' ? 'Русский' : 'English'}</label><textarea data-text="${l}" rows="${l === 'uz' ? 4 : 3}" maxlength="3500" placeholder="${l === 'uz' ? 'Matn…' : "Bo'sh qolsa — o'zbekcha ketadi"}">${esc(BC.texts[l])}</textarea>`;
+  app.innerHTML = `<div class="wrap bc">
+    <div class="hero"><div class="rings"><i></i><i></i></div><div class="hrow"><span class="mark">📣</span><div class="htitle"><div class="t1">E'lon yuborish</div><div class="t2">Faqat shaxsiy chatlarga · guruhlarga ketmaydi</div></div>${themeBtn()}</div></div>
+    <div class="bccard"><h3>✍️ Matn</h3>${ta('uz', '🇺🇿')}${ta('ru', '🇷🇺')}${ta('en', '🇬🇧')}
+      <div class="muted small">Har kim o'z tilidagi matnni oladi. Oddiy matn — maxsus belgilar o'zgartirilmaydi.</div></div>
+    <div class="bccard"><h3>🖼 Rasm <span class="muted small">(ixtiyoriy)</span></h3>
+      <div id="bcPhoto">${BC.photoView ? `<img class="bcimg" src="${BC.photoView}" alt=""><div class="actions"><button class="act" id="bcPhotoDel">🗑 Olib tashlash</button></div>` : `<div class="actions"><label class="act" for="bcFile">📎 Rasm tanlash</label></div><input id="bcFile" type="file" accept="image/*" hidden>`}</div>
+      <div class="muted small" id="bcPhotoMsg" aria-live="polite">Rasm bilan matn 1000 belgigacha bo'lishi kerak.</div></div>
+    <div class="bccard"><h3>🔘 Tugmalar</h3>
+      <label class="bclab">Havola (https://…) — ixtiyoriy</label><input id="bcUrl" type="url" inputmode="url" maxlength="500" placeholder="https://" value="${esc(BC.btnUrl)}">
+      <label class="bclab">Tugma yozuvi</label>
+      <input data-btn="uz" maxlength="40" placeholder="🇺🇿 Masalan: Batafsil" value="${esc(BC.btnText.uz)}">
+      <input data-btn="ru" maxlength="40" placeholder="🇷🇺 (ixtiyoriy)" value="${esc(BC.btnText.ru)}">
+      <input data-btn="en" maxlength="40" placeholder="🇬🇧 (ixtiyoriy)" value="${esc(BC.btnText.en)}">
+      <label class="bcchk"><input type="checkbox" id="bcApp" ${BC.app ? 'checked' : ''}> 📱 «Ilovada ochish» tugmasi</label>
+      <label class="bcchk"><input type="checkbox" id="bcInv" ${BC.invite ? 'checked' : ''}> 📤 «Do'stlarni taklif qilish» tugmasi</label></div>
+    <div class="bccard"><h3>👥 Kimga</h3>
+      <label class="bclab">Til</label>${pills('lang', [['all', 'Hammasi'], ['uz', 'UZ'], ['ru', 'RU'], ['en', 'EN']])}
+      <label class="bclab">Kim</label>${pills('role', [['all', 'Hammasi'], ['student', 'Talaba'], ['teacher', "O'qituvchi"]])}
+      <label class="bclab">Bitta guruh (ixtiyoriy)</label><input id="bcGroup" list="bcGroups" placeholder="Masalan: MO-901/26" value="${esc(f.groupName)}" autocomplete="off"><datalist id="bcGroups">${bcGroups().map(g => `<option value="${esc(g.name)}"></option>`).join('')}</datalist>
+      <label class="bcchk"><input type="checkbox" id="bcPicked" ${f.scope === 'picked' ? 'checked' : ''}> Faqat guruh / o'qituvchi tanlaganlar</label>
+      <div class="bccount" id="bcCount" aria-live="polite">…</div></div>
+    <div class="bccard"><div class="actions"><button class="act" id="bcTest">🧪 Menga sinov yuborish</button></div>
+      <div class="actions" style="margin-top:8px"><button class="act bcgo" id="bcSend">🚀 Hammaga yuborish</button></div>
+      <div class="muted small" id="bcMsg" aria-live="polite">${esc(BC.msg)}</div></div>
+    <div class="bccard"><h3>📊 Yuborilganlar</h3><div id="bcList" class="muted small">…</div></div>
+    ${footHtml('')}</div>`;
+  const syncBtns = () => {
+    const ok = bcReady();
+    $('#bcTest').disabled = !ok;
+    $('#bcSend').disabled = !(ok && BC.testedKey === bcKey());
+    $('#bcSend').textContent = BC.testedKey === bcKey() ? '🚀 Hammaga yuborish' : '🚀 Avval sinov yuboring';
+  };
+  const setMsg = (t) => { BC.msg = t; const m = $('#bcMsg'); if (m) m.textContent = t; };
+  app.querySelectorAll('[data-text]').forEach(el => el.oninput = () => { BC.texts[el.dataset.text] = el.value; syncBtns(); });
+  app.querySelectorAll('[data-btn]').forEach(el => el.oninput = () => { BC.btnText[el.dataset.btn] = el.value; syncBtns(); });
+  $('#bcUrl').oninput = (e) => { BC.btnUrl = e.target.value; syncBtns(); };
+  $('#bcApp').onchange = (e) => { BC.app = e.target.checked; syncBtns(); };
+  $('#bcInv').onchange = (e) => { BC.invite = e.target.checked; syncBtns(); };
+  let cnt = 0;
+  const refreshCount = async () => {
+    const my = ++cnt;
+    $('#bcCount').textContent = '…';
+    try {
+      const j = await adminCall({ op: 'count', filter: bcFilter() });
+      if (my !== cnt) return;
+      BC.count = j.ok ? j.n : null;
+      $('#bcCount').textContent = j.ok ? `👥 ${j.n} ta shaxsiy chat` : '—';
+    } catch { if (my === cnt) $('#bcCount').textContent = '—'; }
+  };
+  app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { haptic(); BC.filter[b.dataset.f] = b.dataset.v; renderAdmin(); });
+  $('#bcPicked').onchange = (e) => { BC.filter.scope = e.target.checked ? 'picked' : 'all'; syncBtns(); refreshCount(); };
+  $('#bcGroup').oninput = (e) => {
+    const name = e.target.value.trim();
+    const g = bcGroups().find(x => x.name.toLowerCase() === name.toLowerCase());
+    BC.filter.groupName = e.target.value; BC.filter.group = g ? g.id : '';
+    syncBtns(); refreshCount();
+  };
+  const file = $('#bcFile');
+  if (file) file.onchange = () => {
+    const fl = file.files && file.files[0]; if (!fl) return;
+    const msg = $('#bcPhotoMsg'); msg.textContent = 'Yuklanmoqda…';
+    const rd = new FileReader();
+    rd.onerror = () => { msg.textContent = "Rasmni o'qib bo'lmadi"; };
+    rd.onload = () => {
+      const im = new Image();
+      im.onerror = () => { msg.textContent = "Bu rasm emas yoki ochilmadi"; };
+      im.onload = async () => {
+        const k = Math.min(1, 1280 / Math.max(im.width, im.height));
+        const c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+        c.getContext('2d').drawImage(im, 0, 0, c.width, c.height);
+        const url = c.toDataURL('image/jpeg', 0.86);
+        try {
+          const j = await adminCall({ op: 'photo', image: url });
+          if (j.ok) { BC.photo = j.photo; BC.photoView = url; BC.testedKey = null; renderAdmin(); return; }
+          msg.textContent = "Rasm yuklanmadi — qayta urinib ko'ring";
+        } catch { msg.textContent = "Rasm yuklanmadi — internetni tekshiring"; }
+      };
+      im.src = rd.result;
+    };
+    rd.readAsDataURL(fl);
+  };
+  const del = $('#bcPhotoDel'); if (del) del.onclick = () => { BC.photo = null; BC.photoView = null; BC.testedKey = null; renderAdmin(); };
+
+  $('#bcTest').onclick = async () => {
+    haptic(); $('#bcTest').disabled = true; setMsg('Sinov yuborilmoqda…');
+    try {
+      const key = bcKey();
+      const j = await adminCall({ op: 'test', payload: bcPayload(), filter: bcFilter() });
+      if (j.ok) { BC.testedKey = key; setMsg(`✅ Sinov chatingizga keldi (${j.sent} ta). Yaxshilab tekshiring, so'ng yuboring.`); }
+      else setMsg(j.error === 'bad link' ? "❌ Havola https:// bilan boshlanishi kerak" : j.error === 'button text' ? '❌ Tugma yozuvini kiriting' : j.error === 'caption too long' ? "❌ Rasm bilan matn juda uzun (1000 belgigacha)" : '❌ Sinov yuborilmadi: ' + (j.error || j.status));
+    } catch { setMsg('❌ Internet xatosi'); }
+    syncBtns();
+  };
+  $('#bcSend').onclick = () => {
+    haptic('medium');
+    const n = BC.count;
+    if (!n) { setMsg('❌ Qabul qiluvchi yo‘q'); return; }
+    openSheet(`<h3>🚀 Yuborishni tasdiqlang</h3><div class="kv"><div class="k">👥</div><div class="v"><b>${n}</b> ta shaxsiy chatga yuboriladi</div></div><div class="kv"><div class="k">🚫</div><div class="v">Guruhlarga yuborilmaydi</div></div><div class="muted small" style="margin:8px 0">Yuborib bo'lingach to'xtatib bo'lmaydi (faqat hali yuborilmaganlarni bekor qilish mumkin).</div><div class="actions"><button class="act" id="bcNo">Bekor</button><button class="act bcgo" id="bcYes">Ha, yuborish</button></div>`);
+    $('#bcNo').onclick = closeSheet;
+    $('#bcYes').onclick = async () => {
+      $('#bcYes').disabled = true;
+      try {
+        const j = await adminCall({ op: 'send', payload: bcPayload(), filter: bcFilter(), confirm: n });
+        closeSheet();
+        if (j.ok) { BC.testedKey = null; setMsg(`✅ Navbatga qo'yildi: ${j.total} ta chat. Taxminan 15 daqiqa ichida ketadi.`); loadList(); }
+        else setMsg(j.error === 'count changed' ? `⚠️ Qabul qiluvchilar soni o'zgardi (${j.n}). Qayta tekshiring.` : j.error === 'busy' ? '⚠️ Boshqa e\'lon hali yuborilmoqda' : j.error === 'test first' ? '⚠️ Avval sinov yuboring' : '❌ Yuborilmadi: ' + (j.error || j.status));
+      } catch { closeSheet(); setMsg('❌ Internet xatosi'); }
+      syncBtns(); refreshCount();
+    };
+  };
+  const loadList = async () => {
+    clearTimeout(BC.timer);
+    const box = $('#bcList'); if (!box || S.tab !== 'admin') return;
+    try {
+      const j = await adminCall({ op: 'status' });
+      if (!j.ok) { box.textContent = '—'; return; }
+      BC.list = j.list;
+      box.innerHTML = j.list.length ? j.list.map(b => {
+        const active = b.status === 'queued' || b.status === 'sending';
+        return `<div class="bcrow"><div><b>#${b.id}</b> · ${bcStatusText[b.status] || esc(b.status)}<br><span class="muted">${b.sent}/${b.total} yetdi${b.failed ? ` · ${b.failed} yetmadi` : ''} · ${esc(new Date(b.created_at).toLocaleString())}</span></div>${active ? `<button class="pill" data-cancel="${b.id}">Bekor</button>` : ''}</div>`;
+      }).join('') : "Hali e'lon yuborilmagan";
+      box.querySelectorAll('[data-cancel]').forEach(b => b.onclick = async () => { b.disabled = true; try { await adminCall({ op: 'cancel', id: Number(b.dataset.cancel) }); } catch {} loadList(); });
+      if (j.list.some(b => b.status === 'queued' || b.status === 'sending')) BC.timer = setTimeout(loadList, 8000);
+    } catch { box.textContent = '—'; }
+  };
+  syncBtns(); refreshCount(); loadList();
 }
 function openSheet(htmlStr) {
   $('#sheet').innerHTML = `<div class="sheet-bg"></div><div class="sheet">${htmlStr}</div>`;
@@ -1712,6 +1891,7 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
     } catch {}
   }
   render();
+  checkAdmin(); // reveals the owner-only «E'lon» tab (the server decides who the owner is)
   // the teachers / rooms list is needed by search, the Teacher tab and the tappable chips: fetch it while the screen is idle
   (window.requestIdleCallback || ((f) => setTimeout(f, 1200)))(() => { ensurePeople().catch(() => {}); });
 })();

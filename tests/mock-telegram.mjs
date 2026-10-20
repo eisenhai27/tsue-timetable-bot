@@ -10,11 +10,14 @@ http.createServer((req, res) => {
     const method = req.url.split('/').pop();
     if (req.url === '/__log') { res.end(JSON.stringify(log)); return; }
     if (req.url === '/__reset') { log.length = 0; res.end('ok'); return; }
-    const data = body ? JSON.parse(body) : {};
+    const multipart = /multipart\/form-data/.test(req.headers['content-type'] || '');
+    // (a picture upload: only the chat id is of interest to the tests)
+    const data = multipart ? { multipart: true, chat_id: Number(/name="chat_id"\r\n\r\n(-?\d+)/.exec(body)?.[1]) } : body ? JSON.parse(body) : {};
     const entry = { method, data };
     log.push(entry);
     let result = true;
     if (method === 'sendMessage') result = { message_id: ++msgId, chat: { id: data.chat_id }, text: data.text };
+    if (multipart && method === 'sendPhoto') result = { message_id: ++msgId, chat: { id: data.chat_id }, photo: [{ file_id: 'SMALL_FILE_ID_0001', width: 90, height: 90 }, { file_id: 'UPLOADED_FILE_ID_0001', width: 800, height: 600 }] };
     if (method === 'getChatMember') result = { status: data.user_id === 111 ? 'administrator' : 'member' };
     if (method === 'getMe') result = { id: 1, username: 'tsue_test_bot' };
     if (method === 'getMyCommands') result = [{ command: 'today', description: 'Bugungi darslar' }, { command: 'help', description: 'Yordam' }];

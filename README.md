@@ -188,3 +188,14 @@ node scripts/render.mjs 1thm8e1 --lang=ru --parity=A --out=.out/pics   # draw on
 ```
 
 This bot is a student project and is not affiliated with TSUE or EduPage. It only reads the public timetable.
+
+## Announcements ("E'lon") — owner only
+
+The Mini App has an extra **E'lon** tab that only the owner (`ADMIN_CHAT_ID`) ever sees; the Worker checks Telegram's signed `initData` on every call, so hiding the tab is not the protection.
+
+1. Write the text (uz / ru / en — everyone gets their own language), optionally a picture, a link button, and pick the audience (language, student/teacher, one group). **Only private chats are ever reached — never groups.**
+2. **Menga sinov yuborish** sends the exact message to the owner's own chat. Sending is locked until a test of *exactly this* content and audience was made (any edit locks it again).
+3. **Hammaga yuborish** shows the recipient count; the Worker re-counts and refuses if the number differs. It then only *queues* the announcement (`broadcasts` table).
+4. The GitHub Action (`notify.mjs auto` / `broadcast`) sends the queue: a lease keeps two runs off one job, `broadcast_done` makes a re-run continue instead of repeat, and **Bekor** in the Mini App stops it at the next page of 200 chats. With `GITHUB_PAT` set the Worker also wakes the Action at once; otherwise the next scheduled run (≤ ~15 min) picks it up.
+
+Tests: `tests/broadcast.mjs` (API, safety flow, sender, cancel, resume) and the E'lon part of `tests/app-ui.mjs`.

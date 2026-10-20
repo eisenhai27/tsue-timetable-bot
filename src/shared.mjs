@@ -717,3 +717,28 @@ function clip(s) {
   if (open > close) out += '</blockquote>';
   return out + '\n…';
 }
+
+// ---------- Admin announcements ("E'lon") ----------
+// ONE builder for the message, used by the Worker's "send me a test" and by the GitHub Action's real send, so the test the admin
+// looks at is exactly what everybody gets. `p` = the stored announcement { texts:{uz,ru,en}, photo:file_id|null, btn:{text:{…},url}|null,
+// app:bool, invite:bool }; `chat` = { lang, role, group_id }; `ctx` = { site, bot }.
+export const BC_CAPTION_MAX = 1024;
+export function bcMessage(p, chat, ctx = {}) {
+  const L = tr(chat.lang);
+  const lang = LANGS.includes(chat.lang) ? chat.lang : 'uz';
+  const pick = (o) => (o && (o[lang] || o.uz || Object.values(o).find(Boolean))) || '';
+  const text = `📢 ${esc(pick(p.texts))}`;
+  const rows = [];
+  if (p.btn && p.btn.url) rows.push([{ text: pick(p.btn.text) || p.btn.url, url: p.btn.url }]);
+  if (p.app !== false) {
+    const gid = chat.group_id && validBcId(chat.group_id) ? `${chat.role === 'teacher' ? 't' : 'g'}=${chat.group_id}&` : '';
+    if (ctx.site) rows.push([{ text: L.btnOpenInApp, web_app: { url: `${String(ctx.site).replace(/\/+$/, '')}/#${gid}l=${lang}` } }]);
+    else if (ctx.bot) rows.push([{ text: L.btnOpenInApp, url: `https://t.me/${ctx.bot}` }]);
+  }
+  if (p.invite !== false && ctx.bot) {
+    const link = `https://t.me/${ctx.bot}`;
+    rows.push([{ text: L.btnInvite, url: `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(L.inviteShareGeneric)}` }]);
+  }
+  return { text, photo: p.photo ? { photo: p.photo, caption: text } : null, markup: rows.length ? { inline_keyboard: rows } : undefined };
+}
+const validBcId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id));

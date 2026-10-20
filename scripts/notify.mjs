@@ -6,6 +6,7 @@
 //                                        and has not been served today. Safe to call every few minutes: before messaging a
 //                                        chat it CLAIMS it in the bot's database (one atomic UPDATE per chat per day), so
 //                                        even two runs overlapping in time can never send the same message twice.
+//   node scripts/notify.mjs broadcast  → sends the announcement queued from the Mini App's "E'lon" screen (also part of 'auto')
 //   node scripts/notify.mjs announce   → broadcasts env.ANNOUNCE_TEXT to every chat (admin only, via the "Run workflow"
 //                                        announce field) — also chats that never picked a group. Use "[uz] … [ru] … [en] …"
 //                                        to send each chat its own language; every message gets an "Invite friends" button
@@ -14,7 +15,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath, noTimetable } from '../src/shared.mjs';
+import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath, noTimetable, bcMessage } from '../src/shared.mjs';
 
 const { BOT_TOKEN, WORKER_URL, ADMIN_KEY } = process.env;
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/+$/, '');
@@ -303,6 +304,40 @@ async function sendAnnounce() {
   console.log(`announce: ${n} chats reached`);
 }
 
+/**
+ * Announcements queued from the Mini App's "E'lon" screen (admin only, private chats only — see the Worker's /api/admin).
+ * Takes the queued job (a lease in the database keeps two runs off the same one), sends it chat by chat in pages and reports
+ * progress after every page; a chat already served is never listed again, so a re-run continues instead of repeating.
+ * Cancelling in the Mini App stops it at the next page.
+ */
+async function sendQueuedBroadcast() {
+  const { job } = await worker('/internal/broadcast/next');
+  if (!job) return false;
+  const bot = await botName();
+  console.log(`broadcast #${job.id}: sending`);
+  let after = -1e15, cancelled = false, ok = 0, bad = 0;
+  while (!cancelled) {
+    const page = await worker(`/internal/broadcast/chats?id=${job.id}&after=${after}&limit=200`);
+    if (!page.rows.length) break;
+    const done = [], failed = [];
+    for (const chat of page.rows) {
+      const m = bcMessage(job.payload, chat, { site: SITE_URL, bot });
+      const before = removed.length;
+      if (await send(chat.chat_id, m.text, m.markup, m.photo)) { done.push(chat.chat_id); if (removed.length === before) ok++; else bad++; }
+      else { failed.push(chat.chat_id); bad++; }
+    }
+    // chats that blocked the bot count as "not delivered" (failed) but are settled — they are also removed from the bot's list at the end
+    const dead = new Set(removed);
+    const r = await worker('/internal/broadcast/progress', { id: job.id, done: done.filter((c) => !dead.has(c)), failed: [...failed, ...done.filter((c) => dead.has(c))] });
+    if (r.status === 'cancelled') { cancelled = true; console.log(`broadcast #${job.id}: cancelled by the admin`); }
+    if (page.next == null) break;
+    after = page.next;
+  }
+  if (!cancelled) await worker('/internal/broadcast/finish', { id: job.id });
+  console.log(`broadcast #${job.id}: delivered ${ok}, not delivered ${bad}`);
+  return true;
+}
+
 async function main() {
   const mode = process.argv[2];
   if (!BOT_TOKEN || !WORKER_URL || !ADMIN_KEY) throw new Error('BOT_TOKEN, WORKER_URL and ADMIN_KEY must be set');
@@ -335,10 +370,13 @@ async function main() {
       const failedWeekly = await sendWeekly(index, today);
       if (failedWeekly) console.log(`auto: weekly timetable — ${failedWeekly} chats to retry`);
     }
+    await sendQueuedBroadcast(); // an announcement the admin queued in the Mini App (if any)
+  } else if (mode === 'broadcast') {
+    await sendQueuedBroadcast();
   } else if (mode === 'announce') {
     await sendAnnounce();
   } else {
-    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow|auto|announce');
+    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow|auto|announce|broadcast');
   }
 
   if (!DRY && (removed.length || migrated.length)) {
