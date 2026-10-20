@@ -919,8 +919,8 @@ async function sendStats(env, chatId, editId) {
 async function adminMenu(env) {
   try {
     const cur = await tg(env, 'getMyCommands', { scope: { type: 'all_private_chats' } });
-    const list = (Array.isArray(cur.result) ? cur.result : []).filter((c) => c.command !== 'stats');
-    await tg(env, 'setMyCommands', { scope: { type: 'chat', chat_id: Number(env.ADMIN_CHAT_ID) }, commands: [{ command: 'stats', description: '📊 Statistika (faqat siz uchun)' }, ...list] });
+    const list = (Array.isArray(cur.result) ? cur.result : []).filter((c) => c.command !== 'stats' && c.command !== 'elon');
+    await tg(env, 'setMyCommands', { scope: { type: 'chat', chat_id: Number(env.ADMIN_CHAT_ID) }, commands: [{ command: 'stats', description: '📊 Statistika (faqat siz uchun)' }, { command: 'elon', description: "📣 E'lon yuborish (faqat siz uchun)" }, ...list] });
   } catch {}
 }
 
@@ -992,6 +992,14 @@ const isAdminChat = (env, chatId) => !!env.ADMIN_CHAT_ID && String(chatId) === S
 async function onAdminReply(env, msg, command) {
   let target;
   let text;
+  if (command?.cmd === 'elon' || command?.cmd === 'announce') {
+    // The E'lon screen needs Telegram's signed initData, which a Mini App opened from the reply keyboard does not get —
+    // an inline web_app button does, so the admin opens it from here.
+    if (!siteUrl(env)) return true;
+    await send(env, msg.chat.id, "📣 E'lon yuborish oynasi:", { reply_markup: { inline_keyboard: [[{ text: "📣 E'lonni ochish", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] } });
+    await adminMenu(env);
+    return true;
+  }
   if (command?.cmd === 'stats') {
     await sendStats(env, msg.chat.id);
     await adminMenu(env);

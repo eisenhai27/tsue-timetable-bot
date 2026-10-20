@@ -1589,8 +1589,8 @@ async function sendStats(env, chatId, editId) {
 async function adminMenu(env) {
   try {
     const cur = await tg(env, "getMyCommands", { scope: { type: "all_private_chats" } });
-    const list = (Array.isArray(cur.result) ? cur.result : []).filter((c) => c.command !== "stats");
-    await tg(env, "setMyCommands", { scope: { type: "chat", chat_id: Number(env.ADMIN_CHAT_ID) }, commands: [{ command: "stats", description: "\u{1F4CA} Statistika (faqat siz uchun)" }, ...list] });
+    const list = (Array.isArray(cur.result) ? cur.result : []).filter((c) => c.command !== "stats" && c.command !== "elon");
+    await tg(env, "setMyCommands", { scope: { type: "chat", chat_id: Number(env.ADMIN_CHAT_ID) }, commands: [{ command: "stats", description: "\u{1F4CA} Statistika (faqat siz uchun)" }, { command: "elon", description: "\u{1F4E3} E'lon yuborish (faqat siz uchun)" }, ...list] });
   } catch {
   }
 }
@@ -1648,6 +1648,12 @@ var isAdminChat = (env, chatId) => !!env.ADMIN_CHAT_ID && String(chatId) === Str
 async function onAdminReply(env, msg, command) {
   let target;
   let text;
+  if (command?.cmd === "elon" || command?.cmd === "announce") {
+    if (!siteUrl(env)) return true;
+    await send(env, msg.chat.id, "\u{1F4E3} E'lon yuborish oynasi:", { reply_markup: { inline_keyboard: [[{ text: "\u{1F4E3} E'lonni ochish", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] } });
+    await adminMenu(env);
+    return true;
+  }
   if (command?.cmd === "stats") {
     await sendStats(env, msg.chat.id);
     await adminMenu(env);

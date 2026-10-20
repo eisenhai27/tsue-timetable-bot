@@ -363,7 +363,7 @@ console.log('   ' + (stMsg?.data.text || '').replace(/\n/g, '\n   '));
 check('/stats from the admin → statistics', stMsg && /Jami: \d+/.test(stMsg.data.text) && /Faol:/.test(stMsg.data.text), texts(l));
 check('/stats counts what people used (today, by action)', stMsg && /Bugungi darslar — <b>\d+/.test(stMsg.data.text), stMsg?.data.text);
 check('/stats has a refresh button', stMsg?.data.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data === 'adm:stats');
-check("/stats is added to the admin's own command menu only", l.some((c) => c.method === 'setMyCommands' && c.data.scope?.type === 'chat' && String(c.data.scope.chat_id) === '999999' && c.data.commands[0].command === 'stats' && c.data.commands.length === 3), texts(l));
+check("/stats and /elon are added to the admin's own command menu only", l.some((c) => c.method === 'setMyCommands' && c.data.scope?.type === 'chat' && String(c.data.scope.chat_id) === '999999' && c.data.commands[0].command === 'stats' && c.data.commands[1].command === 'elon' && c.data.commands.length === 4), texts(l));
 await reset(); await post(cb('adm:stats', adminChat, admin));
 l = await log();
 check('refresh button edits the stats in place', l.some((c) => c.method === 'editMessageText' && /statistika/.test(c.data.text || '')), texts(l));

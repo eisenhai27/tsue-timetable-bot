@@ -1233,7 +1233,10 @@ async function checkAdmin() {
   if (!(inTg && tg.initData)) return;
   try {
     const j = await adminCall({ op: 'me' });
-    if (j.ok && j.admin) { S.admin = true; const b = document.querySelector('.nav [data-tab="admin"]'); if (b) b.hidden = false; }
+    if (j.ok && j.admin) {
+      S.admin = true; const b = document.querySelector('.nav [data-tab="admin"]'); if (b) b.hidden = false;
+      if (/(^|[#&])tab=admin(&|$)/.test(location.hash) && S.tab !== 'admin') { S.tab = 'admin'; S.stack = []; render(); } // opened with the bot's /elon button
+    }
   } catch {}
 }
 const bcFilter = () => ({ lang: BC.filter.lang, role: BC.filter.role, group: BC.filter.group, scope: BC.filter.scope });

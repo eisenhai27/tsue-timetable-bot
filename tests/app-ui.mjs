@@ -548,6 +548,15 @@ try {
     ok(/bekor qilindi/.test(await txt(s2.page, '#bcList')), 'announcement: cancel works');
     ok(s2.errs.length === 0, 'announcement: no console errors: ' + s2.errs.join(';'));
     await s2.ctx.close();
+    // opened from the bot's /elon button (#tab=admin): goes straight to the screen
+    s2 = await open({ mode: 'tg', hash: '#tab=admin', ctx: await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' }) });
+    await fake(s2.page, true); await s2.page.reload(); await settle(s2.page, 900);
+    ok(/E'lon yuborish/.test(await txt(s2.page, '.bc .t1')), 'announcement: #tab=admin opens the screen directly for the owner');
+    await s2.ctx.close();
+    s2 = await open({ mode: 'tg', hash: '#tab=admin', ctx: await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' }) });
+    await fake(s2.page, false); await s2.page.reload(); await settle(s2.page, 900);
+    ok((await s2.page.locator('.bc').count()) === 0, 'announcement: #tab=admin shows nothing special to anyone else');
+    await s2.ctx.close();
   }
 } finally {
   await browser.close();

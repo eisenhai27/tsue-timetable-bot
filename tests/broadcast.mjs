@@ -43,6 +43,17 @@ await post(msg('/setgroup', grp, { id: 111, first_name: 'Admin' })); await post(
 const filter = { group: G2 };
 const payload = { texts: { uz: 'Salom <b>do‘stlar</b>', ru: 'Привет, друзья', en: 'Hello friends' }, btn: { url: 'https://example.com/club', text: { uz: 'Batafsil', ru: 'Подробнее' } }, app: true, invite: true };
 
+// ---- the owner opens the screen with /elon (a keyboard-launched Mini App gets no signed initData, an inline button does)
+await reset();
+await post(msg('/elon', { id: ADMIN, type: 'private' }, { id: ADMIN, first_name: 'Owner' }));
+await post(msg('/elon', { id: 424242, type: 'private' }, { id: 424242, first_name: 'Not owner' }));
+{
+  const l = await log();
+  const btns = (id) => l.filter((c) => c.data.chat_id === id).flatMap((c) => c.data.reply_markup?.inline_keyboard?.flat() || []);
+  check('/elon gives the owner an inline button that opens the E\'lon screen', btns(ADMIN).some((b) => /#tab=admin$/.test(b.web_app?.url || '')), btns(ADMIN));
+  check('/elon from anyone else opens nothing', !btns(424242).some((b) => /tab=admin/.test(b.web_app?.url || '')), btns(424242));
+}
+
 // ---- who may use it
 let r = await api(me, { op: 'me' });
 check('the owner is recognised', r.ok && r.admin === true, r);
