@@ -1567,9 +1567,14 @@ async function onAdminWebhook(request, env) {
   if (cb) {
     atg(env, "answerCallbackQuery", { callback_query_id: cb.id });
     if (cb.data === "adm:stats") await sendStats(env, chatId, cb.message.message_id, true);
+    else if (String(cb.data || "").startsWith("bc:")) await onDraftButton(env, cb);
     return new Response("ok");
   }
-  if (!msg?.text) return new Response("ok");
+  if (!msg) return new Response("ok");
+  if (!msg.text) {
+    await startDraft(env, msg);
+    return new Response("ok");
+  }
   const command = parseCommand(msg.text);
   const t = msg.text.trim();
   const cmd = command?.cmd || (t === "\u{1F4CA} Statistika" ? "stats" : t === "\u270D\uFE0F Fikrlar" ? "fikrlar" : t === "\u{1F4E3} E'lon" ? "elon" : null);
@@ -1580,6 +1585,7 @@ async function onAdminWebhook(request, env) {
       "\u{1F4CA} <b>Statistika</b> \u2014 foydalanuvchilar va faollik",
       "\u270D\uFE0F <b>Fikrlar</b> \u2014 so'nggi fikr-mulohazalar; javob berish uchun xabarga <b>Reply</b> qiling",
       "\u{1F4E3} <b>E'lon</b> \u2014 shaxsiy chatlarga e'lon (chap pastdagi tugma ham ochadi)",
+      "\u{1F4E8} Yoki istalgan xabarni \u2014 matn, rasm, video, GIF, fayl \u2014 shu yerga yuboring yoki <b>forward</b> qiling: e'lon loyihasi bo'ladi, faqat tasdiqlaganingizdan keyin yuboriladi",
       "",
       "Yangi fikr-mulohaza kelsa, shu yerga keladi. Javobingiz talabaga @tdiujadval_bot orqali boradi."
     ].join("\n") });
@@ -1630,8 +1636,146 @@ async function onAdminWebhook(request, env) {
     await atg(env, "sendMessage", { chat_id: chatId, reply_to_message_id: msg.message_id, text: res.ok ? "\u2705 Javob yuborildi." : "\u274C Yuborilmadi (foydalanuvchi botni bloklagan bo'lishi mumkin)." });
     return new Response("ok");
   }
-  await atg(env, "sendMessage", { chat_id: chatId, text: "Buyruqni tanlang \u{1F447} Fikrga javob berish uchun fikr xabariga Reply qiling.", reply_markup: ADMIN_KB });
+  if (command) {
+    await atg(env, "sendMessage", { chat_id: chatId, text: "Buyruqni tanlang \u{1F447}", reply_markup: ADMIN_KB });
+    return new Response("ok");
+  }
+  if (msg.reply_to_message) {
+    await atg(env, "sendMessage", { chat_id: chatId, text: "\u21A9\uFE0F Bu xabar fikr-mulohaza emas \u2014 javob hech kimga yuborilmadi." });
+    return new Response("ok");
+  }
+  await startDraft(env, msg);
   return new Response("ok");
+}
+var DRAFT_MAX_FILE = 20 * 1024 * 1024;
+var AUD_LANG = [["all", "Hammasi"], ["uz", "UZ"], ["ru", "RU"], ["en", "EN"]];
+var AUD_ROLE = [["all", "Hammasi"], ["student", "Talaba"], ["teacher", "O'qituvchi"]];
+var draftGet = async (env) => JSON.parse((await (await db(env)).prepare("SELECT v FROM admin_state WHERE k = 'bc_draft'").first())?.v || "null");
+var draftPut = async (env, d) => (await db(env)).prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('bc_draft', ?)").bind(JSON.stringify(d)).run();
+function draftMedia(msg) {
+  if (msg.photo?.length) {
+    const p = msg.photo[msg.photo.length - 1];
+    return { method: "sendPhoto", field: "photo", file: p, name: "photo.jpg", type: "image/jpeg" };
+  }
+  if (msg.video) return { method: "sendVideo", field: "video", file: msg.video, name: msg.video.file_name || "video.mp4", type: msg.video.mime_type || "video/mp4", extra: { supports_streaming: "true", width: msg.video.width, height: msg.video.height, duration: msg.video.duration } };
+  if (msg.animation) return { method: "sendAnimation", field: "animation", file: msg.animation, name: msg.animation.file_name || "animation.mp4", type: msg.animation.mime_type || "video/mp4" };
+  if (msg.document) return { method: "sendDocument", field: "document", file: msg.document, name: msg.document.file_name || "file", type: msg.document.mime_type || "application/octet-stream" };
+  return null;
+}
+var lastAlbum = null;
+async function startDraft(env, msg) {
+  const say = (text, extra = {}) => atg(env, "sendMessage", { chat_id: msg.chat.id, text, parse_mode: "HTML", ...extra });
+  if (msg.media_group_id) {
+    if (lastAlbum !== msg.media_group_id) {
+      lastAlbum = msg.media_group_id;
+      await say("\u{1F5BC} Albom (bir nechta rasm/video birga) qo'llab-quvvatlanmaydi. Bitta rasm yoki videoni alohida yuboring.");
+    }
+    return;
+  }
+  const media = draftMedia(msg);
+  if (!media && !msg.text) return say("\u{1F4E3} E'lon uchun matn, rasm, video, GIF yoki fayl yuboring (forward ham bo'ladi).");
+  const adminId = Number(env.ADMIN_CHAT_ID);
+  let r;
+  if (!media) {
+    r = await tg(env, "sendMessage", { chat_id: adminId, text: msg.text.slice(0, 4096), entities: msg.entities, link_preview_options: { is_disabled: true } });
+  } else {
+    if ((media.file.file_size || 0) > DRAFT_MAX_FILE) return say("\u{1F4E6} Fayl juda katta (20 MB dan oshmasin). Kichikroq video yuboring.");
+    const f = await atg(env, "getFile", { file_id: media.file.file_id });
+    if (!f?.ok || !f.result?.file_path) return say("\u274C Faylni olib bo'lmadi (20 MB dan katta bo'lishi mumkin).");
+    const bin = await fetch(`${tgBase(env)}/file/bot${env.ADMIN_BOT_TOKEN}/${f.result.file_path}`);
+    if (!bin.ok) return say("\u274C Faylni yuklab bo'lmadi, qayta urinib ko'ring.");
+    const fd = new FormData();
+    fd.append("chat_id", String(adminId));
+    if (msg.caption) fd.append("caption", msg.caption.slice(0, 1024));
+    if (msg.caption_entities) fd.append("caption_entities", JSON.stringify(msg.caption_entities));
+    for (const [k, v] of Object.entries(media.extra || {})) if (v != null) fd.append(k, String(v));
+    fd.append(media.field, new Blob([await bin.arrayBuffer()], { type: media.type }), media.name);
+    const res = await fetch(`${tgBase(env)}/bot${env.BOT_TOKEN}/${media.method}`, { method: "POST", body: fd });
+    r = await res.json().catch(() => ({ ok: false }));
+  }
+  if (!r?.ok || !r.result?.message_id) return say("\u274C Namunani @tdiujadval_bot ga yuborib bo'lmadi. U yerda botni ishga tushirganmisiz (Start)?");
+  const d = { id: Math.random().toString(36).slice(2, 8), src: r.result.message_id, kind: media ? media.field : "text", filter: { lang: "all", role: "all", group: "", scope: "all" }, app: true, invite: true, at: Date.now() };
+  await draftPut(env, d);
+  await refreshDraftPreview(env, d);
+  const panel = await draftPanel(env, d);
+  await say(panel.text, { reply_markup: panel.markup });
+}
+async function refreshDraftPreview(env, d) {
+  const mine = await (await db(env)).prepare("SELECT role, group_id FROM chats WHERE chat_id = ?").bind(Number(env.ADMIN_CHAT_ID)).first();
+  const m = bcMessage({ texts: {}, app: d.app, invite: d.invite }, { lang: "uz", role: mine?.role, group_id: mine?.group_id }, await bcPick(env));
+  await tg(env, "editMessageReplyMarkup", { chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src, reply_markup: m.markup || { inline_keyboard: [] } });
+}
+async function draftPanel(env, d, confirm = false) {
+  const n = await bcCount(await db(env), bcFilter(d.filter));
+  const kinds = { text: "matn", photo: "rasm", video: "video", animation: "GIF", document: "fayl" };
+  const name = (list, v) => list.find((x) => x[0] === v)?.[1] || v;
+  if (confirm) {
+    return { n, text: [
+      "\u26A0\uFE0F <b>Tasdiqlang</b>",
+      "",
+      `\u{1F4E3} E'lon (${kinds[d.kind] || d.kind}) <b>${n}</b> ta shaxsiy chatga yuboriladi.`,
+      `\u{1F465} Til: ${name(AUD_LANG, d.filter.lang)} \xB7 Kim: ${name(AUD_ROLE, d.filter.role)}`,
+      "\u{1F6AB} Guruhlarga yuborilmaydi.",
+      "",
+      "Yuborilgach to'xtatib bo'lmaydi \u2014 faqat hali yetib bormaganlarini bekor qilish mumkin."
+    ].join("\n"), markup: { inline_keyboard: [[{ text: `\u2705 Ha, ${n} ta chatga yuborish`, callback_data: `bc:${d.id}:go:${n}` }], [{ text: "\u21A9\uFE0F Orqaga", callback_data: `bc:${d.id}:back` }]] } };
+  }
+  const pick = (list, key) => list.map(([v, t]) => ({ text: (d.filter[key] === v ? "\u2713 " : "") + t, callback_data: `bc:${d.id}:${key === "lang" ? "l" : "r"}:${v}` }));
+  return { n, text: [
+    `\u{1F4E3} <b>Yangi e'lon loyihasi</b> (${kinds[d.kind] || d.kind})`,
+    "",
+    "\u{1F9EA} Namuna @tdiujadval_bot dagi chatingizga yuborildi \u2014 talabalar aynan shuni ko'radi.",
+    "",
+    `\u{1F465} Qabul qiluvchilar: <b>${n}</b> ta shaxsiy chat`,
+    `\u{1F518} Ilova va taklif tugmalari: ${d.app || d.invite ? "bor" : "yo'q"}`
+  ].join("\n"), markup: { inline_keyboard: [
+    pick(AUD_LANG, "lang"),
+    pick(AUD_ROLE, "role"),
+    [{ text: `\u{1F518} Tugmalar: ${d.app || d.invite ? "bor \u2713" : "yo'q"}`, callback_data: `bc:${d.id}:btn` }],
+    [{ text: "\u27A1\uFE0F Davom etish", callback_data: `bc:${d.id}:ok` }, { text: "\u274C Bekor", callback_data: `bc:${d.id}:x` }]
+  ] } };
+}
+async function onDraftButton(env, cb) {
+  const [, id, act, val] = String(cb.data).split(":");
+  const chatId = cb.message.chat.id, mid = cb.message.message_id;
+  const edit = (text, markup) => atg(env, "editMessageText", { chat_id: chatId, message_id: mid, text, parse_mode: "HTML", reply_markup: markup || { inline_keyboard: [] } });
+  const d = await draftGet(env);
+  if (!d || d.id !== id || d.done) return edit("\u231B Bu loyiha eskirgan. E'lonni qaytadan yuboring.");
+  if (act === "x") {
+    d.done = true;
+    await draftPut(env, d);
+    return edit("\u274C Bekor qilindi. Hech kimga yuborilmadi.");
+  }
+  if (act === "l" && AUD_LANG.some((x) => x[0] === val)) d.filter.lang = val;
+  if (act === "r" && AUD_ROLE.some((x) => x[0] === val)) d.filter.role = val;
+  if (act === "btn") {
+    d.app = d.invite = !(d.app || d.invite);
+    await refreshDraftPreview(env, d);
+  }
+  if (act === "go") {
+    const D = await db(env);
+    const filter = bcFilter(d.filter);
+    const n = await bcCount(D, filter);
+    if (!n) return edit("\u{1F465} Bu tanlovda qabul qiluvchi yo'q.", (await draftPanel(env, d)).markup);
+    if (Number(val) !== n) {
+      const p2 = await draftPanel(env, d, true);
+      return edit(`\u26A0\uFE0F Qabul qiluvchilar soni o'zgardi (${n}). Qayta tasdiqlang.
+
+` + p2.text, p2.markup);
+    }
+    const busy = await D.prepare("SELECT id FROM broadcasts WHERE status IN ('queued','sending') LIMIT 1").first();
+    if (busy) return edit(`\u23F3 Boshqa e'lon (#${busy.id}) hali yuborilmoqda. U tugagach qayta tasdiqlang.`, { inline_keyboard: [[{ text: "\u{1F504} Qayta urinish", callback_data: `bc:${d.id}:ok` }]] });
+    const payload = { copy: { from_chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src }, kind: d.kind, texts: {}, photo: null, btn: null, app: d.app, invite: d.invite };
+    const ins = await D.prepare("INSERT INTO broadcasts (created_at, payload, filter, total) VALUES (?, ?, ?, ?) RETURNING id").bind(Date.now(), JSON.stringify(payload), JSON.stringify(filter), n).first();
+    d.done = true;
+    await draftPut(env, d);
+    await dispatchWorkflow(env);
+    return edit(`\u2705 Navbatga qo'yildi: <b>#${ins.id}</b>, ${n} ta chat.
+Taxminan 15 daqiqa ichida yuboriladi. Holatini E'lon oynasida ko'rasiz (u yerda bekor qilish ham mumkin).`, { inline_keyboard: [[{ text: "\u{1F4E3} E'lon oynasi", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] });
+  }
+  await draftPut(env, d);
+  const p = await draftPanel(env, d, act === "ok");
+  return edit(p.text, p.markup);
 }
 async function alreadyHandled(env, id) {
   if (!Number.isSafeInteger(id)) return false;

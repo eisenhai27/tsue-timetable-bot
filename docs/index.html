@@ -1260,7 +1260,7 @@ function renderAdmin() {
       <div class="muted small">Har kim o'z tilidagi matnni oladi. Oddiy matn — maxsus belgilar o'zgartirilmaydi.</div></div>
     <div class="bccard"><h3>🖼 Rasm <span class="muted small">(ixtiyoriy)</span></h3>
       <div id="bcPhoto">${BC.photoView ? `<img class="bcimg" src="${BC.photoView}" alt=""><div class="actions"><button class="act" id="bcPhotoDel">🗑 Olib tashlash</button></div>` : `<div class="actions"><label class="act" for="bcFile">📎 Rasm tanlash</label></div><input id="bcFile" type="file" accept="image/*" hidden>`}</div>
-      <div class="muted small" id="bcPhotoMsg" aria-live="polite">Rasm bilan matn 1000 belgigacha bo'lishi kerak.</div></div>
+      <div class="muted small" id="bcPhotoMsg" aria-live="polite">Rasm bilan matn 1000 belgigacha bo'lishi kerak. Video, GIF yoki boshqa kanaldan post kerak bo'lsa — uni admin botga yuboring yoki forward qiling.</div></div>
     <div class="bccard"><h3>🔘 Tugmalar</h3>
       <label class="bclab">Havola (https://…) — ixtiyoriy</label><input id="bcUrl" type="url" inputmode="url" maxlength="500" placeholder="https://" value="${esc(BC.btnUrl)}">
       <label class="bclab">Tugma yozuvi</label>

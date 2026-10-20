@@ -920,9 +920,11 @@ async function onAdminWebhook(request, env) {
   if (cb) {
     atg(env, 'answerCallbackQuery', { callback_query_id: cb.id });
     if (cb.data === 'adm:stats') await sendStats(env, chatId, cb.message.message_id, true);
+    else if (String(cb.data || '').startsWith('bc:')) await onDraftButton(env, cb);
     return new Response('ok');
   }
-  if (!msg?.text) return new Response('ok');
+  if (!msg) return new Response('ok');
+  if (!msg.text) { await startDraft(env, msg); return new Response('ok'); } // a photo / video / file sent or forwarded → an announcement draft
   const command = parseCommand(msg.text);
   const t = msg.text.trim();
   const cmd = command?.cmd || (t === '📊 Statistika' ? 'stats' : t === '✍️ Fikrlar' ? 'fikrlar' : t === "📣 E'lon" ? 'elon' : null);
@@ -931,7 +933,8 @@ async function onAdminWebhook(request, env) {
       '🛠 <b>TDIU Jadval — boshqaruv</b>', '',
       '📊 <b>Statistika</b> — foydalanuvchilar va faollik',
       "✍️ <b>Fikrlar</b> — so'nggi fikr-mulohazalar; javob berish uchun xabarga <b>Reply</b> qiling",
-      "📣 <b>E'lon</b> — shaxsiy chatlarga e'lon (chap pastdagi tugma ham ochadi)", '',
+      "📣 <b>E'lon</b> — shaxsiy chatlarga e'lon (chap pastdagi tugma ham ochadi)",
+      "📨 Yoki istalgan xabarni — matn, rasm, video, GIF, fayl — shu yerga yuboring yoki <b>forward</b> qiling: e'lon loyihasi bo'ladi, faqat tasdiqlaganingizdan keyin yuboriladi", '',
       "Yangi fikr-mulohaza kelsa, shu yerga keladi. Javobingiz talabaga @tdiujadval_bot orqali boradi.",
     ].join('\n') });
     await setupAdminBotMenu(env);
@@ -969,8 +972,127 @@ async function onAdminWebhook(request, env) {
     await atg(env, 'sendMessage', { chat_id: chatId, reply_to_message_id: msg.message_id, text: res.ok ? '✅ Javob yuborildi.' : "❌ Yuborilmadi (foydalanuvchi botni bloklagan bo'lishi mumkin)." });
     return new Response('ok');
   }
-  await atg(env, 'sendMessage', { chat_id: chatId, text: "Buyruqni tanlang 👇 Fikrga javob berish uchun fikr xabariga Reply qiling.", reply_markup: ADMIN_KB });
+  if (command) { await atg(env, 'sendMessage', { chat_id: chatId, text: "Buyruqni tanlang 👇", reply_markup: ADMIN_KB }); return new Response('ok'); }
+  if (msg.reply_to_message) { await atg(env, 'sendMessage', { chat_id: chatId, text: "↩️ Bu xabar fikr-mulohaza emas — javob hech kimga yuborilmadi." }); return new Response('ok'); }
+  await startDraft(env, msg); // any other text written or forwarded here → an announcement draft (sent only after confirmation)
   return new Response('ok');
+}
+
+// ---- announcements from the admin bot: send or FORWARD anything (text, photo, video, GIF, file) → a draft.
+// The draft is first copied into the owner's own chat with the STUDENT bot — exactly what students will see (file ids belong to one
+// bot, so media is re-uploaded through the student bot) — then the owner picks the audience and must confirm with the recipient count.
+// Students get a copy of that message (copyMessage: no "forwarded from" line), through the same queue as the Mini App's E'lon.
+const DRAFT_MAX_FILE = 20 * 1024 * 1024; // Telegram lets a bot download files up to 20 MB
+const AUD_LANG = [['all', 'Hammasi'], ['uz', 'UZ'], ['ru', 'RU'], ['en', 'EN']];
+const AUD_ROLE = [['all', 'Hammasi'], ['student', 'Talaba'], ['teacher', "O'qituvchi"]];
+const draftGet = async (env) => JSON.parse((await (await db(env)).prepare("SELECT v FROM admin_state WHERE k = 'bc_draft'").first())?.v || 'null');
+const draftPut = async (env, d) => (await db(env)).prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('bc_draft', ?)").bind(JSON.stringify(d)).run();
+
+function draftMedia(msg) {
+  if (msg.photo?.length) { const p = msg.photo[msg.photo.length - 1]; return { method: 'sendPhoto', field: 'photo', file: p, name: 'photo.jpg', type: 'image/jpeg' }; }
+  if (msg.video) return { method: 'sendVideo', field: 'video', file: msg.video, name: msg.video.file_name || 'video.mp4', type: msg.video.mime_type || 'video/mp4', extra: { supports_streaming: 'true', width: msg.video.width, height: msg.video.height, duration: msg.video.duration } };
+  if (msg.animation) return { method: 'sendAnimation', field: 'animation', file: msg.animation, name: msg.animation.file_name || 'animation.mp4', type: msg.animation.mime_type || 'video/mp4' };
+  if (msg.document) return { method: 'sendDocument', field: 'document', file: msg.document, name: msg.document.file_name || 'file', type: msg.document.mime_type || 'application/octet-stream' };
+  return null;
+}
+
+let lastAlbum = null;
+async function startDraft(env, msg) {
+  const say = (text, extra = {}) => atg(env, 'sendMessage', { chat_id: msg.chat.id, text, parse_mode: 'HTML', ...extra });
+  if (msg.media_group_id) {
+    if (lastAlbum !== msg.media_group_id) { lastAlbum = msg.media_group_id; await say("🖼 Albom (bir nechta rasm/video birga) qo'llab-quvvatlanmaydi. Bitta rasm yoki videoni alohida yuboring."); }
+    return;
+  }
+  const media = draftMedia(msg);
+  if (!media && !msg.text) return say("📣 E'lon uchun matn, rasm, video, GIF yoki fayl yuboring (forward ham bo'ladi).");
+  const adminId = Number(env.ADMIN_CHAT_ID);
+  let r;
+  if (!media) {
+    r = await tg(env, 'sendMessage', { chat_id: adminId, text: msg.text.slice(0, 4096), entities: msg.entities, link_preview_options: { is_disabled: true } });
+  } else {
+    if ((media.file.file_size || 0) > DRAFT_MAX_FILE) return say('📦 Fayl juda katta (20 MB dan oshmasin). Kichikroq video yuboring.');
+    const f = await atg(env, 'getFile', { file_id: media.file.file_id });
+    if (!f?.ok || !f.result?.file_path) return say("❌ Faylni olib bo'lmadi (20 MB dan katta bo'lishi mumkin).");
+    const bin = await fetch(`${tgBase(env)}/file/bot${env.ADMIN_BOT_TOKEN}/${f.result.file_path}`);
+    if (!bin.ok) return say("❌ Faylni yuklab bo'lmadi, qayta urinib ko'ring.");
+    const fd = new FormData();
+    fd.append('chat_id', String(adminId));
+    if (msg.caption) fd.append('caption', msg.caption.slice(0, 1024));
+    if (msg.caption_entities) fd.append('caption_entities', JSON.stringify(msg.caption_entities));
+    for (const [k, v] of Object.entries(media.extra || {})) if (v != null) fd.append(k, String(v));
+    fd.append(media.field, new Blob([await bin.arrayBuffer()], { type: media.type }), media.name);
+    const res = await fetch(`${tgBase(env)}/bot${env.BOT_TOKEN}/${media.method}`, { method: 'POST', body: fd });
+    r = await res.json().catch(() => ({ ok: false }));
+  }
+  if (!r?.ok || !r.result?.message_id) return say("❌ Namunani @tdiujadval_bot ga yuborib bo'lmadi. U yerda botni ishga tushirganmisiz (Start)?");
+  const d = { id: Math.random().toString(36).slice(2, 8), src: r.result.message_id, kind: media ? media.field : 'text', filter: { lang: 'all', role: 'all', group: '', scope: 'all' }, app: true, invite: true, at: Date.now() };
+  await draftPut(env, d);
+  await refreshDraftPreview(env, d);
+  const panel = await draftPanel(env, d);
+  await say(panel.text, { reply_markup: panel.markup });
+}
+
+/** The buttons under the student-bot sample follow the draft's settings, so the sample stays exactly what students get. */
+async function refreshDraftPreview(env, d) {
+  const mine = await (await db(env)).prepare('SELECT role, group_id FROM chats WHERE chat_id = ?').bind(Number(env.ADMIN_CHAT_ID)).first();
+  const m = bcMessage({ texts: {}, app: d.app, invite: d.invite }, { lang: 'uz', role: mine?.role, group_id: mine?.group_id }, await bcPick(env));
+  await tg(env, 'editMessageReplyMarkup', { chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src, reply_markup: m.markup || { inline_keyboard: [] } });
+}
+
+async function draftPanel(env, d, confirm = false) {
+  const n = await bcCount(await db(env), bcFilter(d.filter));
+  const kinds = { text: 'matn', photo: 'rasm', video: 'video', animation: 'GIF', document: 'fayl' };
+  const name = (list, v) => list.find((x) => x[0] === v)?.[1] || v;
+  if (confirm) {
+    return { n, text: [
+      "⚠️ <b>Tasdiqlang</b>", '',
+      `📣 E'lon (${kinds[d.kind] || d.kind}) <b>${n}</b> ta shaxsiy chatga yuboriladi.`,
+      `👥 Til: ${name(AUD_LANG, d.filter.lang)} · Kim: ${name(AUD_ROLE, d.filter.role)}`,
+      "🚫 Guruhlarga yuborilmaydi.", '',
+      "Yuborilgach to'xtatib bo'lmaydi — faqat hali yetib bormaganlarini bekor qilish mumkin.",
+    ].join('\n'), markup: { inline_keyboard: [[{ text: `✅ Ha, ${n} ta chatga yuborish`, callback_data: `bc:${d.id}:go:${n}` }], [{ text: '↩️ Orqaga', callback_data: `bc:${d.id}:back` }]] } };
+  }
+  const pick = (list, key) => list.map(([v, t]) => ({ text: (d.filter[key] === v ? '✓ ' : '') + t, callback_data: `bc:${d.id}:${key === 'lang' ? 'l' : 'r'}:${v}` }));
+  return { n, text: [
+    `📣 <b>Yangi e'lon loyihasi</b> (${kinds[d.kind] || d.kind})`, '',
+    "🧪 Namuna @tdiujadval_bot dagi chatingizga yuborildi — talabalar aynan shuni ko'radi.", '',
+    `👥 Qabul qiluvchilar: <b>${n}</b> ta shaxsiy chat`,
+    `🔘 Ilova va taklif tugmalari: ${d.app || d.invite ? 'bor' : "yo'q"}`,
+  ].join('\n'), markup: { inline_keyboard: [
+    pick(AUD_LANG, 'lang'),
+    pick(AUD_ROLE, 'role'),
+    [{ text: `🔘 Tugmalar: ${d.app || d.invite ? 'bor ✓' : "yo'q"}`, callback_data: `bc:${d.id}:btn` }],
+    [{ text: '➡️ Davom etish', callback_data: `bc:${d.id}:ok` }, { text: '❌ Bekor', callback_data: `bc:${d.id}:x` }],
+  ] } };
+}
+
+async function onDraftButton(env, cb) {
+  const [, id, act, val] = String(cb.data).split(':');
+  const chatId = cb.message.chat.id, mid = cb.message.message_id;
+  const edit = (text, markup) => atg(env, 'editMessageText', { chat_id: chatId, message_id: mid, text, parse_mode: 'HTML', reply_markup: markup || { inline_keyboard: [] } });
+  const d = await draftGet(env);
+  if (!d || d.id !== id || d.done) return edit("⌛ Bu loyiha eskirgan. E'lonni qaytadan yuboring.");
+  if (act === 'x') { d.done = true; await draftPut(env, d); return edit("❌ Bekor qilindi. Hech kimga yuborilmadi."); }
+  if (act === 'l' && AUD_LANG.some((x) => x[0] === val)) d.filter.lang = val;
+  if (act === 'r' && AUD_ROLE.some((x) => x[0] === val)) d.filter.role = val;
+  if (act === 'btn') { d.app = d.invite = !(d.app || d.invite); await refreshDraftPreview(env, d); }
+  if (act === 'go') {
+    const D = await db(env);
+    const filter = bcFilter(d.filter);
+    const n = await bcCount(D, filter);
+    if (!n) return edit("👥 Bu tanlovda qabul qiluvchi yo'q.", (await draftPanel(env, d)).markup);
+    if (Number(val) !== n) { const p = await draftPanel(env, d, true); return edit(`⚠️ Qabul qiluvchilar soni o'zgardi (${n}). Qayta tasdiqlang.\n\n` + p.text, p.markup); }
+    const busy = await D.prepare("SELECT id FROM broadcasts WHERE status IN ('queued','sending') LIMIT 1").first();
+    if (busy) return edit(`⏳ Boshqa e'lon (#${busy.id}) hali yuborilmoqda. U tugagach qayta tasdiqlang.`, { inline_keyboard: [[{ text: '🔄 Qayta urinish', callback_data: `bc:${d.id}:ok` }]] });
+    const payload = { copy: { from_chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src }, kind: d.kind, texts: {}, photo: null, btn: null, app: d.app, invite: d.invite };
+    const ins = await D.prepare('INSERT INTO broadcasts (created_at, payload, filter, total) VALUES (?, ?, ?, ?) RETURNING id').bind(Date.now(), JSON.stringify(payload), JSON.stringify(filter), n).first();
+    d.done = true; await draftPut(env, d);
+    await dispatchWorkflow(env);
+    return edit(`✅ Navbatga qo'yildi: <b>#${ins.id}</b>, ${n} ta chat.\nTaxminan 15 daqiqa ichida yuboriladi. Holatini E'lon oynasida ko'rasiz (u yerda bekor qilish ham mumkin).`, { inline_keyboard: [[{ text: "📣 E'lon oynasi", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] });
+  }
+  await draftPut(env, d);
+  const p = await draftPanel(env, d, act === 'ok');
+  return edit(p.text, p.markup);
 }
 
 /** True when this update id was seen before (Telegram resends updates it thinks were not answered in time). Never throws. */

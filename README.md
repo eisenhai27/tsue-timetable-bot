@@ -208,6 +208,9 @@ answer with Reply), and the E'lon screen. Create it with @BotFather and add its 
 
 - Only `ADMIN_CHAT_ID` can use it. Anyone else who finds it gets a short note on what it is, a button to the student bot, and can
   leave feedback there (the answer comes back through the admin bot).
+- Announcements can also be made by sending or **forwarding** any message (text, photo, video, GIF, file — up to 20 MB, no albums)
+  to the admin bot: it puts an exact sample into the owner's chat with the student bot, asks for the audience, and queues it only
+  after a confirmation that names the number of recipients. Students get a copy (no "forwarded from" line).
 - Answers to students and announcements still go out through the student bot — the only bot students have started.
 - With `ADMIN_BOT_TOKEN` set, the E'lon screen accepts only the admin bot's signed initData, so the student app never shows it.
 

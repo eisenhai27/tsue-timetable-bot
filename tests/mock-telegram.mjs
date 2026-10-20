@@ -12,11 +12,15 @@ http.createServer((req, res) => {
     if (req.url === '/__reset') { log.length = 0; res.end('ok'); return; }
     const multipart = /multipart\/form-data/.test(req.headers['content-type'] || '');
     // (a picture upload: only the chat id is of interest to the tests)
-    const data = multipart ? { multipart: true, chat_id: Number(/name="chat_id"\r\n\r\n(-?\d+)/.exec(body)?.[1]) } : body ? JSON.parse(body) : {};
+    const data = multipart ? { multipart: true, chat_id: Number(/name="chat_id"\r\n\r\n(-?\d+)/.exec(body)?.[1]), fields: [...body.matchAll(/name="(\w+)"/g)].map((m) => m[1]), caption: /name="caption"\r\n\r\n([^\r]*)/.exec(body)?.[1] } : body ? JSON.parse(body) : {};
     const entry = { method, data, bot: (req.url.split('/')[1] || '').slice(3) }; // which bot's token made the call
     log.push(entry);
     let result = true;
     if (method === 'sendMessage') result = { message_id: ++msgId, chat: { id: data.chat_id }, text: data.text };
+    if (multipart && method !== 'sendPhoto') result = { message_id: ++msgId, chat: { id: data.chat_id } };
+    if (method === 'getFile') result = { file_id: data.file_id, file_path: 'videos/file_1.mp4', file_size: 1234 };
+    if (method === 'copyMessage') result = { message_id: ++msgId };
+    if (req.url.startsWith('/file/')) { entry.result = 'bytes'; res.end('FAKEVIDEOBYTES'); return; } // a file download
     if (multipart && method === 'sendPhoto') result = { message_id: ++msgId, chat: { id: data.chat_id }, photo: [{ file_id: 'SMALL_FILE_ID_0001', width: 90, height: 90 }, { file_id: 'UPLOADED_FILE_ID_0001', width: 800, height: 600 }] };
     if (method === 'getChatMember') result = { status: data.user_id === 111 ? 'administrator' : 'member' };
     if (method === 'getMe') result = { id: 1, username: 'tsue_test_bot' };

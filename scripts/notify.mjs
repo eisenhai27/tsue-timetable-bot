@@ -99,16 +99,20 @@ let sent = 0;
  * Returns true when the chat is settled (delivered, or gone for good) and false when it still needs a retry later.
  * Never throws on a network error: one dropped connection must not abort a long send half-way.
  */
-async function send(chatId, text, replyMarkup, photo) {
+async function send(chatId, text, replyMarkup, photo, copy) {
   if (DRY) {
-    console.log(`\n--- to ${chatId} ---\n${photo ? '[photo] ' + photo.photo + '\n' + photo.caption : text}`);
+    console.log(`\n--- to ${chatId} ---\n${copy ? `[copy of message ${copy.message_id}]` : photo ? '[photo] ' + photo.photo + '\n' + photo.caption : text}`);
     sent++;
     return true;
   }
   for (let attempt = 0; attempt < 5; attempt++) {
     let r;
     try {
-      r = photo
+      r = copy
+        // an announcement made from a message the admin sent or forwarded to the admin bot: a copy of the sample in the admin's
+        // chat with this bot (any kind — text, photo, video, file — and without a "forwarded from" line)
+        ? await tg('copyMessage', { chat_id: chatId, from_chat_id: copy.from_chat_id, message_id: copy.message_id, reply_markup: replyMarkup })
+        : photo
         ? await tg('sendPhoto', { chat_id: chatId, photo: photo.photo, caption: photo.caption, parse_mode: 'HTML', reply_markup: replyMarkup })
         : await tg('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: replyMarkup });
     } catch (e) {
@@ -323,7 +327,7 @@ async function sendQueuedBroadcast() {
     for (const chat of page.rows) {
       const m = bcMessage(job.payload, chat, { site: SITE_URL, bot });
       const before = removed.length;
-      if (await send(chat.chat_id, m.text, m.markup, m.photo)) { done.push(chat.chat_id); if (removed.length === before) ok++; else bad++; }
+      if (await send(chat.chat_id, m.text, m.markup, job.payload.copy ? null : m.photo, job.payload.copy)) { done.push(chat.chat_id); if (removed.length === before) ok++; else bad++; }
       else { failed.push(chat.chat_id); bad++; }
     }
     // chats that blocked the bot count as "not delivered" (failed) but are settled — they are also removed from the bot's list at the end

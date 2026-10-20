@@ -113,5 +113,63 @@ check('…and its signature cannot use the admin API', r.status === 401, r);
 r = await api(ATOKEN, { op: 'count', filter: {} });
 check('the admin bot\'s signature can', r.ok && Number.isInteger(r.n), r);
 
+// ---- announcements made in the admin bot: send or forward ANY message → sample in the student bot → audience → confirm → queue
+const cbq = (data, mid) => adminBot({ callback_query: { id: 'q' + uid, from: meU, data, message: { message_id: mid, chat: me } } });
+await reset();
+await adminBot({ message: { message_id: 50, date: 0, chat: me, from: meU, forward_origin: { type: 'channel' }, caption: 'Shanba kuni klub tadbiri!', caption_entities: [{ type: 'bold', offset: 0, length: 6 }], video: { file_id: 'VID1', file_size: 5000, width: 1280, height: 720, duration: 12, mime_type: 'video/mp4' } } });
+l = await log();
+const up = viaStudent(l).find((c) => c.method === 'sendVideo');
+check('forwarded video → downloaded from the admin bot and re-uploaded by the STUDENT bot into the owner\'s chat (the sample)', viaAdmin(l).some((c) => c.method === 'getFile') && l.some((c) => c.result === 'bytes') && up && up.data.chat_id === ADMIN && up.data.fields.includes('video') && up.data.fields.includes('caption_entities') && /klub tadbiri/.test(up.data.caption || ''), l.map((c) => [c.bot, c.method, c.data.chat_id]));
+check('the sample gets the same buttons students will get', viaStudent(l).some((c) => c.method === 'editMessageReplyMarkup' && c.data.message_id === up?.result?.message_id && c.data.reply_markup.inline_keyboard.length >= 1));
+const panel = viaAdmin(l).find((c) => /Yangi e'lon loyihasi/.test(c.data.text || ''));
+const did = /^bc:(\w+):/.exec(panel?.data.reply_markup?.inline_keyboard?.flat()[0]?.callback_data || '')?.[1];
+check('the owner gets a draft panel: audience buttons, continue / cancel', panel && did && /video/.test(panel.data.text) && /\d+<\/b> ta shaxsiy chat/.test(panel.data.text), panel);
+check('nothing is sent to students yet', !l.some((c) => c.method === 'copyMessage'));
+await reset(); await cbq(`bc:${did}:l:ru`, 900);
+l = await log();
+check('picking a language updates the panel with the new count', viaAdmin(l).some((c) => c.method === 'editMessageText' && /✓ RU/.test(JSON.stringify(c.data.reply_markup))));
+await cbq(`bc:${did}:l:all`, 900);
+await reset(); await cbq(`bc:${did}:ok`, 900);
+l = await log();
+const conf = viaAdmin(l).find((c) => /Tasdiqlang/.test(c.data.text || ''));
+const go = conf?.data.reply_markup.inline_keyboard.flat().find((b) => /:go:/.test(b.callback_data));
+check('“continue” asks for confirmation with the number of recipients (never groups)', conf && go && /Guruhlarga yuborilmaydi/.test(conf.data.text), conf);
+const n = Number(go?.callback_data.split(':').pop());
+await reset(); await cbq(`bc:${did}:go:${n + 5}`, 900);
+check('a stale count is refused — confirm again', viaAdmin(await log()).some((c) => /soni o'zgardi/.test(c.data.text || '')));
+await reset(); await cbq(`bc:${did}:go:${n}`, 900);
+l = await log();
+check('confirmed → queued, with the queue number', viaAdmin(l).some((c) => /Navbatga qo'yildi/.test(c.data.text || '')), viaAdmin(l));
+await reset(); await cbq(`bc:${did}:go:${n}`, 900);
+check('the same panel cannot queue it twice', viaAdmin(await log()).some((c) => /eskirgan/.test(c.data.text || '')));
+{
+  const { spawn } = await import('node:child_process');
+  await reset();
+  const out = await new Promise((resolve) => {
+    const p = spawn('node', ['scripts/notify.mjs', 'broadcast'], { env: { ...process.env, BOT_TOKEN: TOKEN, ADMIN_KEY: 'secretkey', WORKER_URL: W, SITE_URL: 'http://localhost:1236', TG_API: M }, stdio: ['ignore', 'pipe', 'pipe'] });
+    let o = ''; p.stdout.on('data', (d) => (o += d)); p.stderr.on('data', (d) => (o += d)); p.on('close', (code) => resolve({ code, o }));
+  });
+  l = await log();
+  const copies = l.filter((c) => c.method === 'copyMessage');
+  check('the sender delivers it as a COPY of the sample (video and all) to every private chat, by the student bot', out.code === 0 && copies.length === n && copies.every((c) => c.bot === TOKEN && c.data.from_chat_id === ADMIN && c.data.message_id === up?.result?.message_id && c.data.chat_id > 0), { out: out.o.slice(-400), copies: copies.length, n });
+  check('…with the app / invite buttons', copies.every((c) => (c.data.reply_markup?.inline_keyboard || []).length >= 1));
+}
+await reset(); await adminBot(msg('Ertaga soat 10 da uchrashuv bor', me, meU, { entities: [{ type: 'bold', offset: 0, length: 6 }] }));
+l = await log();
+check('plain text written to the admin bot → a text draft (sample keeps the formatting)', viaStudent(l).some((c) => c.method === 'sendMessage' && c.data.chat_id === ADMIN && /uchrashuv/.test(c.data.text) && c.data.entities?.[0]?.type === 'bold') && viaAdmin(l).some((c) => /loyihasi/.test(c.data.text || '')));
+const p2 = viaAdmin(l).find((c) => /loyihasi/.test(c.data.text || ''));
+const d2 = /^bc:(\w+):/.exec(p2?.data.reply_markup?.inline_keyboard?.flat()[0]?.callback_data || '')?.[1];
+await reset(); await cbq(`bc:${d2}:x`, 901);
+check('❌ cancels the draft — nothing queued', viaAdmin(await log()).some((c) => /Bekor qilindi/.test(c.data.text || '')));
+await reset(); await adminBot({ message: { message_id: 60, date: 0, chat: me, from: meU, media_group_id: 'A1', photo: [{ file_id: 'P1', file_size: 10 }] } });
+await adminBot({ message: { message_id: 61, date: 0, chat: me, from: meU, media_group_id: 'A1', photo: [{ file_id: 'P2', file_size: 10 }] } });
+l = await log();
+check('an album is explained once and not turned into drafts', viaAdmin(l).filter((c) => /Albom/.test(c.data.text || '')).length === 1 && !l.some((c) => c.method === 'getFile'));
+await reset(); await adminBot({ message: { message_id: 62, date: 0, chat: me, from: meU, video: { file_id: 'BIG', file_size: 30 * 1024 * 1024 } } });
+check('a video over 20 MB is refused politely', viaAdmin(await log()).some((c) => /juda katta/.test(c.data.text || '')));
+await reset(); await adminBot({ message: { message_id: 63, date: 0, chat: other, from: otherU, video: { file_id: 'X', file_size: 10 } } });
+l = await log();
+check('a stranger\'s video is NOT a draft (they are asked to write text)', !l.some((c) => c.method === 'getFile') && viaAdmin(l).some((c) => c.data.chat_id === 515151));
+
 console.log(fails ? `\n${fails} admin-bot check(s) failed` : '\nAll admin-bot checks passed ✅');
 process.exit(fails ? 1 : 0);
