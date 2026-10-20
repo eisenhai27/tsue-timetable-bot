@@ -199,3 +199,16 @@ The Mini App has an extra **E'lon** tab that only the owner (`ADMIN_CHAT_ID`) ev
 4. The GitHub Action (`notify.mjs auto` / `broadcast`) sends the queue: a lease keeps two runs off one job, `broadcast_done` makes a re-run continue instead of repeat, and **Bekor** in the Mini App stops it at the next page of 200 chats. With `GITHUB_PAT` set the Worker also wakes the Action at once; otherwise the next scheduled run (≤ ~15 min) picks it up.
 
 Tests: `tests/broadcast.mjs` (API, safety flow, sender, cancel, resume) and the E'lon part of `tests/app-ui.mjs`.
+
+## Admin bot (optional, recommended)
+
+A second bot (for example @tdiujadval_admin_bot) keeps all owner work out of the student bot: statistics, feedback (read and
+answer with Reply), and the E'lon screen. Create it with @BotFather and add its token to the Worker as the secret
+`ADMIN_BOT_TOKEN` — nothing else: on the next student-bot update the Worker sets the admin bot's webhook (`/tga`) and menu by itself.
+
+- Only `ADMIN_CHAT_ID` can use it. Anyone else who finds it gets a short note on what it is, a button to the student bot, and can
+  leave feedback there (the answer comes back through the admin bot).
+- Answers to students and announcements still go out through the student bot — the only bot students have started.
+- With `ADMIN_BOT_TOKEN` set, the E'lon screen accepts only the admin bot's signed initData, so the student app never shows it.
+
+Tests: `tests/admin-bot.mjs` (run by `tests/run-bot-flow.sh` with a second Worker that has the admin bot configured).

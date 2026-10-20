@@ -13,6 +13,8 @@
 //   GITHUB_PAT  (secret, optional) fine-grained token, "Actions: read and write" on this repo only —
 //               lets a Cloudflare Cron Trigger wake up the GitHub Action reliably (see `scheduled` below)
 //   GITHUB_REPO (text, optional) "yourname/tsue-timetable-bot" — required together with GITHUB_PAT
+//   ADMIN_BOT_TOKEN (secret, optional) token of the separate admin bot (@tdiujadval_admin_bot): statistics, feedback answers and
+//                   announcements then live there, and the student bot carries no admin features. Its webhook is set up by itself.
 //   ADMIN_CHAT_ID (text, optional) your own numeric Telegram id — when set, every /feedback message is
 //               forwarded to you instantly as a DM (in addition to being stored, for the stats workflow).
 //               Message @userinfobot on Telegram to get your numeric id, then start this bot yourself first.
@@ -46,7 +48,7 @@ function withSecurityHeaders(res) {
 
 export default {
   async fetch(request, env, ctx) {
-    return withSecurityHeaders(await route(request, env));
+    return withSecurityHeaders(await route(request, env, ctx));
   },
 
   // GitHub's own `schedule:` trigger is "best effort" and can silently go quiet for hours on a
@@ -77,10 +79,14 @@ async function dispatchWorkflow(env) {
   return res.ok;
 }
 
-async function route(request, env) {
+async function route(request, env, ctx) {
   const url = new URL(request.url);
   try {
-    if (request.method === 'POST' && url.pathname === '/tg') return await onWebhook(request, env);
+    if (request.method === 'POST' && url.pathname === '/tg') {
+      if (env.ADMIN_BOT_TOKEN && ctx?.waitUntil) ctx.waitUntil(ensureAdminBot(env, url.origin).catch((e) => console.warn('admin bot setup', e?.message)));
+      return await onWebhook(request, env);
+    }
+    if (request.method === 'POST' && url.pathname === '/tga') return await onAdminWebhook(request, env);
     if (url.pathname === '/api/week-pic') return await onWeekPic(request, env);
     if (url.pathname === '/api/admin') return await onAdminApi(request, env);
     if (url.pathname === '/setup') return await onSetup(request, url, env);
@@ -89,7 +95,7 @@ async function route(request, env) {
   } catch (e) {
     console.error(e.stack || e);
     // Always answer 200 to Telegram so it doesn't retry the same broken update forever
-    if (url.pathname === '/tg') return new Response('ok');
+    if (url.pathname === '/tg' || url.pathname === '/tga') return new Response('ok');
     // Don't leak internal details (D1/Telegram error text, stack info) to whoever sent the request —
     // the real message is in the Cloudflare dashboard's Logs tab for us to debug.
     return new Response('Something went wrong. Try again shortly.', { status: 500 });
@@ -158,8 +164,8 @@ const siteUrl = (env) => String(env.SITE_URL || '').replace(/\/+$/, '');
 // token is part of every request URL, so it must never be sent to any other host, whatever a variable says.
 const tgBase = (env) => (/^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(String(env.TG_API || '')) ? env.TG_API : 'https://api.telegram.org');
 
-async function tg(env, method, body) {
-  const res = await fetch(`${tgBase(env)}/bot${env.BOT_TOKEN}/${method}`, {
+async function tg(env, method, body, token = env.BOT_TOKEN) {
+  const res = await fetch(`${tgBase(env)}/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(body),
@@ -168,6 +174,12 @@ async function tg(env, method, body) {
   if (!j.ok && !/message is not modified/.test(j.description || '')) console.warn(method, j.description);
   return j;
 }
+
+/** The admin bot (when configured): same API, its own token. */
+const atg = (env, method, body) => tg(env, method, body, env.ADMIN_BOT_TOKEN);
+const hasAdminBot = (env) => !!env.ADMIN_BOT_TOKEN;
+/** A message to the admin — through the admin bot when there is one, else through the student bot as before. */
+const adminSend = (env, text, extra = {}) => (hasAdminBot(env) ? atg : tg)(env, 'sendMessage', { chat_id: env.ADMIN_CHAT_ID, text, parse_mode: 'HTML', disable_web_page_preview: true, ...extra });
 
 const json = (obj, status = 200) => new Response(JSON.stringify(obj), { status, headers: { 'content-type': 'application/json' } });
 
@@ -270,6 +282,13 @@ async function db(env) {
         chat_id INTEGER NOT NULL,
         ok INTEGER NOT NULL DEFAULT 1,
         PRIMARY KEY (bid, chat_id))`),
+      // feedback forwarded through the ADMIN bot (its message ids are a different sequence from the student bot's)
+      // via = which bot the person wrote to ('s' student bot, 'a' the admin bot itself) — the answer goes back the same way
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS feedback_replies_a (
+        admin_msg_id INTEGER PRIMARY KEY,
+        chat_id INTEGER NOT NULL,
+        via TEXT NOT NULL DEFAULT 's',
+        created_at INTEGER)`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
         k TEXT PRIMARY KEY,
         v TEXT)`),
@@ -301,6 +320,11 @@ async function db(env) {
     if (!cols.some((c) => c.name === 'last_seen')) {
       // last_seen = when the chat last used the bot (ms) — the admin's /stats counts active users from it
       await addColumn('ALTER TABLE chats ADD COLUMN last_seen INTEGER');
+    }
+    {
+      // feedback.via: 'a' = written to the admin bot by someone who found it (answered there), else the student bot
+      const fcols = (await env.DB.prepare('PRAGMA table_info(feedback)').all()).results || [];
+      if (!fcols.some((c) => c.name === 'via')) await addColumn('ALTER TABLE feedback ADD COLUMN via TEXT');
     }
     if (!cols.some((c) => c.name === 'kbv')) {
       // kbv = which reply keyboard this chat has been given (see KB_VERSION)
@@ -381,26 +405,25 @@ async function countGroupmates(env, groupId, excludeChatId) {
   return r?.n || 0;
 }
 
-async function addFeedback(env, chatId, name, text) {
+async function addFeedback(env, chatId, name, text, via = 's') {
   await (await db(env))
-    .prepare('INSERT INTO feedback (chat_id, name, text, created_at) VALUES (?,?,?,?)')
-    .bind(chatId, name || null, text, Date.now())
+    .prepare('INSERT INTO feedback (chat_id, name, text, created_at, via) VALUES (?,?,?,?,?)')
+    .bind(chatId, name || null, text, Date.now(), via)
     .run();
   // Also forward it straight to the admin's own Telegram DMs, if configured, so feedback doesn't
   // need to wait for someone to go check the stats workflow.
-  if (env.ADMIN_CHAT_ID) {
-    const r = await tg(env, 'sendMessage', {
-      chat_id: env.ADMIN_CHAT_ID,
-      text: `✍️ <b>Yangi fikr-mulohaza</b>\n${esc(name || 'Anonim')} (id: ${chatId}):\n\n${esc(text)}\n\n↩️ Javob berish uchun shu xabarga <b>Reply</b> qiling.`,
-      parse_mode: 'HTML',
-    });
-    if (r.ok && r.result?.message_id) {
-      await (await db(env))
-        .prepare('INSERT OR REPLACE INTO feedback_replies (admin_msg_id, chat_id, created_at) VALUES (?,?,?)')
-        .bind(r.result.message_id, chatId, Date.now())
-        .run();
-    }
+  if (env.ADMIN_CHAT_ID) await forwardFeedback(env, chatId, name, text, null, via);
+}
+/** Puts one feedback message in the admin's chat (admin bot if configured) and remembers it, so a Reply goes back to the person. */
+async function forwardFeedback(env, chatId, name, text, when, via = 's') {
+  const where = via === 'a' ? ' · <i>admin botga yozilgan</i>' : '';
+  const r = await adminSend(env, `✍️ <b>${when ? 'Fikr-mulohaza' : 'Yangi fikr-mulohaza'}</b>${when ? ` · ${esc(when)}` : ''}${where}\n${esc(name || 'Anonim')} (id: ${chatId}):\n\n${esc(text)}\n\n↩️ Javob berish uchun shu xabarga <b>Reply</b> qiling.`);
+  if (r.ok && r.result?.message_id) {
+    const D = await db(env);
+    if (hasAdminBot(env)) await D.prepare('INSERT OR REPLACE INTO feedback_replies_a (admin_msg_id, chat_id, via, created_at) VALUES (?,?,?,?)').bind(r.result.message_id, chatId, via === 'a' ? 'a' : 's', Date.now()).run();
+    else await D.prepare('INSERT OR REPLACE INTO feedback_replies (admin_msg_id, chat_id, created_at) VALUES (?,?,?)').bind(r.result.message_id, chatId, Date.now()).run();
   }
+  return r;
 }
 
 // ---------------------------------------------------------------- setup & internal API
@@ -437,6 +460,12 @@ async function onSetup(request, url, env) {
     out.menu = await tg(env, 'setChatMenuButton', { menu_button: { type: 'web_app', text: '📅 Jadval', web_app: { url: siteUrl(env) + '/' } } });
   }
   out.description = await tg(env, 'setMyShortDescription', { short_description: "Talaba va o'qituvchilar uchun jadval, bo'sh xonalar va o'zgarishlar — hammasi bir joyda. Jadval o'zgarsa, birinchi siz bilasiz." });
+  if (hasAdminBot(env)) {
+    await (await db(env)).prepare("DELETE FROM admin_state WHERE k = 'abot'").run(); // force a fresh webhook + menu for the admin bot
+    adminBotReadyFor = null;
+    await ensureAdminBot(env, url.origin);
+    out.adminBot = { ok: (await (await db(env)).prepare("SELECT v FROM admin_state WHERE k = 'abot'").first()) != null };
+  }
   const ok = Object.values(out).every((r) => r.ok);
   return json({ ok, hint: ok ? 'All set! Open your bot in Telegram and press Start.' : 'Some steps failed — see details.', ...out });
 }
@@ -458,14 +487,14 @@ async function hmacSha256(key, data) {
   return new Uint8Array(await crypto.subtle.sign('HMAC', k, new TextEncoder().encode(data)));
 }
 /** Checks the signed `initData` string of a Mini App (see core.telegram.org/bots/webapps); returns the Telegram user, or null. */
-async function verifyInitData(env, initData) {
-  if (typeof initData !== 'string' || initData.length > 4096 || !env.BOT_TOKEN) return null;
+async function verifyInitData(env, initData, token = env.BOT_TOKEN) {
+  if (typeof initData !== 'string' || initData.length > 4096 || !token) return null;
   const p = new URLSearchParams(initData);
   const hash = p.get('hash');
   p.delete('hash');
   if (!hash) return null;
   const check = [...p.entries()].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)).map(([k, v]) => `${k}=${v}`).join('\n');
-  const secret = await hmacSha256('WebAppData', env.BOT_TOKEN);
+  const secret = await hmacSha256('WebAppData', token);
   const sig = [...(await hmacSha256(secret, check))].map((b) => b.toString(16).padStart(2, '0')).join('');
   if (!(await safeEqual(sig, hash))) return null;
   const age = Date.now() / 1000 - Number(p.get('auth_date') || 0);
@@ -574,8 +603,9 @@ async function onAdminApi(request, env) {
   if (Number(request.headers.get('content-length') || 0) > 6 * 1024 * 1024) return jsonCors(env, { ok: false, error: 'too big' }, 413);
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== 'object') return jsonCors(env, { ok: false, error: 'bad request' }, 400);
-  const user = await verifyInitData(env, body.initData);
-  if (!user) return jsonCors(env, { ok: false, error: 'auth' }, 401);
+  // with an admin bot, the screen belongs to it alone: only initData signed with ITS token counts (the student app never shows it)
+  const user = await verifyInitData(env, body.initData, hasAdminBot(env) ? env.ADMIN_BOT_TOKEN : env.BOT_TOKEN);
+  if (!user) return jsonCors(env, { ok: false, error: 'auth' }, hasAdminBot(env) && body.op === 'me' ? 200 : 401);
   if (body.op === 'me') return jsonCors(env, { ok: true, admin: isAdminUser(env, user) }); // anyone may ask; only the admin hears "yes"
   if (!isAdminUser(env, user)) return jsonCors(env, { ok: false, error: 'forbidden' }, 403);
   const D = await db(env);
@@ -799,6 +829,150 @@ async function onWebhook(request, env) {
   return new Response('ok');
 }
 
+// ---------------------------------------------------------------- the admin bot (@tdiujadval_admin_bot)
+// A separate bot for the owner's work: statistics, feedback (read + answer), announcements. Students never see it, and it never
+// messages students itself — answers and announcements still go out through the student bot, the only one they started.
+
+const adminWebhookSecret = async (env) => (await sha256hex('tga:' + env.ADMIN_KEY)).slice(0, 48);
+let adminBotUser = null;
+async function adminBotName(env) {
+  if (!hasAdminBot(env)) return null;
+  if (!adminBotUser) { const r = await atg(env, 'getMe', {}); if (r?.ok) adminBotUser = r.result.username; }
+  return adminBotUser;
+}
+
+let adminBotReadyFor = null;
+/** Points the admin bot's webhook at this Worker and sets its menu — once per token (remembered in the database). */
+async function ensureAdminBot(env, origin) {
+  if (!hasAdminBot(env) || !env.ADMIN_KEY || !/^(https:\/\/|http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$)/.test(origin)) return;
+  const sig = (await sha256hex('abot:' + env.ADMIN_BOT_TOKEN + '|' + origin)).slice(0, 32);
+  if (adminBotReadyFor === sig) return;
+  const D = await db(env);
+  const have = (await D.prepare("SELECT v FROM admin_state WHERE k = 'abot'").first())?.v;
+  if (have === sig) { adminBotReadyFor = sig; return; }
+  const r = await atg(env, 'setWebhook', { url: `${origin}/tga`, secret_token: await adminWebhookSecret(env), allowed_updates: ['message', 'callback_query'], drop_pending_updates: true });
+  if (!r?.ok) return;
+  await setupAdminBotMenu(env);
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('abot', ?)").bind(sig).run();
+  adminBotReadyFor = sig;
+}
+async function setupAdminBotMenu(env) {
+  await atg(env, 'setMyCommands', { commands: [
+    { command: 'start', description: '🏠 Bosh menyu' },
+    { command: 'stats', description: '📊 Statistika' },
+    { command: 'fikrlar', description: "✍️ So'nggi fikr-mulohazalar" },
+    { command: 'elon', description: "📣 E'lon yuborish" },
+  ] });
+  await atg(env, 'setMyShortDescription', { short_description: 'TDIU Jadval — boshqaruv paneli (faqat jamoa uchun).' });
+  if (env.ADMIN_CHAT_ID && siteUrl(env)) {
+    await atg(env, 'setChatMenuButton', { chat_id: Number(env.ADMIN_CHAT_ID), menu_button: { type: 'web_app', text: "📣 E'lon", web_app: { url: `${siteUrl(env)}/#tab=admin` } } });
+  }
+}
+
+// Someone who found the admin bot: a friendly word on what it is, the way to the student bot, and an open door for feedback —
+// whatever they write goes to the team like /feedback does, and the answer comes back here (the student bot may not know them).
+const VISITOR = {
+  uz: { hi: (b) => `👋 Salom! Bu — TDIU Jadval jamoasining xizmat boti.\n\n📅 Dars jadvali, eslatmalar va bo'sh xonalar — ${b ? '@' + b : 'asosiy botda'}.\n✍️ Taklif, xato yoki savolingiz bo'lsa, shu yerga yozing — jamoaga yetkazamiz va shu yerda javob beramiz.`, open: '📅 TDIU Jadval botini ochish', thanks: "✅ Rahmat! Xabaringiz jamoaga yetkazildi. Javob shu yerga keladi.", text: "✍️ Iltimos, matn ko'rinishida yozing." },
+  ru: { hi: (b) => `👋 Здравствуйте! Это служебный бот команды TDIU Jadval.\n\n📅 Расписание, напоминания и свободные аудитории — в ${b ? '@' + b : 'основном боте'}.\n✍️ Есть предложение, ошибка или вопрос — напишите сюда, мы передадим команде и ответим здесь же.`, open: '📅 Открыть бот TDIU Jadval', thanks: '✅ Спасибо! Сообщение передано команде. Ответ придёт сюда.', text: '✍️ Пожалуйста, напишите текстом.' },
+  en: { hi: (b) => `👋 Hi! This is the TDIU Jadval team's service bot.\n\n📅 Timetable, reminders and free rooms are in ${b ? '@' + b : 'the main bot'}.\n✍️ Have an idea, a bug or a question? Write it here — we'll pass it to the team and answer right here.`, open: '📅 Open the TDIU Jadval bot', thanks: '✅ Thank you! Your message reached the team. The answer will come here.', text: '✍️ Please write it as text.' },
+};
+async function adminBotVisitor(env, msg) {
+  const lang = langFromCode(msg.from?.language_code);
+  const V = VISITOR[lang] || VISITOR.uz;
+  const send2 = (text, extra = {}) => atg(env, 'sendMessage', { chat_id: msg.chat.id, text, disable_web_page_preview: true, ...extra });
+  const command = parseCommand(msg.text || '');
+  if (!msg.text || command) {
+    if (!msg.text && !command) return send2(V.text);
+    const bot = await getBotName(env);
+    return send2(V.hi(bot), bot ? { reply_markup: { inline_keyboard: [[{ text: V.open, url: `https://t.me/${bot}` }]] } } : {});
+  }
+  const recent = await (await db(env)).prepare('SELECT COUNT(*) AS n FROM feedback WHERE chat_id = ? AND created_at > ?').bind(msg.chat.id, Date.now() - 3600e3).first();
+  if ((recent?.n || 0) >= 5) return send2(tr(lang).feedbackLimit.replace(/<[^>]+>/g, ''));
+  await addFeedback(env, msg.chat.id, msg.from?.username ? '@' + msg.from.username : msg.from?.first_name, msg.text.slice(0, 2000), 'a');
+  return send2(V.thanks);
+}
+
+const ADMIN_KB = { keyboard: [[{ text: '📊 Statistika' }, { text: '✍️ Fikrlar' }], [{ text: "📣 E'lon" }]], resize_keyboard: true, is_persistent: true };
+const adminElonButton = (env) => ({ inline_keyboard: [[{ text: "📣 E'lon oynasini ochish", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] });
+
+async function onAdminWebhook(request, env) {
+  if (!hasAdminBot(env)) return new Response('Not found', { status: 404 });
+  if (authBlocked(request)) return tooManyAttempts();
+  if (!(await safeEqual(request.headers.get('x-telegram-bot-api-secret-token'), await adminWebhookSecret(env)))) {
+    noteAuthFail(request);
+    return new Response('Forbidden', { status: 403 });
+  }
+  if (Number(request.headers.get('content-length') || 0) > 1_000_000) return new Response('Too large', { status: 413 });
+  const update = await request.json().catch(() => null);
+  if (!update || typeof update !== 'object') return new Response('ok');
+  const from = update.message?.from || update.callback_query?.from;
+  if (flooding(env, from?.id)) return new Response('ok');
+  // the admin bot's update ids are its own sequence: kept apart from the student bot's in the same table (negative)
+  if (Number.isSafeInteger(update.update_id) && (await alreadyHandled(env, -1 - update.update_id))) return new Response('ok');
+  const msg = update.message, cb = update.callback_query;
+  const chatId = msg?.chat?.id ?? cb?.message?.chat?.id;
+  if (msg && msg.chat?.type !== 'private') return new Response('ok'); // never works in groups
+  if (!isAdminChat(env, chatId) || !isAdminChat(env, from?.id)) {
+    if (cb) await atg(env, 'answerCallbackQuery', { callback_query_id: cb.id });
+    else if (msg) await adminBotVisitor(env, msg);
+    return new Response('ok');
+  }
+  if (cb) {
+    atg(env, 'answerCallbackQuery', { callback_query_id: cb.id });
+    if (cb.data === 'adm:stats') await sendStats(env, chatId, cb.message.message_id, true);
+    return new Response('ok');
+  }
+  if (!msg?.text) return new Response('ok');
+  const command = parseCommand(msg.text);
+  const t = msg.text.trim();
+  const cmd = command?.cmd || (t === '📊 Statistika' ? 'stats' : t === '✍️ Fikrlar' ? 'fikrlar' : t === "📣 E'lon" ? 'elon' : null);
+  if (cmd === 'start' || cmd === 'menu' || cmd === 'help') {
+    await atg(env, 'sendMessage', { chat_id: chatId, parse_mode: 'HTML', reply_markup: ADMIN_KB, text: [
+      '🛠 <b>TDIU Jadval — boshqaruv</b>', '',
+      '📊 <b>Statistika</b> — foydalanuvchilar va faollik',
+      "✍️ <b>Fikrlar</b> — so'nggi fikr-mulohazalar; javob berish uchun xabarga <b>Reply</b> qiling",
+      "📣 <b>E'lon</b> — shaxsiy chatlarga e'lon (chap pastdagi tugma ham ochadi)", '',
+      "Yangi fikr-mulohaza kelsa, shu yerga keladi. Javobingiz talabaga @tdiujadval_bot orqali boradi.",
+    ].join('\n') });
+    await setupAdminBotMenu(env);
+    return new Response('ok');
+  }
+  if (cmd === 'stats') { await sendStats(env, chatId, null, true); return new Response('ok'); }
+  if (cmd === 'elon') {
+    if (siteUrl(env)) await atg(env, 'sendMessage', { chat_id: chatId, text: "📣 E'lon yuborish oynasi:", reply_markup: adminElonButton(env) });
+    return new Response('ok');
+  }
+  if (cmd === 'fikrlar') {
+    const { results } = await (await db(env)).prepare('SELECT chat_id, name, text, created_at, via FROM feedback ORDER BY id DESC LIMIT 5').all();
+    if (!results.length) { await atg(env, 'sendMessage', { chat_id: chatId, text: "✍️ Hali fikr-mulohaza yo'q." }); return new Response('ok'); }
+    for (const f of results.reverse()) {
+      const tn = tashkentNow(f.created_at || 0);
+      await forwardFeedback(env, f.chat_id, f.name, f.text, `${ymd(tn).slice(8, 10)}.${ymd(tn).slice(5, 7)} ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())}`, f.via === 'a' ? 'a' : 's');
+    }
+    return new Response('ok');
+  }
+  // an answer to feedback: Reply to the forwarded message, or /reply <id> text — delivered by the STUDENT bot
+  let target = null, text = null, via = 's';
+  if (cmd === 'reply') {
+    const m = /^(-?\d+)\s+([\s\S]+)$/.exec(command.arg || '');
+    if (!m) { await atg(env, 'sendMessage', { chat_id: chatId, parse_mode: 'HTML', text: '↩️ Format: <code>/reply 123456789 javob matni</code>\nyoki fikr xabariga Reply qiling.' }); return new Response('ok'); }
+    target = Number(m[1]); text = m[2];
+  } else if (!command && msg.reply_to_message?.message_id) {
+    const r = await (await db(env)).prepare('SELECT chat_id, via FROM feedback_replies_a WHERE admin_msg_id = ?').bind(msg.reply_to_message.message_id).first();
+    if (r) { target = r.chat_id; text = msg.text; via = r.via; }
+  }
+  if (target != null && Number.isSafeInteger(target)) {
+    const trow = await getChat(env, target);
+    const body = tr(trow?.lang || 'uz').adminReply(esc(String(text).slice(0, 3500)));
+    // back the way it came: through the admin bot to someone who wrote there, through the student bot otherwise
+    const res = via === 'a' ? await atg(env, 'sendMessage', { chat_id: target, text: body, parse_mode: 'HTML' }) : await send(env, target, body);
+    await atg(env, 'sendMessage', { chat_id: chatId, reply_to_message_id: msg.message_id, text: res.ok ? '✅ Javob yuborildi.' : "❌ Yuborilmadi (foydalanuvchi botni bloklagan bo'lishi mumkin)." });
+    return new Response('ok');
+  }
+  await atg(env, 'sendMessage', { chat_id: chatId, text: "Buyruqni tanlang 👇 Fikrga javob berish uchun fikr xabariga Reply qiling.", reply_markup: ADMIN_KB });
+  return new Response('ok');
+}
+
 /** True when this update id was seen before (Telegram resends updates it thinks were not answered in time). Never throws. */
 async function alreadyHandled(env, id) {
   if (!Number.isSafeInteger(id)) return false;
@@ -848,7 +1022,7 @@ const USAGE_NAMES = {
 };
 
 /** The admin's statistics message (only ever sent to ADMIN_CHAT_ID). editId = refresh an earlier one in place. */
-async function sendStats(env, chatId, editId) {
+async function sendStats(env, chatId, editId, viaAdminBot = false) {
   const D = await db(env);
   const now = Date.now();
   const tn = tashkentNow(now);
@@ -911,12 +1085,17 @@ async function sendStats(env, chatId, editId) {
   ].filter((x) => x !== null);
   const text = lines.join('\n');
   const reply_markup = { inline_keyboard: [[{ text: '🔄 Yangilash', callback_data: 'adm:stats' }]] };
-  if (editId) return tg(env, 'editMessageText', { chat_id: chatId, message_id: editId, text, parse_mode: 'HTML', reply_markup });
-  return send(env, chatId, text, { reply_markup });
+  const call = viaAdminBot ? atg : tg;
+  if (editId) return call(env, 'editMessageText', { chat_id: chatId, message_id: editId, text, parse_mode: 'HTML', reply_markup });
+  return call(env, 'sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup });
 }
 
 /** /stats in the admin's own command menu only (everyone else's menu stays as it is). */
 async function adminMenu(env) {
+  if (hasAdminBot(env)) { // the admin's commands live in the admin bot now: the student bot shows the admin the same menu as everyone
+    try { await tg(env, 'deleteMyCommands', { scope: { type: 'chat', chat_id: Number(env.ADMIN_CHAT_ID) } }); } catch {}
+    return;
+  }
   try {
     const cur = await tg(env, 'getMyCommands', { scope: { type: 'all_private_chats' } });
     const list = (Array.isArray(cur.result) ? cur.result : []).filter((c) => c.command !== 'stats' && c.command !== 'elon');
@@ -992,6 +1171,12 @@ const isAdminChat = (env, chatId) => !!env.ADMIN_CHAT_ID && String(chatId) === S
 async function onAdminReply(env, msg, command) {
   let target;
   let text;
+  if (hasAdminBot(env) && (command?.cmd === 'elon' || command?.cmd === 'announce' || command?.cmd === 'stats')) {
+    const name = await adminBotName(env);
+    await send(env, msg.chat.id, `🛠 Admin ishlari endi alohida botda: ${name ? '@' + name : 'admin bot'}`);
+    await adminMenu(env);
+    return true;
+  }
   if (command?.cmd === 'elon' || command?.cmd === 'announce') {
     // The E'lon screen needs Telegram's signed initData, which a Mini App opened from the reply keyboard does not get —
     // an inline web_app button does, so the admin opens it from here.

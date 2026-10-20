@@ -17,3 +17,8 @@ node tests/bot-flow.mjs
 node tests/notify-dedupe.mjs
 node tests/security.mjs
 node tests/broadcast.mjs
+# the same Worker, now with the separate admin bot configured
+pkill -x workerd 2>/dev/null; sleep 1
+npx wrangler dev --port 8787 --ip 127.0.0.1 --var FLOOD_MAX:100000 --var ADMIN_BOT_TOKEN:admintoken123 >"${TMPDIR:-/tmp}/wrangler-test2.log" 2>&1 & PIDS+=($!)
+for i in $(seq 1 60); do curl -s localhost:8787/ >/dev/null && break; sleep 1; done
+node tests/admin-bot.mjs
