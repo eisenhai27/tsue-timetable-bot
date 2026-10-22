@@ -2,6 +2,7 @@
 # Runs tests/bot-flow.mjs against a FRESH local Worker + database, a static copy of docs/ (the "GitHub Pages" site)
 # and a fake Telegram (tests/mock-telegram.mjs). Needs the ports from .dev.vars: 1236 (site), 8790 (Telegram), 8787 (Worker).
 set -u
+node tests/lessons-unit.mjs | tail -1
 cd "$(dirname "$0")/.."
 pkill -x workerd 2>/dev/null; pkill -f "[w]rangler dev" 2>/dev/null; pkill -f "[h]ttp.server 1236" 2>/dev/null; pkill -f "[m]ock-telegram" 2>/dev/null
 sleep 1
@@ -17,6 +18,7 @@ node tests/bot-flow.mjs
 node tests/notify-dedupe.mjs
 node tests/security.mjs
 node tests/broadcast.mjs
+node tests/lessons-flow.mjs
 # the same Worker, now with the separate admin bot configured
 pkill -x workerd 2>/dev/null; sleep 1
 npx wrangler dev --port 8787 --ip 127.0.0.1 --var FLOOD_MAX:100000 --var ADMIN_BOT_TOKEN:admintoken123 >"${TMPDIR:-/tmp}/wrangler-test2.log" 2>&1 & PIDS+=($!)

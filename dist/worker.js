@@ -739,6 +739,257 @@ function bcMessage(p, chat, ctx = {}) {
 }
 var validBcId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id));
 
+// src/jokes.mjs
+var j = (uz, ru, en, extra = {}) => ({ uz, ru, en, ...extra });
+var JOKES = {
+  // ---- students, before a class
+  s_morning: [
+    j("\u2615 08:00 dagi dars \u2014 oddiy dars emas, iroda sinovi. Siz allaqachon g'olibsiz!", "\u2615 \u041F\u0430\u0440\u0430 \u0432 08:00 \u2014 \u044D\u0442\u043E \u043D\u0435 \u043F\u0440\u043E\u0441\u0442\u043E \u043F\u0430\u0440\u0430, \u044D\u0442\u043E \u043F\u0440\u043E\u0432\u0435\u0440\u043A\u0430 \u0441\u0438\u043B\u044B \u0432\u043E\u043B\u0438. \u0412\u044B \u0443\u0436\u0435 \u043F\u043E\u0431\u0435\u0434\u0438\u043B\u0438!", "\u2615 An 8 a.m. class isn't just a class, it's a test of willpower. You've already won!"),
+    j("\u{1F6CF} Yostiq sizni sog'inadi. Lekin diplom sizni ko'proq kutyapti.", "\u{1F6CF} \u041F\u043E\u0434\u0443\u0448\u043A\u0430 \u043F\u043E \u0432\u0430\u043C \u0441\u043A\u0443\u0447\u0430\u0435\u0442. \u041D\u043E \u0434\u0438\u043F\u043B\u043E\u043C \u0436\u0434\u0451\u0442 \u0432\u0430\u0441 \u0441\u0438\u043B\u044C\u043D\u0435\u0435.", "\u{1F6CF} Your pillow misses you. But your diploma is waiting even harder."),
+    j("\u2615 Kofe \u2014 ertalabki talabaning rasmiy yoqilg'isi. To'ldirib oldingizmi?", "\u2615 \u041A\u043E\u0444\u0435 \u2014 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0435 \u0442\u043E\u043F\u043B\u0438\u0432\u043E \u0443\u0442\u0440\u0435\u043D\u043D\u0435\u0433\u043E \u0441\u0442\u0443\u0434\u0435\u043D\u0442\u0430. \u0417\u0430\u043F\u0440\u0430\u0432\u0438\u043B\u0438\u0441\u044C?", "\u2615 Coffee is the official fuel of the morning student. Tank full?"),
+    j("\u{1F305} Shahar hali uyg'onmagan, siz esa allaqachon bilim sari yo'ldasiz. Qahramon!", "\u{1F305} \u0413\u043E\u0440\u043E\u0434 \u0435\u0449\u0451 \u0441\u043F\u0438\u0442, \u0430 \u0432\u044B \u0443\u0436\u0435 \u0432 \u043F\u0443\u0442\u0438 \u0437\u0430 \u0437\u043D\u0430\u043D\u0438\u044F\u043C\u0438. \u0413\u0435\u0440\u043E\u0439!", "\u{1F305} The city's still asleep and you're already on your way to learn. Hero!")
+  ],
+  s_lecture: [
+    j("\u{1F3A4} Ma'ruza \u2014 podkastning o'zi, faqat jonli va pauza tugmasisiz.", "\u{1F3A4} \u041B\u0435\u043A\u0446\u0438\u044F \u2014 \u044D\u0442\u043E \u043F\u043E\u0434\u043A\u0430\u0441\u0442, \u0442\u043E\u043B\u044C\u043A\u043E \u0432\u0436\u0438\u0432\u0443\u044E \u0438 \u0431\u0435\u0437 \u043A\u043D\u043E\u043F\u043A\u0438 \u043F\u0430\u0443\u0437\u044B.", "\u{1F3A4} A lecture is a podcast, just live and without a pause button."),
+    j(`\u{1F4DD} Bugungi konspekt \u2014 imtihon kuni o'zingizga aytadigan "rahmat"ingiz.`, "\u{1F4DD} \u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0438\u0439 \u043A\u043E\u043D\u0441\u043F\u0435\u043A\u0442 \u2014 \u044D\u0442\u043E \u0432\u0430\u0448\u0435 \xAB\u0441\u043F\u0430\u0441\u0438\u0431\u043E\xBB \u0441\u0435\u0431\u0435 \u0432 \u0434\u0435\u043D\u044C \u044D\u043A\u0437\u0430\u043C\u0435\u043D\u0430.", `\u{1F4DD} Today's notes are the "thank you" you'll send yourself on exam day.`),
+    j("\u{1F9E0} Miyangizga yangi yangilanish yuklanmoqda... O'chirib qo'ymang!", "\u{1F9E0} \u0412 \u0432\u0430\u0448 \u043C\u043E\u0437\u0433 \u0437\u0430\u0433\u0440\u0443\u0436\u0430\u0435\u0442\u0441\u044F \u043E\u0431\u043D\u043E\u0432\u043B\u0435\u043D\u0438\u0435... \u041D\u0435 \u0432\u044B\u043A\u043B\u044E\u0447\u0430\u0439\u0442\u0435!", "\u{1F9E0} A new update is downloading to your brain... Please don't switch off!")
+  ],
+  s_seminar: [
+    j(`\u{1F4AC} "Kim javob beradi?" deganda ko'zingizni olib qochmang \u2014 bugun sizning kuningiz bo'lishi mumkin!`, "\u{1F4AC} \u041A\u043E\u0433\u0434\u0430 \u0441\u043F\u0440\u043E\u0441\u044F\u0442 \xAB\u041A\u0442\u043E \u043E\u0442\u0432\u0435\u0442\u0438\u0442?\xBB, \u043D\u0435 \u043E\u0442\u0432\u043E\u0434\u0438\u0442\u0435 \u0432\u0437\u0433\u043B\u044F\u0434 \u2014 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u043C\u043E\u0436\u0435\u0442 \u0431\u044B\u0442\u044C \u0432\u0430\u0448 \u0434\u0435\u043D\u044C!", `\u{1F4AC} When they ask "Who wants to answer?", don't look away. Today might be your day!`),
+    j("\u{1F64B} Seminar \u2014 fikringiz eshitiladigan joy. Bitta gap ham katta qadam.", "\u{1F64B} \u0421\u0435\u043C\u0438\u043D\u0430\u0440 \u2014 \u043C\u0435\u0441\u0442\u043E, \u0433\u0434\u0435 \u0441\u043B\u044B\u0448\u0430\u0442 \u0432\u0430\u0448\u0435 \u043C\u043D\u0435\u043D\u0438\u0435. \u0414\u0430\u0436\u0435 \u043E\u0434\u043D\u0430 \u0444\u0440\u0430\u0437\u0430 \u2014 \u0431\u043E\u043B\u044C\u0448\u043E\u0439 \u0448\u0430\u0433.", "\u{1F64B} A seminar is where your voice gets heard. Even one sentence is a big step.")
+  ],
+  s_lab: [
+    j("\u{1F52C} Laboratoriya \u2014 xato qilish rasman ruxsat etilgan joy. Fan aynan shunday rivojlangan!", "\u{1F52C} \u041B\u0430\u0431\u043E\u0440\u0430\u0442\u043E\u0440\u0438\u044F \u2014 \u0435\u0434\u0438\u043D\u0441\u0442\u0432\u0435\u043D\u043D\u043E\u0435 \u043C\u0435\u0441\u0442\u043E, \u0433\u0434\u0435 \u043E\u0448\u0438\u0431\u0430\u0442\u044C\u0441\u044F \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u043E \u0440\u0430\u0437\u0440\u0435\u0448\u0435\u043D\u043E. \u0422\u0430\u043A \u0438 \u0440\u0430\u0437\u0432\u0438\u0432\u0430\u043B\u0430\u0441\u044C \u043D\u0430\u0443\u043A\u0430!", "\u{1F52C} The lab is the one place where mistakes are officially allowed. That's how science got here!"),
+    j("\u{1F9EA} Bugungi tajriba muvaffaqiyatli bo'ladi. Bo'lmasa ham \u2014 baribir tajriba \u{1F642}", "\u{1F9EA} \u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0438\u0439 \u044D\u043A\u0441\u043F\u0435\u0440\u0438\u043C\u0435\u043D\u0442 \u0443\u0434\u0430\u0441\u0442\u0441\u044F. \u0410 \u0435\u0441\u043B\u0438 \u043D\u0435\u0442 \u2014 \u044D\u0442\u043E \u0432\u0441\u0451 \u0440\u0430\u0432\u043D\u043E \u043E\u043F\u044B\u0442 \u{1F642}", "\u{1F9EA} Today's experiment will work. And if it doesn't, it's still experience \u{1F642}")
+  ],
+  s_last: [
+    j("\u{1F3C1} Oxirgi para! Uy, choy va divan sizni kutmoqda.", "\u{1F3C1} \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u044F\u044F \u043F\u0430\u0440\u0430! \u0414\u043E\u043C, \u0447\u0430\u0439 \u0438 \u0434\u0438\u0432\u0430\u043D \u0443\u0436\u0435 \u0436\u0434\u0443\u0442.", "\u{1F3C1} Last class! Home, tea and the sofa are waiting."),
+    j("\u{1F50B} Batareya oz qoldi, lekin marra yaqin \u2014 yana bitta para!", "\u{1F50B} \u0417\u0430\u0440\u044F\u0434 \u043D\u0430 \u0438\u0441\u0445\u043E\u0434\u0435, \u043D\u043E \u0444\u0438\u043D\u0438\u0448 \u0431\u043B\u0438\u0437\u043A\u043E \u2014 \u0435\u0449\u0451 \u043E\u0434\u043D\u0430 \u043F\u0430\u0440\u0430!", "\u{1F50B} Battery is low but the finish line is close. Just one more class!")
+  ],
+  s_fri: [j("\u{1F389} Juma! Dam olish kunlari eshik oldida turibdi.", "\u{1F389} \u041F\u044F\u0442\u043D\u0438\u0446\u0430! \u0412\u044B\u0445\u043E\u0434\u043D\u044B\u0435 \u0443\u0436\u0435 \u0441\u0442\u043E\u044F\u0442 \u0443 \u0434\u0432\u0435\u0440\u0438.", "\u{1F389} Friday! The weekend is already at the door.")],
+  s_sat: [j("\u{1F4AA} Shanba kuni darsga borayotganlar \u2014 haftaning eng irodali odamlari.", "\u{1F4AA} \u0422\u0435, \u043A\u0442\u043E \u0438\u0434\u0451\u0442 \u043D\u0430 \u043F\u0430\u0440\u044B \u0432 \u0441\u0443\u0431\u0431\u043E\u0442\u0443, \u2014 \u0441\u0430\u043C\u044B\u0435 \u0432\u043E\u043B\u0435\u0432\u044B\u0435 \u043B\u044E\u0434\u0438 \u043D\u0435\u0434\u0435\u043B\u0438.", "\u{1F4AA} People heading to class on a Saturday are the week's strongest-willed humans.")],
+  s_mon: [j("\u{1F300} Hafta boshlandi. Toza sahifa, yangi imkoniyat!", "\u{1F300} \u041D\u0435\u0434\u0435\u043B\u044F \u043D\u0430\u0447\u0430\u043B\u0430\u0441\u044C. \u0427\u0438\u0441\u0442\u044B\u0439 \u043B\u0438\u0441\u0442 \u2014 \u043D\u043E\u0432\u044B\u0435 \u0432\u043E\u0437\u043C\u043E\u0436\u043D\u043E\u0441\u0442\u0438!", "\u{1F300} A new week has started. Clean page, fresh chances!")],
+  s_lunch: [j("\u{1F37D} Eng og'ir sinov \u2014 ovqatdan keyingi para. Siz uddalaysiz!", "\u{1F37D} \u0421\u0430\u043C\u043E\u0435 \u0442\u0440\u0443\u0434\u043D\u043E\u0435 \u0438\u0441\u043F\u044B\u0442\u0430\u043D\u0438\u0435 \u2014 \u043F\u0430\u0440\u0430 \u043F\u043E\u0441\u043B\u0435 \u043E\u0431\u0435\u0434\u0430. \u0412\u044B \u0441\u043F\u0440\u0430\u0432\u0438\u0442\u0435\u0441\u044C!", "\u{1F37D} The hardest test of all: the class right after lunch. You've got this!")],
+  s_any: [
+    j("\u{1F392} Daftar bor, ruchka bor, kayfiyat 100%. Ketdik!", "\u{1F392} \u0422\u0435\u0442\u0440\u0430\u0434\u044C \u0435\u0441\u0442\u044C, \u0440\u0443\u0447\u043A\u0430 \u0435\u0441\u0442\u044C, \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435 100%. \u041F\u043E\u0435\u0445\u0430\u043B\u0438!", "\u{1F392} Notebook: check. Pen: check. Mood: 100%. Let's go!"),
+    j("\u{1F604} Tabassum bilan kirsangiz, dars tezroq o'tadi. Ilmiy isbotlanmagan, lekin sinab ko'ring!", "\u{1F604} \u0415\u0441\u043B\u0438 \u0432\u043E\u0439\u0442\u0438 \u0441 \u0443\u043B\u044B\u0431\u043A\u043E\u0439, \u043F\u0430\u0440\u0430 \u043F\u0440\u043E\u043B\u0435\u0442\u0438\u0442 \u0431\u044B\u0441\u0442\u0440\u0435\u0435. \u041D\u0430\u0443\u0447\u043D\u043E \u043D\u0435 \u0434\u043E\u043A\u0430\u0437\u0430\u043D\u043E, \u043D\u043E \u043F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435!", "\u{1F604} Walk in smiling and the class goes faster. Not scientifically proven, but worth a try!"),
+    j("\u{1F4F1} Telefon ham biroz dam olsin \u2014 u kecha ko'p ishladi.", "\u{1F4F1} \u041F\u0443\u0441\u0442\u044C \u0442\u0435\u043B\u0435\u0444\u043E\u043D \u0442\u043E\u0436\u0435 \u043E\u0442\u0434\u043E\u0445\u043D\u0451\u0442 \u2014 \u043E\u043D \u0432\u0447\u0435\u0440\u0430 \u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0431\u043E\u0442\u0430\u043B.", "\u{1F4F1} Let your phone rest a bit too. It worked hard yesterday."),
+    j("\u{1F340} Bugun kimdir sizdan konspekt so'rashi aniq. Tayyor turing!", "\u{1F340} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043A\u0442\u043E-\u0442\u043E \u0442\u043E\u0447\u043D\u043E \u043F\u043E\u043F\u0440\u043E\u0441\u0438\u0442 \u0443 \u0432\u0430\u0441 \u043A\u043E\u043D\u0441\u043F\u0435\u043A\u0442. \u0411\u0443\u0434\u044C\u0442\u0435 \u0433\u043E\u0442\u043E\u0432\u044B!", "\u{1F340} Someone will definitely ask to borrow your notes today. Be ready!"),
+    j("\u{1F680} Bugungi dars \u2014 kelajakdagi o'zingizga sovg'a.", "\u{1F680} \u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u044F\u044F \u043F\u0430\u0440\u0430 \u2014 \u043F\u043E\u0434\u0430\u0440\u043E\u043A \u0432\u0430\u043C \u0432 \u0431\u0443\u0434\u0443\u0449\u0435\u043C.", "\u{1F680} Today's class is a gift to your future self."),
+    j("\u{1F989} Bilim \u2014 eng yengil yuk: qancha ko'p bo'lsa ham og'irlik qilmaydi.", "\u{1F989} \u0417\u043D\u0430\u043D\u0438\u044F \u2014 \u0441\u0430\u043C\u044B\u0439 \u043B\u0451\u0433\u043A\u0438\u0439 \u0433\u0440\u0443\u0437: \u0441\u043A\u043E\u043B\u044C\u043A\u043E \u043D\u0438 \u043D\u043E\u0441\u0438, \u043D\u0435 \u0442\u044F\u0436\u0435\u043B\u043E.", "\u{1F989} Knowledge is the lightest luggage: carry as much as you like."),
+    j("\u{1F3A7} Darsga kirishdan oldin bitta chuqur nafas \u2014 tayyor!", "\u{1F3A7} \u041E\u0434\u0438\u043D \u0433\u043B\u0443\u0431\u043E\u043A\u0438\u0439 \u0432\u0434\u043E\u0445 \u043F\u0435\u0440\u0435\u0434 \u043F\u0430\u0440\u043E\u0439 \u2014 \u0438 \u0432\u044B \u0433\u043E\u0442\u043E\u0432\u044B!", "\u{1F3A7} One deep breath before class, and you're ready!"),
+    j("\u{1F5D3} Bugun dars, ertaga tajriba, keyin diplom. Reja zo'r!", "\u{1F5D3} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043F\u0430\u0440\u0430, \u0437\u0430\u0432\u0442\u0440\u0430 \u043E\u043F\u044B\u0442, \u043F\u043E\u0442\u043E\u043C \u0434\u0438\u043F\u043B\u043E\u043C. \u041E\u0442\u043B\u0438\u0447\u043D\u044B\u0439 \u043F\u043B\u0430\u043D!", "\u{1F5D3} Class today, experience tomorrow, a diploma after that. Great plan!"),
+    j("\u2B50 Bugun o'zingizga bitta yulduzcha qo'ying \u2014 darsga keldingiz!", "\u2B50 \u041F\u043E\u0441\u0442\u0430\u0432\u044C\u0442\u0435 \u0441\u0435\u0431\u0435 \u0437\u0432\u0451\u0437\u0434\u043E\u0447\u043A\u0443 \u2014 \u0432\u044B \u043F\u0440\u0438\u0448\u043B\u0438 \u043D\u0430 \u043F\u0430\u0440\u0443!", "\u2B50 Give yourself a gold star: you showed up!"),
+    j("\u{1F331} Har bir dars bilan biroz o'sasiz. Ko'rinmaydi, lekin bor!", "\u{1F331} \u0421 \u043A\u0430\u0436\u0434\u043E\u0439 \u043F\u0430\u0440\u043E\u0439 \u0432\u044B \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u0440\u0430\u0441\u0442\u0451\u0442\u0435. \u041D\u0435\u0437\u0430\u043C\u0435\u0442\u043D\u043E, \u043D\u043E \u0442\u043E\u0447\u043D\u043E!", "\u{1F331} You grow a little with every class. You can't see it, but it's there!"),
+    j("\u{1F36B} Darsdan keyin o'zingizni bir narsa bilan siylang. Bunga loyiqsiz!", "\u{1F36B} \u041F\u043E\u0441\u043B\u0435 \u043F\u0430\u0440\u044B \u043F\u043E\u0431\u0430\u043B\u0443\u0439\u0442\u0435 \u0441\u0435\u0431\u044F \u0447\u0435\u043C-\u043D\u0438\u0431\u0443\u0434\u044C. \u0412\u044B \u0437\u0430\u0441\u043B\u0443\u0436\u0438\u043B\u0438!", "\u{1F36B} Treat yourself to something after class. You deserve it!"),
+    j("\u{1F9E9} Bugungi mavzu \u2014 katta jumboqning yana bir bo'lagi.", "\u{1F9E9} \u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u044F\u044F \u0442\u0435\u043C\u0430 \u2014 \u0435\u0449\u0451 \u043E\u0434\u0438\u043D \u043A\u0443\u0441\u043E\u0447\u0435\u043A \u0431\u043E\u043B\u044C\u0448\u043E\u0433\u043E \u043F\u0430\u0437\u043B\u0430.", "\u{1F9E9} Today's topic is one more piece of a big puzzle."),
+    j("\u{1F511} Bilim \u2014 eng ko'p eshik ochadigan kalit.", "\u{1F511} \u0417\u043D\u0430\u043D\u0438\u044F \u2014 \u043A\u043B\u044E\u0447, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u043E\u0442\u043A\u0440\u044B\u0432\u0430\u0435\u0442 \u0431\u043E\u043B\u044C\u0448\u0435 \u0432\u0441\u0435\u0433\u043E \u0434\u0432\u0435\u0440\u0435\u0439.", "\u{1F511} Knowledge is the key that opens the most doors."),
+    j("\u{1F4D6} Bugun bitta narsani tushunsangiz ham, dars muvaffaqiyatli o'tdi.", "\u{1F4D6} \u041F\u043E\u0439\u043C\u0451\u0442\u0435 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0445\u043E\u0442\u044C \u043E\u0434\u043D\u0443 \u0432\u0435\u0449\u044C \u2014 \u043F\u0430\u0440\u0430 \u043F\u0440\u043E\u0448\u043B\u0430 \u0443\u0441\u043F\u0435\u0448\u043D\u043E.", "\u{1F4D6} Understand just one thing today and the class was a success."),
+    j("\u{1F31F} Oldingi qatorda yaxshiroq eshitiladi. Ustoz ham sizni eslab qoladi \u{1F642}", "\u{1F31F} \u041D\u0430 \u043F\u0435\u0440\u0432\u043E\u043C \u0440\u044F\u0434\u0443 \u043B\u0443\u0447\u0448\u0435 \u0441\u043B\u044B\u0448\u043D\u043E. \u0418 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C \u0432\u0430\u0441 \u0437\u0430\u043F\u043E\u043C\u043D\u0438\u0442 \u{1F642}", "\u{1F31F} You hear better from the front row. And the teacher will remember you \u{1F642}"),
+    j("\u{1F3AF} Bugungi maqsad: tushunish, yozish, tabassum.", "\u{1F3AF} \u0426\u0435\u043B\u044C \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F: \u043F\u043E\u043D\u044F\u0442\u044C, \u0437\u0430\u043F\u0438\u0441\u0430\u0442\u044C, \u0443\u043B\u044B\u0431\u043D\u0443\u0442\u044C\u0441\u044F.", "\u{1F3AF} Today's goal: understand, write it down, smile."),
+    j("\u{1F324} Kayfiyat ob-havosi: ochiq, bilim yog'ishi kutilmoqda.", "\u{1F324} \u041F\u0440\u043E\u0433\u043D\u043E\u0437 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u044F: \u044F\u0441\u043D\u043E, \u043E\u0436\u0438\u0434\u0430\u044E\u0442\u0441\u044F \u043E\u0441\u0430\u0434\u043A\u0438 \u0432 \u0432\u0438\u0434\u0435 \u0437\u043D\u0430\u043D\u0438\u0439.", "\u{1F324} Mood forecast: clear skies with a chance of knowledge."),
+    j("\u{1F9C3} Suv, ruchka, daftar \u2014 darsning uch qahramoni. Hammasi joyidami?", "\u{1F9C3} \u0412\u043E\u0434\u0430, \u0440\u0443\u0447\u043A\u0430, \u0442\u0435\u0442\u0440\u0430\u0434\u044C \u2014 \u0442\u0440\u0438 \u0433\u0435\u0440\u043E\u044F \u043F\u0430\u0440\u044B. \u0412\u0441\u0435 \u043D\u0430 \u043C\u0435\u0441\u0442\u0435?", "\u{1F9C3} Water, pen, notebook: the three heroes of every class. All present?"),
+    j("\u{1F3C6} Darsga vaqtida kelish \u2014 kichik, lekin haqiqiy g'alaba.", "\u{1F3C6} \u041F\u0440\u0438\u0439\u0442\u0438 \u043D\u0430 \u043F\u0430\u0440\u0443 \u0432\u043E\u0432\u0440\u0435\u043C\u044F \u2014 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0430\u044F, \u043D\u043E \u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0430\u044F \u043F\u043E\u0431\u0435\u0434\u0430.", "\u{1F3C6} Getting to class on time is a small but real win."),
+    j("\u{1F6B6} Shoshilmang, 10 daqiqa bor \u2014 bemalol yetib olasiz.", "\u{1F6B6} \u041D\u0435 \u0441\u043F\u0435\u0448\u0438\u0442\u0435, \u0435\u0441\u0442\u044C 10 \u043C\u0438\u043D\u0443\u0442 \u2014 \u0441\u043F\u043E\u043A\u043E\u0439\u043D\u043E \u0443\u0441\u043F\u0435\u0435\u0442\u0435.", "\u{1F6B6} No rush, you've got 10 minutes. Plenty of time."),
+    j("\u{1F60A} Kursdoshingizga salom bering \u2014 kimdir bugun shunga muhtoj.", "\u{1F60A} \u041F\u043E\u0437\u0434\u043E\u0440\u043E\u0432\u0430\u0439\u0442\u0435\u0441\u044C \u0441 \u043E\u0434\u043D\u043E\u043A\u0443\u0440\u0441\u043D\u0438\u043A\u043E\u043C \u2014 \u043A\u043E\u043C\u0443-\u0442\u043E \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u044D\u0442\u043E \u043E\u0447\u0435\u043D\u044C \u043D\u0443\u0436\u043D\u043E.", "\u{1F60A} Say hi to a classmate. Someone needs that today.")
+  ],
+  // students who stay in the same room for the next class
+  stay: [
+    j("\u{1FA91} Shu xonada qolasiz \u2014 oyoqlaringiz rahmat aytadi!", "\u{1FA91} \u041E\u0441\u0442\u0430\u0451\u0442\u0435\u0441\u044C \u0432 \u044D\u0442\u043E\u0439 \u0436\u0435 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438 \u2014 \u043D\u043E\u0433\u0438 \u0441\u043A\u0430\u0436\u0443\u0442 \u0441\u043F\u0430\u0441\u0438\u0431\u043E!", "\u{1FA91} Same room for the next class. Your feet say thank you!"),
+    j("\u{1FA9F} Tanaffusda derazani ochib qo'ying \u2014 keyingi dars yengilroq o'tadi.", "\u{1FA9F} \u041E\u0442\u043A\u0440\u043E\u0439\u0442\u0435 \u043E\u043A\u043D\u043E \u043D\u0430 \u043F\u0435\u0440\u0435\u043C\u0435\u043D\u0435 \u2014 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0430\u0440\u0430 \u043F\u043E\u0439\u0434\u0451\u0442 \u043B\u0435\u0433\u0447\u0435.", "\u{1FA9F} Open a window during the break. The next class will feel lighter.", { win: true }),
+    j("\u{1F9D8} Joyingizda bir cho'zilib oling \u2014 tanangiz ham tanaffusga loyiq.", "\u{1F9D8} \u041F\u043E\u0442\u044F\u043D\u0438\u0442\u0435\u0441\u044C \u043F\u0440\u044F\u043C\u043E \u043D\u0430 \u043C\u0435\u0441\u0442\u0435 \u2014 \u0442\u0435\u043B\u043E \u0442\u043E\u0436\u0435 \u0437\u0430\u0441\u043B\u0443\u0436\u0438\u043B\u043E \u043F\u0435\u0440\u0435\u043C\u0435\u043D\u0443.", "\u{1F9D8} Have a stretch right where you are. Your body deserves a break too."),
+    j("\u{1F3E0} Bu xona bugun ikkinchi uyingizga aylandi. Qulay o'tiring!", "\u{1F3E0} \u042D\u0442\u0430 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0441\u0442\u0430\u043B\u0430 \u0432\u0430\u0448\u0438\u043C \u0432\u0442\u043E\u0440\u044B\u043C \u0434\u043E\u043C\u043E\u043C. \u0423\u0441\u0442\u0440\u0430\u0438\u0432\u0430\u0439\u0442\u0435\u0441\u044C \u043F\u043E\u0443\u0434\u043E\u0431\u043D\u0435\u0435!", "\u{1F3E0} This room has become your second home today. Get comfy!"),
+    j("\u{1F4A7} Xonadan chiqmasangiz ham, suv ichishni unutmang.", "\u{1F4A7} \u0414\u0430\u0436\u0435 \u0435\u0441\u043B\u0438 \u043D\u0435 \u0432\u044B\u0445\u043E\u0434\u0438\u0442\u0435 \u0438\u0437 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438, \u043D\u0435 \u0437\u0430\u0431\u0443\u0434\u044C\u0442\u0435 \u043F\u043E\u043F\u0438\u0442\u044C \u0432\u043E\u0434\u044B.", "\u{1F4A7} Even if you're not leaving the room, don't forget to drink some water."),
+    j("\u{1F4CD} Joy o'zgarmadi \u2014 eng yaxshi o'rindiq hali ham sizniki!", "\u{1F4CD} \u041C\u0435\u0441\u0442\u043E \u0442\u043E \u0436\u0435 \u2014 \u043B\u0443\u0447\u0448\u0435\u0435 \u043A\u0440\u0435\u0441\u043B\u043E \u0432\u0441\u0451 \u0435\u0449\u0451 \u0432\u0430\u0448\u0435!", "\u{1F4CD} Same room, so the best seat is still yours!"),
+    j("\u{1F5C2} Daftarni yopmang \u2014 keyingi dars shu yerda boshlanadi.", "\u{1F5C2} \u041D\u0435 \u0437\u0430\u043A\u0440\u044B\u0432\u0430\u0439\u0442\u0435 \u0442\u0435\u0442\u0440\u0430\u0434\u044C \u2014 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0430\u0440\u0430 \u043D\u0430\u0447\u043D\u0451\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0436\u0435.", "\u{1F5C2} Don't close your notebook. The next class starts right here."),
+    j("\u{1F60C} Bugun yo'lda vaqt yo'qotmaysiz \u2014 10 daqiqa toza dam olish!", "\u{1F60C} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043D\u0435 \u043D\u0430\u0434\u043E \u043D\u0438\u043A\u0443\u0434\u0430 \u0438\u0434\u0442\u0438 \u2014 10 \u043C\u0438\u043D\u0443\u0442 \u0447\u0438\u0441\u0442\u043E\u0433\u043E \u043E\u0442\u0434\u044B\u0445\u0430!", "\u{1F60C} No walking between rooms today: 10 minutes of pure rest!"),
+    j("\u{1F440} Ko'zlaringizga dam bering: bir daqiqa derazadan uzoqqa qarang.", "\u{1F440} \u0414\u0430\u0439\u0442\u0435 \u0433\u043B\u0430\u0437\u0430\u043C \u043E\u0442\u0434\u043E\u0445\u043D\u0443\u0442\u044C: \u043C\u0438\u043D\u0443\u0442\u0443 \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435 \u0432\u0434\u0430\u043B\u044C \u0432 \u043E\u043A\u043D\u043E.", "\u{1F440} Rest your eyes: look out of the window into the distance for a minute.", { win: true }),
+    j("\u{1F91D} Yoningizdagi kursdosh bilan bir og'iz gaplashing \u2014 tanaffus shunga ham kerak.", "\u{1F91D} \u041F\u0435\u0440\u0435\u043A\u0438\u043D\u044C\u0442\u0435\u0441\u044C \u043F\u0430\u0440\u043E\u0439 \u0441\u043B\u043E\u0432 \u0441 \u0441\u043E\u0441\u0435\u0434\u043E\u043C \u2014 \u043F\u0435\u0440\u0435\u043C\u0435\u043D\u0430 \u0438 \u0434\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u0442\u043E\u0436\u0435.", "\u{1F91D} Have a quick chat with the person next to you. That's what breaks are for.")
+  ],
+  // ---- teachers, before a class
+  t_start: [
+    j("\u{1F393} Talabalar uyqusirab kirsa ham, sizning darsingizdan ilhom bilan chiqadi.", "\u{1F393} \u041F\u0443\u0441\u0442\u044C \u0441\u0442\u0443\u0434\u0435\u043D\u0442\u044B \u0437\u0430\u0445\u043E\u0434\u044F\u0442 \u0441\u043E\u043D\u043D\u044B\u043C\u0438 \u2014 \u0441 \u0432\u0430\u0448\u0435\u0439 \u043F\u0430\u0440\u044B \u043E\u043D\u0438 \u0432\u044B\u0439\u0434\u0443\u0442 \u0432\u0434\u043E\u0445\u043D\u043E\u0432\u043B\u0451\u043D\u043D\u044B\u043C\u0438.", "\u{1F393} Students may walk in sleepy, but they leave your class inspired."),
+    j(`\u{1F64C} "Savollar bormi?" degandagi jimlik \u2014 o'ylayotganlar borligini bildiradi.`, "\u{1F64C} \u0422\u0438\u0448\u0438\u043D\u0430 \u043F\u043E\u0441\u043B\u0435 \xAB\u0415\u0441\u0442\u044C \u0432\u043E\u043F\u0440\u043E\u0441\u044B?\xBB \u043E\u0437\u043D\u0430\u0447\u0430\u0435\u0442, \u0447\u0442\u043E \u043A\u0442\u043E-\u0442\u043E \u0437\u0430\u0434\u0443\u043C\u0430\u043B\u0441\u044F.", '\u{1F64C} The silence after "Any questions?" means someone is thinking.'),
+    j("\u2728 Kimdir aynan bugungi darsingizdan keyin kasbini tanlashi mumkin.", "\u2728 \u0412\u043E\u0437\u043C\u043E\u0436\u043D\u043E, \u043A\u0442\u043E-\u0442\u043E \u0432\u044B\u0431\u0435\u0440\u0435\u0442 \u043F\u0440\u043E\u0444\u0435\u0441\u0441\u0438\u044E \u0438\u043C\u0435\u043D\u043D\u043E \u043F\u043E\u0441\u043B\u0435 \u0432\u0430\u0448\u0435\u0439 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0435\u0439 \u043F\u0430\u0440\u044B.", "\u2728 Someone may choose their career because of today's class."),
+    j("\u2615 Birinchi para \u2014 kofe va ilhom vaqti. Auditoriya sizni kutmoqda!", "\u2615 \u041F\u0435\u0440\u0432\u0430\u044F \u043F\u0430\u0440\u0430 \u2014 \u0432\u0440\u0435\u043C\u044F \u043A\u043E\u0444\u0435 \u0438 \u0432\u0434\u043E\u0445\u043D\u043E\u0432\u0435\u043D\u0438\u044F. \u0410\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u0436\u0434\u0451\u0442 \u0432\u0430\u0441!", "\u2615 First class of the day: time for coffee and inspiration. Your audience awaits!"),
+    j("\u{1F4DA} Bitta yaxshi misol o'nta ta'rifdan kuchliroq.", "\u{1F4DA} \u041E\u0434\u0438\u043D \u0445\u043E\u0440\u043E\u0448\u0438\u0439 \u043F\u0440\u0438\u043C\u0435\u0440 \u0441\u0438\u043B\u044C\u043D\u0435\u0435 \u0434\u0435\u0441\u044F\u0442\u0438 \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0438\u0439.", "\u{1F4DA} One good example beats ten definitions."),
+    j("\u{1F3C1} Kunning oxirgi darsi \u2014 bugungi eng sabrli auditoriya sizniki.", "\u{1F3C1} \u041F\u043E\u0441\u043B\u0435\u0434\u043D\u044F\u044F \u043F\u0430\u0440\u0430 \u0434\u043D\u044F \u2014 \u0441\u0430\u043C\u0430\u044F \u0442\u0435\u0440\u043F\u0435\u043B\u0438\u0432\u0430\u044F \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u0430\u0448\u0430.", "\u{1F3C1} Last class of the day: today's most patient audience is all yours."),
+    j("\u{1F31F} Har bir darsingiz kimningdir kelajagiga qo'shilgan hissa.", "\u{1F31F} \u041A\u0430\u0436\u0434\u0430\u044F \u0432\u0430\u0448\u0430 \u043F\u0430\u0440\u0430 \u2014 \u0432\u043A\u043B\u0430\u0434 \u0432 \u0447\u044C\u0451-\u0442\u043E \u0431\u0443\u0434\u0443\u0449\u0435\u0435.", "\u{1F31F} Every class you teach is an investment in someone's future."),
+    j("\u2600\uFE0F Yaxshi kayfiyat yuqumli \u2014 auditoriyaga ham albatta yuqadi!", "\u2600\uFE0F \u0425\u043E\u0440\u043E\u0448\u0435\u0435 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435 \u0437\u0430\u0440\u0430\u0437\u043D\u043E \u2014 \u043E\u043D\u043E \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E \u043F\u0435\u0440\u0435\u0434\u0430\u0441\u0442\u0441\u044F \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438!", "\u2600\uFE0F A good mood is contagious, and your audience will catch it!"),
+    j(`\u{1F4A1} Bugun kimdir darsingizda "aha!" deydi. Bu siz tufayli bo'ladi.`, "\u{1F4A1} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043A\u0442\u043E-\u0442\u043E \u043D\u0430 \u0432\u0430\u0448\u0435\u0439 \u043F\u0430\u0440\u0435 \u0441\u043A\u0430\u0436\u0435\u0442 \xAB\u0430\u0433\u0430!\xBB. \u0418 \u044D\u0442\u043E \u0431\u043B\u0430\u0433\u043E\u0434\u0430\u0440\u044F \u0432\u0430\u043C.", '\u{1F4A1} Today someone in your class will go "aha!". That will be thanks to you.'),
+    j("\u{1F4DD} Doskadagi har bir yozuv kimningdir daftarida yashab qoladi.", "\u{1F4DD} \u041A\u0430\u0436\u0434\u0430\u044F \u0437\u0430\u043F\u0438\u0441\u044C \u043D\u0430 \u0434\u043E\u0441\u043A\u0435 \u043F\u0440\u043E\u0434\u043E\u043B\u0436\u0438\u0442 \u0436\u0438\u0442\u044C \u0432 \u0447\u044C\u0435\u0439-\u0442\u043E \u0442\u0435\u0442\u0440\u0430\u0434\u0438.", "\u{1F4DD} Everything you write on the board lives on in someone's notebook."),
+    j("\u{1F9ED} Bugun siz yo'l ko'rsatuvchisiz \u2014 auditoriya sizga ishonadi.", "\u{1F9ED} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u044B \u2014 \u043F\u0440\u043E\u0432\u043E\u0434\u043D\u0438\u043A, \u0438 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u0432\u0430\u043C \u0434\u043E\u0432\u0435\u0440\u044F\u0435\u0442.", "\u{1F9ED} Today you are the guide, and your audience trusts you."),
+    j("\u{1F331} Ekilgan bilim urug'i bir kun albatta unib chiqadi.", "\u{1F331} \u041F\u043E\u0441\u0435\u044F\u043D\u043D\u043E\u0435 \u0437\u0435\u0440\u043D\u043E \u0437\u043D\u0430\u043D\u0438\u0439 \u043E\u0431\u044F\u0437\u0430\u0442\u0435\u043B\u044C\u043D\u043E \u043E\u0434\u043D\u0430\u0436\u0434\u044B \u043F\u0440\u043E\u0440\u0430\u0441\u0442\u0451\u0442.", "\u{1F331} Every seed of knowledge you plant will sprout one day."),
+    j("\u{1F338} Bugungi darsingiz oson va maroqli o'tsin!", "\u{1F338} \u041F\u0443\u0441\u0442\u044C \u0441\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u044F\u044F \u043F\u0430\u0440\u0430 \u043F\u0440\u043E\u0439\u0434\u0451\u0442 \u043B\u0435\u0433\u043A\u043E \u0438 \u0441 \u0443\u0434\u043E\u0432\u043E\u043B\u044C\u0441\u0442\u0432\u0438\u0435\u043C!", "\u{1F338} May today's class be easy and enjoyable!"),
+    j("\u2728 Auditoriya diqqatli, savollar qiziqarli bo'lsin!", "\u2728 \u041F\u0443\u0441\u0442\u044C \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u0431\u0443\u0434\u0435\u0442 \u0432\u043D\u0438\u043C\u0430\u0442\u0435\u043B\u044C\u043D\u043E\u0439, \u0430 \u0432\u043E\u043F\u0440\u043E\u0441\u044B \u0438\u043D\u0442\u0435\u0440\u0435\u0441\u043D\u044B\u043C\u0438!", "\u2728 Wishing you an attentive audience and interesting questions!"),
+    j("\u{1F340} Darsingizga omad! Talabalar sizdan ko'p narsa o'rganadi.", "\u{1F340} \u0423\u0434\u0430\u0447\u043D\u043E\u0439 \u043F\u0430\u0440\u044B! \u0421\u0442\u0443\u0434\u0435\u043D\u0442\u044B \u043C\u043D\u043E\u0433\u043E\u043C\u0443 \u0443 \u0432\u0430\u0441 \u043D\u0430\u0443\u0447\u0430\u0442\u0441\u044F.", "\u{1F340} Good luck with your class! Your students will learn a lot from you."),
+    j("\u2600\uFE0F Yaxshi kayfiyat bilan boshlangan dars yaxshi xotira bo'lib qoladi. Omad!", "\u2600\uFE0F \u041F\u0430\u0440\u0430, \u043D\u0430\u0447\u0430\u0442\u0430\u044F \u0441 \u0445\u043E\u0440\u043E\u0448\u0438\u043C \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u0435\u043C, \u0441\u0442\u0430\u043D\u043E\u0432\u0438\u0442\u0441\u044F \u0445\u043E\u0440\u043E\u0448\u0438\u043C \u0432\u043E\u0441\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435\u043C. \u0423\u0434\u0430\u0447\u0438!", "\u2600\uFE0F A class that starts in a good mood becomes a good memory. Good luck!")
+  ],
+  t_fri: [j("\u{1F389} Juma darsi \u2014 hafta yakuniga chiroyli nuqta.", "\u{1F389} \u041F\u044F\u0442\u043D\u0438\u0447\u043D\u0430\u044F \u043F\u0430\u0440\u0430 \u2014 \u043A\u0440\u0430\u0441\u0438\u0432\u0430\u044F \u0442\u043E\u0447\u043A\u0430 \u0432 \u043A\u043E\u043D\u0446\u0435 \u043D\u0435\u0434\u0435\u043B\u0438.", "\u{1F389} A Friday class is a lovely full stop to the week.")],
+  t_sat: [j("\u{1F4AA} Shanba kuni dars berish \u2014 alohida fidoyilik. Rahmat sizga!", "\u{1F4AA} \u0412\u0435\u0441\u0442\u0438 \u043F\u0430\u0440\u044B \u0432 \u0441\u0443\u0431\u0431\u043E\u0442\u0443 \u2014 \u043E\u0441\u043E\u0431\u0430\u044F \u0441\u0430\u043C\u043E\u043E\u0442\u0434\u0430\u0447\u0430. \u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0432\u0430\u043C!", "\u{1F4AA} Teaching on a Saturday takes real dedication. Thank you!")],
+  // ---- end of the day
+  s_end: [
+    j("\u{1F389} Bugungi darslar tugadi! Miya rasman dam olish rejimiga o'tdi.", "\u{1F389} \u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C! \u041C\u043E\u0437\u0433 \u043E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u043E \u043F\u0435\u0440\u0435\u0448\u0451\u043B \u0432 \u0440\u0435\u0436\u0438\u043C \u043E\u0442\u0434\u044B\u0445\u0430.", "\u{1F389} That's it for today! Your brain is officially in rest mode."),
+    j("\u{1F3E0} Darslar tamom. Endi uy, choy va bir oz dam \u2014 bunga to'liq loyiqsiz!", "\u{1F3E0} \u041F\u0430\u0440\u044B \u043E\u043A\u043E\u043D\u0447\u0435\u043D\u044B. \u0422\u0435\u043F\u0435\u0440\u044C \u0434\u043E\u043C, \u0447\u0430\u0439 \u0438 \u043D\u0435\u043C\u043D\u043E\u0433\u043E \u043E\u0442\u0434\u044B\u0445\u0430 \u2014 \u0432\u044B \u044D\u0442\u043E \u0437\u0430\u0441\u043B\u0443\u0436\u0438\u043B\u0438!", "\u{1F3E0} Classes are over. Home, tea and a little rest: you've earned it!"),
+    j("\u{1F50B} Bugungi bilim zaryadi: 100%. Endi o'zingizni ham zaryadlang.", "\u{1F50B} \u0417\u0430\u0440\u044F\u0434 \u0437\u043D\u0430\u043D\u0438\u0439 \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F: 100%. \u0422\u0435\u043F\u0435\u0440\u044C \u043F\u043E\u0434\u0437\u0430\u0440\u044F\u0434\u0438\u0442\u0435\u0441\u044C \u0441\u0430\u043C\u0438.", "\u{1F50B} Today's knowledge charge: 100%. Now recharge yourself."),
+    j("\u{1F307} Kun yakunlandi \u2014 siz uni uddaladingiz. Ofarin!", "\u{1F307} \u0414\u0435\u043D\u044C \u0437\u0430\u0432\u0435\u0440\u0448\u0451\u043D \u2014 \u0432\u044B \u0441\u043F\u0440\u0430\u0432\u0438\u043B\u0438\u0441\u044C. \u041C\u043E\u043B\u043E\u0434\u0435\u0446!", "\u{1F307} The day is done and you nailed it. Well done!"),
+    j("\u{1F372} Darslar tugadi, endi eng muhim fan \u2014 mazali ovqat.", "\u{1F372} \u041F\u0430\u0440\u044B \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C, \u0442\u0435\u043F\u0435\u0440\u044C \u0433\u043B\u0430\u0432\u043D\u044B\u0439 \u043F\u0440\u0435\u0434\u043C\u0435\u0442 \u2014 \u0432\u043A\u0443\u0441\u043D\u0430\u044F \u0435\u0434\u0430.", "\u{1F372} Classes are over. Now for the most important subject: good food."),
+    j("\u{1F60C} Bugun ham bir qadam oldinga. Ertangi o'zingiz sizdan mamnun bo'ladi.", "\u{1F60C} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0435\u0449\u0451 \u043E\u0434\u0438\u043D \u0448\u0430\u0433 \u0432\u043F\u0435\u0440\u0451\u0434. \u0412\u044B \u0437\u0430\u0432\u0442\u0440\u0430\u0448\u043D\u0438\u0439 \u0431\u0443\u0434\u0435\u0442\u0435 \u0434\u043E\u0432\u043E\u043B\u044C\u043D\u044B.", "\u{1F60C} Another step forward today. Tomorrow's you will be grateful."),
+    j("\u{1F6CB} Divan sizni sabrsizlik bilan kutmoqda. Uni uzoq kuttirmang!", "\u{1F6CB} \u0414\u0438\u0432\u0430\u043D \u0436\u0434\u0451\u0442 \u0432\u0430\u0441 \u0441 \u043D\u0435\u0442\u0435\u0440\u043F\u0435\u043D\u0438\u0435\u043C. \u041D\u0435 \u0437\u0430\u0441\u0442\u0430\u0432\u043B\u044F\u0439\u0442\u0435 \u0435\u0433\u043E \u0436\u0434\u0430\u0442\u044C!", "\u{1F6CB} The sofa is waiting impatiently. Don't keep it waiting!"),
+    j("\u{1F319} Bugun erta yotsangiz, ertaga birinchi parada kofe kamroq kerak bo'ladi \u{1F642}", "\u{1F319} \u041B\u044F\u0436\u0435\u0442\u0435 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u043F\u043E\u0440\u0430\u043D\u044C\u0448\u0435 \u2014 \u0437\u0430\u0432\u0442\u0440\u0430 \u043D\u0430 \u043F\u0435\u0440\u0432\u043E\u0439 \u043F\u0430\u0440\u0435 \u043F\u043E\u043D\u0430\u0434\u043E\u0431\u0438\u0442\u0441\u044F \u043C\u0435\u043D\u044C\u0448\u0435 \u043A\u043E\u0444\u0435 \u{1F642}", "\u{1F319} Go to bed early tonight and you'll need less coffee in tomorrow's first class \u{1F642}"),
+    j("\u{1F3AE} Darsdan keyingi vaqt \u2014 sizniki. Sevimli ishingizga vaqt ajrating!", "\u{1F3AE} \u0412\u0440\u0435\u043C\u044F \u043F\u043E\u0441\u043B\u0435 \u043F\u0430\u0440 \u2014 \u0432\u0430\u0448\u0435. \u041D\u0430\u0439\u0434\u0438\u0442\u0435 \u0432\u0440\u0435\u043C\u044F \u0434\u043B\u044F \u043B\u044E\u0431\u0438\u043C\u043E\u0433\u043E \u0434\u0435\u043B\u0430!", "\u{1F3AE} The time after class is yours. Spend some on something you love!"),
+    j("\u{1F3A7} Uyga yo'lda sevimli musiqangizni qo'yib oling \u2014 kun yakuni shunday bo'lishi kerak.", "\u{1F3A7} \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u0435 \u043B\u044E\u0431\u0438\u043C\u0443\u044E \u043C\u0443\u0437\u044B\u043A\u0443 \u043F\u043E \u0434\u043E\u0440\u043E\u0433\u0435 \u0434\u043E\u043C\u043E\u0439 \u2014 \u0442\u0430\u043A \u0438 \u0434\u043E\u043B\u0436\u0435\u043D \u0437\u0430\u043A\u0430\u043D\u0447\u0438\u0432\u0430\u0442\u044C\u0441\u044F \u0434\u0435\u043D\u044C.", "\u{1F3A7} Put on your favourite music on the way home. That's how a day should end."),
+    j("\u{1F4AA} Kichik g'alabalar kattasini quradi. Bugungisi ham hisobga o'tdi!", "\u{1F4AA} \u041C\u0430\u043B\u0435\u043D\u044C\u043A\u0438\u0435 \u043F\u043E\u0431\u0435\u0434\u044B \u0441\u0442\u0440\u043E\u044F\u0442 \u0431\u043E\u043B\u044C\u0448\u0443\u044E. \u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u044F\u044F \u0437\u0430\u0441\u0447\u0438\u0442\u0430\u043D\u0430!", "\u{1F4AA} Small wins build big ones. Today's counts!")
+  ],
+  s_end_fri: [j("\u{1F389} Darslar ham, hafta ham tugadi! Maroqli dam oling!", "\u{1F389} \u0417\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C \u0438 \u043F\u0430\u0440\u044B, \u0438 \u043D\u0435\u0434\u0435\u043B\u044F! \u0425\u043E\u0440\u043E\u0448\u0438\u0445 \u0432\u044B\u0445\u043E\u0434\u043D\u044B\u0445!", "\u{1F389} Classes are done, and so is the week! Have a great weekend!")],
+  s_end_sat: [j("\u{1F3D6} Shanba darslari ham tugadi \u2014 endi haqiqiy dam olish!", "\u{1F3D6} \u0421\u0443\u0431\u0431\u043E\u0442\u043D\u0438\u0435 \u043F\u0430\u0440\u044B \u0442\u043E\u0436\u0435 \u043F\u043E\u0437\u0430\u0434\u0438 \u2014 \u0442\u0435\u043F\u0435\u0440\u044C \u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0438\u0439 \u043E\u0442\u0434\u044B\u0445!", "\u{1F3D6} Saturday classes are done too. Now for some real rest!")],
+  t_thanks: [
+    j("\u{1F64F} Bugungi darslaringiz uchun rahmat! Bilim ulashish \u2014 eng ezgu ish.", "\u{1F64F} \u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0438\u0435 \u043F\u0430\u0440\u044B! \u0414\u0435\u043B\u0438\u0442\u044C\u0441\u044F \u0437\u043D\u0430\u043D\u0438\u044F\u043C\u0438 \u2014 \u0441\u0430\u043C\u043E\u0435 \u0431\u043B\u0430\u0433\u043E\u0440\u043E\u0434\u043D\u043E\u0435 \u0434\u0435\u043B\u043E.", "\u{1F64F} Thank you for today's classes! Sharing knowledge is the noblest work there is."),
+    j("\u{1F490} Bugun ham talabalarga vaqtingiz va bilimingizni berdingiz. Katta rahmat!", "\u{1F490} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u044B \u0441\u043D\u043E\u0432\u0430 \u043F\u043E\u0434\u0430\u0440\u0438\u043B\u0438 \u0441\u0442\u0443\u0434\u0435\u043D\u0442\u0430\u043C \u0441\u0432\u043E\u0451 \u0432\u0440\u0435\u043C\u044F \u0438 \u0437\u043D\u0430\u043D\u0438\u044F. \u041E\u0433\u0440\u043E\u043C\u043D\u043E\u0435 \u0441\u043F\u0430\u0441\u0438\u0431\u043E!", "\u{1F490} Today you gave your students your time and knowledge again. Thank you so much!"),
+    j("\u{1F31F} Bugungi darslaringiz kimningdir kelajagiga poydevor bo'ldi. Rahmat sizga!", "\u{1F31F} \u0412\u0430\u0448\u0438 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0438\u0435 \u043F\u0430\u0440\u044B \u0441\u0442\u0430\u043B\u0438 \u0444\u0443\u043D\u0434\u0430\u043C\u0435\u043D\u0442\u043E\u043C \u0447\u044C\u0435\u0433\u043E-\u0442\u043E \u0431\u0443\u0434\u0443\u0449\u0435\u0433\u043E. \u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0432\u0430\u043C!", "\u{1F31F} Today's classes became the foundation of someone's future. Thank you!"),
+    j("\u{1F90D} Sabringiz va mehnatingiz uchun tashakkur. Yaxshi dam oling!", "\u{1F90D} \u0411\u043B\u0430\u0433\u043E\u0434\u0430\u0440\u0438\u043C \u0437\u0430 \u0432\u0430\u0448\u0435 \u0442\u0435\u0440\u043F\u0435\u043D\u0438\u0435 \u0438 \u0442\u0440\u0443\u0434. \u0425\u043E\u0440\u043E\u0448\u0435\u0433\u043E \u043E\u0442\u0434\u044B\u0445\u0430!", "\u{1F90D} Thank you for your patience and hard work. Have a good rest!"),
+    j("\u{1F64F} Sizdek ustozlar borligi talabalar uchun katta omad. Rahmat!", "\u{1F64F} \u0422\u0430\u043A\u0438\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u0438, \u043A\u0430\u043A \u0432\u044B, \u2014 \u0431\u043E\u043B\u044C\u0448\u0430\u044F \u0443\u0434\u0430\u0447\u0430 \u0434\u043B\u044F \u0441\u0442\u0443\u0434\u0435\u043D\u0442\u043E\u0432. \u0421\u043F\u0430\u0441\u0438\u0431\u043E!", "\u{1F64F} Teachers like you are a stroke of luck for students. Thank you!"),
+    j("\u{1F4DA} Bugun aytgan har bir so'zingiz bekorga ketmadi. Mehnatingiz uchun rahmat!", "\u{1F4DA} \u041A\u0430\u0436\u0434\u043E\u0435 \u0432\u0430\u0448\u0435 \u0441\u043B\u043E\u0432\u043E \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0431\u044B\u043B\u043E \u043D\u0435 \u0437\u0440\u044F. \u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0432\u0430\u0448 \u0442\u0440\u0443\u0434!", "\u{1F4DA} Not a single word you said today was wasted. Thank you for your work!"),
+    j("\u{1F337} Kun davomidagi mehnatingiz uchun minnatdormiz. Oilangiz bilan yaxshi hordiq chiqaring!", "\u{1F337} \u0411\u043B\u0430\u0433\u043E\u0434\u0430\u0440\u0438\u043C \u0437\u0430 \u0432\u0430\u0448 \u0442\u0440\u0443\u0434 \u0441\u0435\u0433\u043E\u0434\u043D\u044F. \u0425\u043E\u0440\u043E\u0448\u0435\u0433\u043E \u043E\u0442\u0434\u044B\u0445\u0430 \u0441 \u0441\u0435\u043C\u044C\u0451\u0439!", "\u{1F337} We are grateful for your work today. Enjoy a relaxing evening with your family!")
+  ],
+  t_thanks_fri: [j("\u{1F389} Butun haftadagi mehnatingiz uchun rahmat! Maroqli dam oling!", "\u{1F389} \u0421\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0432\u0430\u0448 \u0442\u0440\u0443\u0434 \u0432\u0441\u044E \u043D\u0435\u0434\u0435\u043B\u044E! \u041F\u0440\u0438\u044F\u0442\u043D\u044B\u0445 \u0432\u044B\u0445\u043E\u0434\u043D\u044B\u0445!", "\u{1F389} Thank you for all your work this week! Enjoy the weekend!")],
+  t_thanks_sat: [j("\u{1F490} Shanba kuni ham dars berganingiz uchun alohida rahmat!", "\u{1F490} \u041E\u0442\u0434\u0435\u043B\u044C\u043D\u043E\u0435 \u0441\u043F\u0430\u0441\u0438\u0431\u043E \u0437\u0430 \u0442\u043E, \u0447\u0442\u043E \u043F\u0440\u043E\u0432\u0435\u043B\u0438 \u043F\u0430\u0440\u044B \u0434\u0430\u0436\u0435 \u0432 \u0441\u0443\u0431\u0431\u043E\u0442\u0443!", "\u{1F490} A special thank you for teaching on a Saturday too!")],
+  t_wish: [
+    j("\u2615 Darslar tugadi \u2014 endi bir piyola choy va tinch oqshom sizga!", "\u2615 \u041F\u0430\u0440\u044B \u043E\u043A\u043E\u043D\u0447\u0435\u043D\u044B \u2014 \u0442\u0435\u043F\u0435\u0440\u044C \u0432\u0430\u043C \u0447\u0430\u0448\u043A\u0443 \u0447\u0430\u044F \u0438 \u0441\u043F\u043E\u043A\u043E\u0439\u043D\u044B\u0439 \u0432\u0435\u0447\u0435\u0440!", "\u2615 Classes are over. Wishing you a cup of tea and a quiet evening!"),
+    j("\u{1F319} Bugungi kun samarali o'tdi. Ertaga ham shunday ilhom tilaymiz!", "\u{1F319} \u0421\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u0438\u0439 \u0434\u0435\u043D\u044C \u043F\u0440\u043E\u0448\u0451\u043B \u043F\u0440\u043E\u0434\u0443\u043A\u0442\u0438\u0432\u043D\u043E. \u0416\u0435\u043B\u0430\u0435\u043C \u0442\u0430\u043A\u043E\u0433\u043E \u0436\u0435 \u0432\u0434\u043E\u0445\u043D\u043E\u0432\u0435\u043D\u0438\u044F \u0437\u0430\u0432\u0442\u0440\u0430!", "\u{1F319} Today was productive. Wishing you the same inspiration tomorrow!"),
+    j("\u{1F4AA} Sog'liq va kuch-quvvat tilaymiz \u2014 talabalaringizga siz kerak!", "\u{1F4AA} \u0416\u0435\u043B\u0430\u0435\u043C \u0437\u0434\u043E\u0440\u043E\u0432\u044C\u044F \u0438 \u0441\u0438\u043B \u2014 \u0432\u044B \u043D\u0443\u0436\u043D\u044B \u0441\u0432\u043E\u0438\u043C \u0441\u0442\u0443\u0434\u0435\u043D\u0442\u0430\u043C!", "\u{1F4AA} Wishing you health and energy. Your students need you!")
+  ]
+};
+var SUBJECT_JOKES = [
+  { re: /iqtisod|экономи/i, list: [
+    j("\u{1F4C8} Talab yuqori \u2014 sizning bilimingizga. Taklifni oshiramiz!", "\u{1F4C8} \u0421\u043F\u0440\u043E\u0441 \u0432\u044B\u0441\u043E\u043A\u0438\u0439 \u2014 \u043D\u0430 \u0432\u0430\u0448\u0438 \u0437\u043D\u0430\u043D\u0438\u044F. \u041D\u0430\u0440\u0430\u0449\u0438\u0432\u0430\u0435\u043C \u043F\u0440\u0435\u0434\u043B\u043E\u0436\u0435\u043D\u0438\u0435!", "\u{1F4C8} Demand is high, for your knowledge. Let's increase the supply!"),
+    j(`\u{1F4A1} Iqtisodchilar "boshqa narsalar teng bo'lganda" deyishni yaxshi ko'radi. Bugun hamma narsa sizning foydangizga!`, "\u{1F4A1} \u042D\u043A\u043E\u043D\u043E\u043C\u0438\u0441\u0442\u044B \u043B\u044E\u0431\u044F\u0442 \u0433\u043E\u0432\u043E\u0440\u0438\u0442\u044C \xAB\u043F\u0440\u0438 \u043F\u0440\u043E\u0447\u0438\u0445 \u0440\u0430\u0432\u043D\u044B\u0445\xBB. \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u0441\u0451 \u043F\u0440\u043E\u0447\u0435\u0435 \u2014 \u0432 \u0432\u0430\u0448\u0443 \u043F\u043E\u043B\u044C\u0437\u0443!", '\u{1F4A1} Economists love saying "all else being equal". Today, all else is in your favour!')
+  ] },
+  { re: /statist|статист/i, list: [
+    j("\u{1F4CA} Darsga kelganlarning 100% i nimadir o'rganadi. Namuna kichik, lekin ishonchli \u{1F642}", "\u{1F4CA} 100% \u043F\u0440\u0438\u0448\u0435\u0434\u0448\u0438\u0445 \u043D\u0430 \u043F\u0430\u0440\u0443 \u0447\u0435\u043C\u0443-\u0442\u043E \u043D\u0430\u0443\u0447\u0430\u0442\u0441\u044F. \u0412\u044B\u0431\u043E\u0440\u043A\u0430 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0430\u044F, \u043D\u043E \u043D\u0430\u0434\u0451\u0436\u043D\u0430\u044F \u{1F642}", "\u{1F4CA} 100% of people who come to class learn something. Small sample, but reliable \u{1F642}"),
+    j("\u{1F4C9} O'rtacha qiymat siz haqingizda emas. Siz o'rtachadan yuqorisiz!", "\u{1F4C9} \u0421\u0440\u0435\u0434\u043D\u0435\u0435 \u0437\u043D\u0430\u0447\u0435\u043D\u0438\u0435 \u2014 \u044D\u0442\u043E \u043D\u0435 \u043F\u0440\u043E \u0432\u0430\u0441. \u0412\u044B \u0432\u044B\u0448\u0435 \u0441\u0440\u0435\u0434\u043D\u0435\u0433\u043E!", "\u{1F4C9} The average isn't about you. You're above it!")
+  ] },
+  { re: /matemat|математ/i, list: [
+    j("\u2797 Javob topilmaguncha masala tugamaydi. Siz ham shundaysiz!", "\u2797 \u0417\u0430\u0434\u0430\u0447\u0430 \u043D\u0435 \u0437\u0430\u043A\u043E\u043D\u0447\u0435\u043D\u0430, \u043F\u043E\u043A\u0430 \u043D\u0435 \u043D\u0430\u0439\u0434\u0435\u043D \u043E\u0442\u0432\u0435\u0442. \u0412\u044B \u0442\u0430\u043A\u043E\u0439 \u0436\u0435!", "\u2797 A problem isn't finished until the answer is found. Neither are you!"),
+    j("\u221E Cheksizlikka intilish \u2014 sevimli mashg'ulot. Bugun yana bir qadam yaqinlashamiz.", "\u221E \u0421\u0442\u0440\u0435\u043C\u0438\u0442\u044C\u0441\u044F \u043A \u0431\u0435\u0441\u043A\u043E\u043D\u0435\u0447\u043D\u043E\u0441\u0442\u0438 \u2014 \u043B\u044E\u0431\u0438\u043C\u043E\u0435 \u0437\u0430\u043D\u044F\u0442\u0438\u0435. \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0441\u0442\u0430\u043D\u0435\u043C \u043D\u0430 \u0448\u0430\u0433 \u0431\u043B\u0438\u0436\u0435.", "\u221E Reaching for infinity is the favourite hobby here. One step closer today.")
+  ] },
+  { re: /buxgalter|бухгалтер|hisob|учёт|учет|audit|аудит/i, list: [
+    j("\u{1F9FE} Debet kredit bilan, siz esa bilim bilan teng bo'lasiz.", "\u{1F9FE} \u0414\u0435\u0431\u0435\u0442 \u0441\u0445\u043E\u0434\u0438\u0442\u0441\u044F \u0441 \u043A\u0440\u0435\u0434\u0438\u0442\u043E\u043C, \u0430 \u0432\u044B \u2014 \u0441\u043E \u0437\u043D\u0430\u043D\u0438\u044F\u043C\u0438.", "\u{1F9FE} Debit balances credit, and you balance knowledge."),
+    j("\u{1F4D2} Balans hamma joyda kerak: hisobda ham, hayotda ham.", "\u{1F4D2} \u0411\u0430\u043B\u0430\u043D\u0441 \u043D\u0443\u0436\u0435\u043D \u0432\u0435\u0437\u0434\u0435: \u0438 \u0432 \u0443\u0447\u0451\u0442\u0435, \u0438 \u0432 \u0436\u0438\u0437\u043D\u0438.", "\u{1F4D2} Balance matters everywhere: in the books and in life.")
+  ] },
+  { re: /moliya|финанс|bank|банк|kredit|кредит|investitsiya|инвест|sug'urta|sugʻurta|страхов/i, list: [
+    j("\u{1F4B0} Eng yaxshi investitsiya \u2014 o'zingizga qilinganidir. Foizi ham eng yuqori!", "\u{1F4B0} \u041B\u0443\u0447\u0448\u0430\u044F \u0438\u043D\u0432\u0435\u0441\u0442\u0438\u0446\u0438\u044F \u2014 \u0432 \u0441\u0435\u0431\u044F. \u0418 \u043F\u0440\u043E\u0446\u0435\u043D\u0442 \u0441\u0430\u043C\u044B\u0439 \u0432\u044B\u0441\u043E\u043A\u0438\u0439!", "\u{1F4B0} The best investment is in yourself. It pays the highest interest too!"),
+    j("\u{1F3E6} Bilim \u2014 inflyatsiyadan qo'rqmaydigan yagona aktiv.", "\u{1F3E6} \u0417\u043D\u0430\u043D\u0438\u044F \u2014 \u0435\u0434\u0438\u043D\u0441\u0442\u0432\u0435\u043D\u043D\u044B\u0439 \u0430\u043A\u0442\u0438\u0432, \u043A\u043E\u0442\u043E\u0440\u044B\u0439 \u043D\u0435 \u0431\u043E\u0438\u0442\u0441\u044F \u0438\u043D\u0444\u043B\u044F\u0446\u0438\u0438.", "\u{1F3E6} Knowledge is the only asset that isn't afraid of inflation."),
+    j("\u{1F6E1} Konspekt \u2014 imtihondan eng yaxshi sug'urta.", "\u{1F6E1} \u041A\u043E\u043D\u0441\u043F\u0435\u043A\u0442 \u2014 \u043B\u0443\u0447\u0448\u0430\u044F \u0441\u0442\u0440\u0430\u0445\u043E\u0432\u043A\u0430 \u043E\u0442 \u044D\u043A\u0437\u0430\u043C\u0435\u043D\u0430.", "\u{1F6E1} Good notes are the best insurance against exams.")
+  ] },
+  { re: /marketing|маркетинг|reklama|реклам/i, list: [
+    j(`\u{1F4E3} Bugungi darsni o'zingizga "sotib" ko'ring \u2014 reklamasi juda yaxshi!`, "\u{1F4E3} \u041F\u043E\u043F\u0440\u043E\u0431\u0443\u0439\u0442\u0435 \xAB\u043F\u0440\u043E\u0434\u0430\u0442\u044C\xBB \u0441\u0435\u0431\u0435 \u0441\u0435\u0433\u043E\u0434\u043D\u044F\u0448\u043D\u044E\u044E \u043F\u0430\u0440\u0443 \u2014 \u0443 \u043D\u0435\u0451 \u043E\u0442\u043B\u0438\u0447\u043D\u0430\u044F \u0440\u0435\u043A\u043B\u0430\u043C\u0430!", `\u{1F4E3} Try "selling" yourself today's class. It has great advertising!`),
+    j("\u{1F3AF} Maqsadli auditoriya aniq \u2014 bu siz!", "\u{1F3AF} \u0426\u0435\u043B\u0435\u0432\u0430\u044F \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u2014 \u044D\u0442\u043E \u0432\u044B!", "\u{1F3AF} Target audience identified: it's you!")
+  ] },
+  { re: /menejment|менеджмент|boshqaruv|управлен/i, list: [
+    j("\u{1F5C2} Vaqtni boshqarish birinchi qoida. Mana, 10 daqiqa oldin xabardorsiz!", "\u{1F5C2} \u0423\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C \u2014 \u043F\u0435\u0440\u0432\u043E\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u043E. \u0412\u043E\u0442, \u0432\u044B \u0432 \u043A\u0443\u0440\u0441\u0435 \u0437\u0430 10 \u043C\u0438\u043D\u0443\u0442!", "\u{1F5C2} Time management is rule number one. Look, you're already 10 minutes ahead!")
+  ] },
+  { re: /ingliz|english|английск/i, list: [
+    j("\u{1F1EC}\u{1F1E7} Today's plan: learn, smile, repeat!", "\u{1F1EC}\u{1F1E7} Today's plan: learn, smile, repeat!", "\u{1F1EC}\u{1F1E7} Today's plan: learn, smile, repeat!")
+  ] },
+  { re: /xorijiy til|chet til|иностран|tili|язык/i, list: [
+    j("\u{1F5E3} Yangi til \u2014 yangi dunyo. Bugun kamida bitta yangi so'z!", "\u{1F5E3} \u041D\u043E\u0432\u044B\u0439 \u044F\u0437\u044B\u043A \u2014 \u043D\u043E\u0432\u044B\u0439 \u043C\u0438\u0440. \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0445\u043E\u0442\u044F \u0431\u044B \u043E\u0434\u043D\u043E \u043D\u043E\u0432\u043E\u0435 \u0441\u043B\u043E\u0432\u043E!", "\u{1F5E3} A new language is a new world. At least one new word today!")
+  ] },
+  { re: /huquq|право|юрид/i, list: [
+    j("\u2696\uFE0F Kechikmaslik \u2014 eng oddiy qonun. Siz uni buzmaysiz!", "\u2696\uFE0F \u041D\u0435 \u043E\u043F\u0430\u0437\u0434\u044B\u0432\u0430\u0442\u044C \u2014 \u0441\u0430\u043C\u044B\u0439 \u043F\u0440\u043E\u0441\u0442\u043E\u0439 \u0437\u0430\u043A\u043E\u043D. \u0412\u044B \u0435\u0433\u043E \u043D\u0435 \u043D\u0430\u0440\u0443\u0448\u0438\u0442\u0435!", "\u2696\uFE0F Don't be late: the simplest law there is. You won't break it!")
+  ] },
+  { re: /informat|информат|axborot|информац|dastur|программ|raqamli|цифров/i, list: [
+    j('\u{1F4BB} Miyangizni "Ctrl+S" qilishni unutmang!', "\u{1F4BB} \u041D\u0435 \u0437\u0430\u0431\u0443\u0434\u044C\u0442\u0435 \u043D\u0430\u0436\u0430\u0442\u044C \xABCtrl+S\xBB \u0432 \u0441\u0432\u043E\u0435\u0439 \u0433\u043E\u043B\u043E\u0432\u0435!", `\u{1F4BB} Don't forget to hit "Ctrl+S" on your brain!`),
+    j("\u{1F5A5} Dasturda ham, darsda ham bitta qoida: avval tushun, keyin bajar.", "\u{1F5A5} \u0418 \u0432 \u043A\u043E\u0434\u0435, \u0438 \u043D\u0430 \u043F\u0430\u0440\u0435 \u043E\u0434\u043D\u043E \u043F\u0440\u0430\u0432\u0438\u043B\u043E: \u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u043F\u043E\u0439\u043C\u0438, \u043F\u043E\u0442\u043E\u043C \u0434\u0435\u043B\u0430\u0439.", "\u{1F5A5} In code and in class, one rule: understand first, then do.")
+  ] },
+  { re: /soliq|налог/i, list: [
+    j("\u{1F9FE} Bilimdan soliq olinmaydi \u2014 xohlagancha to'plang!", "\u{1F9FE} \u0417\u043D\u0430\u043D\u0438\u044F \u043D\u0430\u043B\u043E\u0433\u043E\u043C \u043D\u0435 \u043E\u0431\u043B\u0430\u0433\u0430\u044E\u0442\u0441\u044F \u2014 \u043A\u043E\u043F\u0438\u0442\u0435 \u0441\u043A\u043E\u043B\u044C\u043A\u043E \u0443\u0433\u043E\u0434\u043D\u043E!", "\u{1F9FE} Knowledge is tax-free. Collect as much as you like!")
+  ] },
+  { re: /jismoniy|физическ|sport|спорт/i, list: [
+    j("\u{1F3C3} Bugun miya emas, muskullar ishlaydi. Isinishni unutmang!", "\u{1F3C3} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0440\u0430\u0431\u043E\u0442\u0430\u044E\u0442 \u043D\u0435 \u043C\u043E\u0437\u0433\u0438, \u0430 \u043C\u044B\u0448\u0446\u044B. \u041D\u0435 \u0437\u0430\u0431\u0443\u0434\u044C\u0442\u0435 \u0440\u0430\u0437\u043C\u0438\u043D\u043A\u0443!", "\u{1F3C3} Today it's muscles, not brains, doing the work. Don't skip the warm-up!")
+  ] },
+  { re: /falsafa|философ/i, list: [
+    j(`\u{1F914} "Darsga boraymi?" \u2014 bu savolning javobi allaqachon ma'lum: ha!`, "\u{1F914} \xAB\u0418\u0434\u0442\u0438 \u043B\u0438 \u043D\u0430 \u043F\u0430\u0440\u0443?\xBB \u2014 \u043E\u0442\u0432\u0435\u0442 \u043D\u0430 \u044D\u0442\u043E\u0442 \u0432\u043E\u043F\u0440\u043E\u0441 \u0443\u0436\u0435 \u0438\u0437\u0432\u0435\u0441\u0442\u0435\u043D: \u0434\u0430!", '\u{1F914} "Should I go to class?" The answer to this question is already known: yes!')
+  ] },
+  { re: /tarix|истори/i, list: [
+    j("\u{1F4DC} Bugun siz ham tarixning bir qismisiz \u2014 darsga o'z vaqtida kelgan talaba sifatida!", "\u{1F4DC} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u0432\u044B \u0442\u043E\u0436\u0435 \u0447\u0430\u0441\u0442\u044C \u0438\u0441\u0442\u043E\u0440\u0438\u0438 \u2014 \u043A\u0430\u043A \u0441\u0442\u0443\u0434\u0435\u043D\u0442, \u043F\u0440\u0438\u0448\u0435\u0434\u0448\u0438\u0439 \u0432\u043E\u0432\u0440\u0435\u043C\u044F!", "\u{1F4DC} Today you're part of history too, as the student who arrived on time!")
+  ] },
+  { re: /logist|логист/i, list: [
+    j("\u{1F69A} Eng yaxshi marshrut \u2014 to'g'ri xonaga!", "\u{1F69A} \u041B\u0443\u0447\u0448\u0438\u0439 \u043C\u0430\u0440\u0448\u0440\u0443\u0442 \u2014 \u0432 \u043D\u0443\u0436\u043D\u0443\u044E \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044E!", "\u{1F69A} The best route: straight to the right room!")
+  ] },
+  { re: /turizm|туризм|mehmonxona|гостинич/i, list: [
+    j("\u2708\uFE0F Bilim olamiga sayohat boshlanmoqda. Pasport shart emas!", "\u2708\uFE0F \u041F\u0443\u0442\u0435\u0448\u0435\u0441\u0442\u0432\u0438\u0435 \u0432 \u043C\u0438\u0440 \u0437\u043D\u0430\u043D\u0438\u0439 \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0442\u0441\u044F. \u041F\u0430\u0441\u043F\u043E\u0440\u0442 \u043D\u0435 \u043D\u0443\u0436\u0435\u043D!", "\u2708\uFE0F Your journey into the world of knowledge begins. No passport required!")
+  ] }
+];
+
+// src/lessons.mjs
+var LR_BEFORE = 10;
+var W2 = {
+  uz: {
+    inMin: (m) => m <= 1 ? "\u23F0 Hozir dars boshlanadi" : `\u23F0 ${m} daqiqadan keyin dars`,
+    stay: "\u{1FA91} Shu xonada qolasiz",
+    intro: "\u{1F195} Endi har dars oldidan eslatib turaman. Bu xabar dars boshlangach o'zi o'chib ketadi.",
+    endS: "\u2705 Bugungi darslar tugadi!",
+    endT: "\u2705 Bugungi darslaringiz tugadi!",
+    off: "\u{1F515} Eslatmani o'chirish",
+    more: "\u{1F604} Yana bittasi",
+    back: "\u21A9\uFE0F Qayta yoqish",
+    offLr: "\u{1F515} Dars oldidan eslatmalar o'chirildi. Qayta yoqish: shu tugma yoki \u2699\uFE0F Sozlamalar.",
+    offDe: "\u{1F515} Kun yakuni xabarlari o'chirildi. Qayta yoqish: shu tugma yoki \u2699\uFE0F Sozlamalar.",
+    onLr: "\u{1F514} Dars oldidan eslatmalar yoqildi.",
+    onDe: "\u{1F514} Kun yakuni xabarlari yoqildi.",
+    setLr: (on) => `\u23F0 Dars oldidan eslatma: ${on ? "\u2705" : "\u274C"}`,
+    setDe: (on) => `\u{1F3E0} Kun yakuni xabari: ${on ? "\u2705" : "\u274C"}`
+  },
+  ru: {
+    inMin: (m) => m <= 1 ? "\u23F0 \u041F\u0430\u0440\u0430 \u043D\u0430\u0447\u0438\u043D\u0430\u0435\u0442\u0441\u044F" : `\u23F0 \u0427\u0435\u0440\u0435\u0437 ${m} \u043C\u0438\u043D. \u043F\u0430\u0440\u0430`,
+    stay: "\u{1FA91} \u041E\u0441\u0442\u0430\u0451\u0442\u0435\u0441\u044C \u0432 \u044D\u0442\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438",
+    intro: "\u{1F195} \u0422\u0435\u043F\u0435\u0440\u044C \u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u044E \u043F\u0435\u0440\u0435\u0434 \u043A\u0430\u0436\u0434\u043E\u0439 \u043F\u0430\u0440\u043E\u0439. \u042D\u0442\u043E \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0441\u0430\u043C\u043E \u0438\u0441\u0447\u0435\u0437\u043D\u0435\u0442 \u043F\u043E\u0441\u043B\u0435 \u043D\u0430\u0447\u0430\u043B\u0430 \u043F\u0430\u0440\u044B.",
+    endS: "\u2705 \u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C!",
+    endT: "\u2705 \u0412\u0430\u0448\u0438 \u043F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C!",
+    off: "\u{1F515} \u041E\u0442\u043A\u043B\u044E\u0447\u0438\u0442\u044C",
+    more: "\u{1F604} \u0415\u0449\u0451 \u043E\u0434\u043D\u0443",
+    back: "\u21A9\uFE0F \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0441\u043D\u043E\u0432\u0430",
+    offLr: "\u{1F515} \u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043F\u0435\u0440\u0435\u0434 \u043F\u0430\u0440\u0430\u043C\u0438 \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u044B. \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0441\u043D\u043E\u0432\u0430: \u044D\u0442\u0430 \u043A\u043D\u043E\u043F\u043A\u0430 \u0438\u043B\u0438 \u2699\uFE0F \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438.",
+    offDe: "\u{1F515} \u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F \u0432 \u043A\u043E\u043D\u0446\u0435 \u0434\u043D\u044F \u043E\u0442\u043A\u043B\u044E\u0447\u0435\u043D\u044B. \u0412\u043A\u043B\u044E\u0447\u0438\u0442\u044C \u0441\u043D\u043E\u0432\u0430: \u044D\u0442\u0430 \u043A\u043D\u043E\u043F\u043A\u0430 \u0438\u043B\u0438 \u2699\uFE0F \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438.",
+    onLr: "\u{1F514} \u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043F\u0435\u0440\u0435\u0434 \u043F\u0430\u0440\u0430\u043C\u0438 \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u044B.",
+    onDe: "\u{1F514} \u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u044F \u0432 \u043A\u043E\u043D\u0446\u0435 \u0434\u043D\u044F \u0432\u043A\u043B\u044E\u0447\u0435\u043D\u044B.",
+    setLr: (on) => `\u23F0 \u041D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435 \u043F\u0435\u0440\u0435\u0434 \u043F\u0430\u0440\u043E\u0439: ${on ? "\u2705" : "\u274C"}`,
+    setDe: (on) => `\u{1F3E0} \u0421\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435 \u0432 \u043A\u043E\u043D\u0446\u0435 \u0434\u043D\u044F: ${on ? "\u2705" : "\u274C"}`
+  },
+  en: {
+    inMin: (m) => m <= 1 ? "\u23F0 Class is starting" : `\u23F0 Class in ${m} minutes`,
+    stay: "\u{1FA91} You stay in this room",
+    intro: "\u{1F195} I now remind you before every class. This message disappears by itself once the class starts.",
+    endS: "\u2705 That's all your classes for today!",
+    endT: "\u2705 That's all your classes for today!",
+    off: "\u{1F515} Turn off",
+    more: "\u{1F604} Another one",
+    back: "\u21A9\uFE0F Turn back on",
+    offLr: "\u{1F515} Class reminders are off. Turn them back on with this button or in \u2699\uFE0F Settings.",
+    offDe: "\u{1F515} End-of-day messages are off. Turn them back on with this button or in \u2699\uFE0F Settings.",
+    onLr: "\u{1F514} Class reminders are on.",
+    onDe: "\u{1F514} End-of-day messages are on.",
+    setLr: (on) => `\u23F0 Class reminders: ${on ? "\u2705" : "\u274C"}`,
+    setDe: (on) => `\u{1F3E0} End-of-day message: ${on ? "\u2705" : "\u274C"}`
+  }
+};
+var lw = (lang) => W2[lang] || W2.uz;
+function jokeList(key) {
+  const m = /^sub(\d+)$/.exec(String(key));
+  if (m) return SUBJECT_JOKES[Number(m[1])]?.list || null;
+  return Object.hasOwn(JOKES, key) ? JOKES[key] : null;
+}
+var textOf = (entry, lang) => entry[LANGS.includes(lang) ? lang : "uz"] || entry.uz;
+var isTeacherKey = (key) => String(key).startsWith("t_");
+function nextJoke(key, current, lang) {
+  const list = jokeList(key);
+  if (!list?.length) return null;
+  const others = list.filter((e) => textOf(e, lang) !== current);
+  const pool = others.length ? others : list;
+  return textOf(pool[Math.floor(Math.random() * pool.length)], lang);
+}
+
 // worker/worker.mjs
 var PAGE = 36;
 var TPAGE = 16;
@@ -768,12 +1019,52 @@ var worker_default = {
   // a Cron Trigger for this Worker in the dashboard and set GITHUB_PAT + GITHUB_REPO to turn it
   // on; without them this quietly does nothing, so it's safe to leave unconfigured.
   async scheduled(event, env, ctx) {
-    await dispatchWorkflow(env);
+    const at = event?.scheduledTime || Date.now();
+    await Promise.all([
+      timetableTick(env, at).catch((e) => console.error("timetable tick", e?.message)),
+      lessonsTick(env, at).catch((e) => console.error("lessons tick", e?.message))
+    ]);
   }
 };
-async function dispatchWorkflow(env) {
+async function timetableTick(env, at) {
+  if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
+  const D = await db(env);
+  const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
+  if (at - last < 9 * 6e4) return;
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
+  await dispatchWorkflow(env);
+}
+async function lessonsTick(env, at) {
+  if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
+  const tn = tashkentNow(at);
+  if (weekday(tn) === 6) return;
+  const index = await getIndex(env).catch(() => null);
+  const periods = index?.periods || [];
+  if (!periods.length) return;
+  const toM = (t) => {
+    const [h, m] = String(t).split(":").map(Number);
+    return h * 60 + m;
+  };
+  const marks = /* @__PURE__ */ new Set();
+  for (const p of periods) {
+    const a = toM(p.start), b = toM(p.end);
+    marks.add(a - LR_BEFORE - 2);
+    marks.add(a + LR_BEFORE + 1);
+    marks.add(b + 1);
+    marks.add(b + 61);
+  }
+  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+  const dayKey = ymd(tn);
+  const D = await db(env);
+  const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_tick'").first())?.v || "null");
+  const from = st && st.day === dayKey ? Math.max(st.min, nowMin - 30) : nowMin - 1;
+  const due = [...marks].some((m) => m > from && m <= nowMin);
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_tick', ?)").bind(JSON.stringify({ day: dayKey, min: nowMin })).run();
+  if (due) await dispatchWorkflow(env, "lessons.yml");
+}
+async function dispatchWorkflow(env, file = "timetable.yml") {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return false;
-  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/timetable.yml/dispatches`, {
+  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${file}/dispatches`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${env.GITHUB_PAT}`,
@@ -864,9 +1155,9 @@ async function tg(env, method, body, token = env.BOT_TOKEN) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify(body)
   });
-  const j = await res.json().catch(() => ({ ok: false }));
-  if (!j.ok && !/message is not modified/.test(j.description || "")) console.warn(method, j.description);
-  return j;
+  const j2 = await res.json().catch(() => ({ ok: false }));
+  if (!j2.ok && !/message is not modified/.test(j2.description || "")) console.warn(method, j2.description);
+  return j2;
 }
 var atg = (env, method, body) => tg(env, method, body, env.ADMIN_BOT_TOKEN);
 var hasAdminBot = (env) => !!env.ADMIN_BOT_TOKEN;
@@ -897,8 +1188,8 @@ var subjectsAt = 0;
 async function loadSubjects(env) {
   if (Date.now() - subjectsAt < 36e5) return;
   try {
-    const j = await getData(env, "subjects.json", 3600);
-    if (j) setSubjects(j);
+    const j2 = await getData(env, "subjects.json", 3600);
+    if (j2) setSubjects(j2);
     subjectsAt = Date.now();
   } catch {
     subjectsAt = Date.now() - 33e5;
@@ -969,6 +1260,19 @@ async function db(env) {
         chat_id INTEGER NOT NULL,
         via TEXT NOT NULL DEFAULT 's',
         created_at INTEGER)`),
+      // lesson reminders / end-of-day messages: which chat got which one today (one per tag, so overlapping runs never
+      // send twice) and which messages are to be deleted when (they disappear after the class / after an hour)
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS lclaim (
+        tag TEXT NOT NULL,
+        chat_id INTEGER NOT NULL,
+        at INTEGER NOT NULL,
+        PRIMARY KEY (tag, chat_id))`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS eph (
+        chat_id INTEGER NOT NULL,
+        msg_id INTEGER NOT NULL,
+        del_at INTEGER NOT NULL,
+        PRIMARY KEY (chat_id, msg_id))`),
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_eph_del ON eph(del_at)"),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
         k TEXT PRIMARY KEY,
         v TEXT)`),
@@ -1000,6 +1304,9 @@ async function db(env) {
       const fcols = (await env.DB.prepare("PRAGMA table_info(feedback)").all()).results || [];
       if (!fcols.some((c) => c.name === "via")) await addColumn("ALTER TABLE feedback ADD COLUMN via TEXT");
     }
+    if (!cols.some((c) => c.name === "lr")) await addColumn("ALTER TABLE chats ADD COLUMN lr INTEGER NOT NULL DEFAULT 1", "UPDATE chats SET lr = 0 WHERE alerts = 0");
+    if (!cols.some((c) => c.name === "de")) await addColumn("ALTER TABLE chats ADD COLUMN de INTEGER NOT NULL DEFAULT 1", "UPDATE chats SET de = 0 WHERE alerts = 0");
+    if (!cols.some((c) => c.name === "lri")) await addColumn("ALTER TABLE chats ADD COLUMN lri INTEGER NOT NULL DEFAULT 0");
     if (!cols.some((c) => c.name === "kbv")) {
       await addColumn("ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0");
     }
@@ -1296,10 +1603,10 @@ async function onAdminApi(request, env) {
     fd.append("caption", "\u{1F4CE} E'lon rasmi saqlandi");
     fd.append("photo", new Blob([bin], { type: m[1] === "png" ? "image/png" : "image/jpeg" }), m[1] === "png" ? "e.png" : "e.jpg");
     const res = await fetch(`${tgBase(env)}/bot${env.BOT_TOKEN}/sendPhoto`, { method: "POST", body: fd });
-    const j = await res.json().catch(() => ({ ok: false }));
-    const sizes = j.result?.photo;
+    const j2 = await res.json().catch(() => ({ ok: false }));
+    const sizes = j2.result?.photo;
     const fileId = Array.isArray(sizes) && sizes.length ? sizes[sizes.length - 1].file_id : null;
-    if (!j.ok || !fileId) return jsonCors(env, { ok: false, error: "upload failed" }, 502);
+    if (!j2.ok || !fileId) return jsonCors(env, { ok: false, error: "upload failed" }, 502);
     return jsonCors(env, { ok: true, photo: fileId });
   }
   if (body.op === "test" || body.op === "send") {
@@ -1355,7 +1662,7 @@ async function onInternal(request, url, env) {
     const mode = url.searchParams.get("mode");
     const after = Number(url.searchParams.get("after") || "-9999999999999");
     const limit = Math.min(5e3, Number(url.searchParams.get("limit") || 2e3));
-    let filter = mode === "all" || mode === "everyone" ? "" : `AND ${mode === "weekly" ? "weekly" : "alerts"} = 1`;
+    let filter = mode === "all" || mode === "everyone" ? "" : mode === "lessons" ? "AND kind = 'private' AND (lr = 1 OR de = 1)" : `AND ${mode === "weekly" ? "weekly" : "alerts"} = 1`;
     const binds = [];
     if (mode === "tomorrow") {
       filter = "AND remind_at >= 0";
@@ -1370,7 +1677,7 @@ async function onInternal(request, url, env) {
       filter += ` AND (${col} IS NULL OR ${col} != ?)`;
       binds.push(day);
     }
-    const { results } = await D.prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE ${mode === "everyone" ? "(group_id IS NOT NULL OR kind = 'private')" : "group_id IS NOT NULL"} ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`).bind(...binds, after, limit).all();
+    const { results } = await D.prepare(`SELECT chat_id, kind, role, group_id, lang, lr, de, lri FROM chats WHERE ${mode === "everyone" ? "(group_id IS NOT NULL OR kind = 'private')" : "group_id IS NOT NULL"} ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`).bind(...binds, after, limit).all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
   }
   if ((url.pathname === "/internal/claim" || url.pathname === "/internal/unclaim") && request.method === "POST") {
@@ -1409,6 +1716,38 @@ async function onInternal(request, url, env) {
       body: await request.text()
     });
     return new Response(res.body, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } });
+  }
+  if (url.pathname === "/internal/lclaim" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => x && /^[LE]:\d{4}-\d\d-\d\d(:\d{1,4})?$/.test(String(x.tag)) && Number.isSafeInteger(x.chat_id)).slice(0, 1e3);
+    if (!items.length) return json({ claimed: [] });
+    const now = Date.now();
+    const res = await D.batch(items.map((x) => D.prepare("INSERT OR IGNORE INTO lclaim (tag, chat_id, at) VALUES (?, ?, ?) RETURNING tag, chat_id").bind(x.tag, x.chat_id, now)));
+    if (Math.random() < 0.05) await D.prepare("DELETE FROM lclaim WHERE at < ?").bind(now - 3 * 864e5).run();
+    return json({ claimed: res.flatMap((r) => r.results || []) });
+  }
+  if (url.pathname === "/internal/eph/add" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => Array.isArray(x) && x.length === 3 && x.every(Number.isSafeInteger)).slice(0, 1e3);
+    const intro = (Array.isArray(body?.intro) ? body.intro : []).filter(Number.isSafeInteger).slice(0, 1e3);
+    const stmts = items.map(([c, m, t]) => D.prepare("INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) VALUES (?, ?, ?)").bind(c, m, t));
+    for (let i = 0; i < intro.length; i += 80) {
+      const part = intro.slice(i, i + 80);
+      stmts.push(D.prepare(`UPDATE chats SET lri = 1 WHERE chat_id IN (${part.map(() => "?").join(",")})`).bind(...part));
+    }
+    if (stmts.length) await D.batch(stmts);
+    return json({ ok: true, added: items.length });
+  }
+  if (url.pathname === "/internal/eph/due") {
+    const now = Number(url.searchParams.get("now") || Date.now());
+    const { results } = await D.prepare("SELECT chat_id, msg_id FROM eph WHERE del_at <= ? ORDER BY del_at LIMIT 500").bind(now).all();
+    return json({ rows: results });
+  }
+  if (url.pathname === "/internal/eph/done" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => Array.isArray(x) && x.length === 2 && x.every(Number.isSafeInteger)).slice(0, 1e3);
+    if (items.length) await D.batch(items.map(([c, m]) => D.prepare("DELETE FROM eph WHERE chat_id = ? AND msg_id = ?").bind(c, m)));
+    return json({ ok: true });
   }
   if (url.pathname === "/internal/broadcast/next") {
     const now = Date.now();
@@ -2283,7 +2622,7 @@ async function showCourses(env, chatId, uid, lang, fi, messageId) {
   if (fac.courses.length === 1) return showGroups(env, chatId, uid, lang, fi, 0, 0, messageId);
   const kb = [];
   for (let i = 0; i < fac.courses.length; i += 2) {
-    kb.push(fac.courses.slice(i, i + 2).map((c, j) => ({ text: `\u{1F393} ${L.course(c.name)} \xB7 ${c.groups.length}`, callback_data: `c:${uid}:${fi}:${i + j}:0` })));
+    kb.push(fac.courses.slice(i, i + 2).map((c, j2) => ({ text: `\u{1F393} ${L.course(c.name)} \xB7 ${c.groups.length}`, callback_data: `c:${uid}:${fi}:${i + j2}:0` })));
   }
   kb.push([{ text: L.back, callback_data: `F:${uid}` }]);
   return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: `\u{1F3DB} <b>${esc(fac.name)}</b>
@@ -2323,7 +2662,7 @@ async function showGroups(env, chatId, uid, lang, fi, ci, page, messageId, di = 
   if (dirs && (dirs.length < 2 || dirs.length > 16)) dirs = null;
   if (dirs && di < 0 && page === 0) {
     const kb2 = [];
-    for (let i = 0; i < dirs.length; i += 3) kb2.push(dirs.slice(i, i + 3).map((d, j) => ({ text: `${d.key} \xB7 ${d.groups.length}`, callback_data: `d:${uid}:${fi}:${ci}:${i + j}:0` })));
+    for (let i = 0; i < dirs.length; i += 3) kb2.push(dirs.slice(i, i + 3).map((d, j2) => ({ text: `${d.key} \xB7 ${d.groups.length}`, callback_data: `d:${uid}:${fi}:${ci}:${i + j2}:0` })));
     kb2.push([{ text: L.back, callback_data: toCourses }]);
     return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text: `${head} \xB7 ${course.groups.length}
 ${L.chooseDirection}`, parse_mode: "HTML", reply_markup: { inline_keyboard: kb2 } });
@@ -2630,6 +2969,8 @@ async function showSettings(env, chatId, row, messageId) {
     ]
   };
   if (row.kind === "private") {
+    const LW = lw(row.lang);
+    kb.inline_keyboard.splice(2, 0, [{ text: LW.setLr(!!row.lr), callback_data: "s:lr" }], [{ text: LW.setDe(!!row.de), callback_data: "s:de" }]);
     kb.inline_keyboard.push([{ text: L.btnRole, callback_data: "s:role" }]);
     kb.inline_keyboard.push([{ text: L.btnFeedback, callback_data: "s:feedback" }]);
   }
@@ -2640,6 +2981,44 @@ async function showSettings(env, chatId, row, messageId) {
   }
   if (messageId) return tg(env, "editMessageText", { chat_id: chatId, message_id: messageId, text, parse_mode: "HTML", reply_markup: kb });
   return send(env, chatId, text, { reply_markup: kb });
+}
+async function onEphemeralButton(env, cb, row, parts) {
+  const msg = cb.message, chatId = msg.chat.id, lang = row?.lang || "uz";
+  if (msg.chat.type !== "private" || !row) return;
+  const LW = lw(lang);
+  const text = String(msg.text || "");
+  const keyOf = () => (msg.reply_markup?.inline_keyboard || []).flat().map((b) => /^jk:(\w+)$/.exec(b.callback_data || "")?.[1]).find(Boolean) || null;
+  if (parts[0] === "jk") {
+    const key = parts[1];
+    const list = jokeList(key);
+    if (!list || isTeacherKey(key) !== (row.role === "teacher")) return;
+    const paras = text.split("\n\n");
+    const i = paras.findIndex((p) => list.some((e) => textOf(e, lang) === p.trim()));
+    if (i < 0) return;
+    const next = nextJoke(key, paras[i].trim(), lang);
+    if (!next) return;
+    paras[i] = next;
+    return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: paras.join("\n\n"), reply_markup: msg.reply_markup });
+  }
+  const kind = parts[0], act = parts[1];
+  const offLine = kind === "lr" ? LW.offLr : LW.offDe, onLine = kind === "lr" ? LW.onLr : LW.onDe;
+  const base = text.split("\n\n").filter((p) => p !== offLine && p !== onLine).join("\n\n");
+  if (act === "off") {
+    await updateChat(env, chatId, { [kind]: 0 });
+    const key = keyOf();
+    return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: `${base}
+
+${offLine}`, reply_markup: { inline_keyboard: [[{ text: LW.back, callback_data: `${kind}:on${key ? ":" + key : ""}` }]] } });
+  }
+  if (act === "on") {
+    await updateChat(env, chatId, { [kind]: 1 });
+    const key = parts[2] && jokeList(parts[2]) ? parts[2] : null;
+    const row1 = [{ text: LW.off, callback_data: `${kind}:off` }];
+    if (key) row1.push({ text: LW.more, callback_data: `jk:${key}` });
+    return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: `${base}
+
+${onLine}`, reply_markup: { inline_keyboard: [row1] } });
+  }
 }
 var recentTaps = /* @__PURE__ */ new Map();
 function repeatedTap(chatId, messageId, data) {
@@ -2671,6 +3050,7 @@ async function onCallback(env, cb) {
   }
   tg(env, "answerCallbackQuery", { callback_query_id: cb.id });
   if ((kind === "g" || kind === "tp") && repeatedTap(chatId, msg.message_id, cb.data)) return;
+  if (kind === "lr" || kind === "de" || kind === "jk") return onEphemeralButton(env, cb, row, parts);
   if (kind === "adm") {
     if (isAdminChat(env, chatId)) await sendStats(env, chatId, msg.message_id);
     return;
@@ -2734,6 +3114,11 @@ async function onCallback(env, cb) {
   }
   if (kind === "s") {
     const what = parts[1];
+    if ((what === "lr" || what === "de") && chat.type === "private") {
+      const val = row[what] ? 0 : 1;
+      await updateChat(env, chatId, { [what]: val });
+      return showSettings(env, chatId, { ...row, [what]: val }, msg.message_id);
+    }
     if (what === "alerts" || what === "weekly") {
       const val = row[what] ? 0 : 1;
       await updateChat(env, chatId, { [what]: val });

@@ -215,3 +215,28 @@ answer with Reply), and the E'lon screen. Create it with @BotFather and add its 
 - With `ADMIN_BOT_TOKEN` set, the E'lon screen accepts only the admin bot's signed initData, so the student app never shows it.
 
 Tests: `tests/admin-bot.mjs` (run by `tests/run-bot-flow.sh` with a second Worker that has the admin bot configured).
+
+## Lesson reminders and the end-of-day message
+
+Every private chat (students and teachers) gets, unless switched off:
+
+- **⏰ a reminder ~10 minutes before each class**: subject and type, the teacher (for teachers: the group), the room, the time
+  and a short kind joke. When the next class is in the same room it says so, with a "you stay here" line (no window jokes in
+  lecture halls). A class that simply continues the previous one (same subject, teacher and room) gets no second reminder.
+  The message deletes itself 10 minutes after the class started.
+- **🏠 "today's classes are over"** right after the last class, with a cheerful line (teachers: mostly a thank-you). It is
+  silent and deletes itself after an hour.
+
+Under each: **🔕 Turn off** (with **↩️ Turn back on**) and **😄 Another one** (swaps the joke in place). Both can also be
+switched in ⚙️ Settings. The very first reminder carries a one-line intro. People who had switched the change alerts off do not
+get these switched on for them.
+
+Jokes live in `src/jokes.mjs` (uz / ru / en; teacher lines are the `t_` lists and never go to students, nor the other way round).
+They are picked at random from the lists that fit the moment (morning, lecture, lab, last class, Friday, a subject…).
+
+How it runs: the Worker's Cron Trigger wakes the small `lessons.yml` workflow at the minutes something is due (12 minutes before
+each class, after each class, and when messages expire); `scripts/notify.mjs lessons` claims each message in the database before
+sending, so overlapping runs never send twice. **Set the Worker's Cron Trigger to every minute (`* * * * *`)** for on-time
+reminders; the main Timetable workflow is still woken at most every ~10 minutes.
+
+Tests: `tests/lessons-unit.mjs`, `tests/lessons-flow.mjs`.

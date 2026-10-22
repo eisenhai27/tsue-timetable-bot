@@ -6,6 +6,7 @@
 //                                        and has not been served today. Safe to call every few minutes: before messaging a
 //                                        chat it CLAIMS it in the bot's database (one atomic UPDATE per chat per day), so
 //                                        even two runs overlapping in time can never send the same message twice.
+//   node scripts/notify.mjs lessons    → reminders before classes + the end-of-day message, and deletes the expired ones (lessons.yml)
 //   node scripts/notify.mjs broadcast  → sends the announcement queued from the Mini App's "E'lon" screen (also part of 'auto')
 //   node scripts/notify.mjs announce   → broadcasts env.ANNOUNCE_TEXT to every chat (admin only, via the "Run workflow"
 //                                        announce field) — also chats that never picked a group. Use "[uz] … [ru] … [en] …"
@@ -15,7 +16,8 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath, noTimetable, bcMessage } from '../src/shared.mjs';
+import { daySlots, continuesPrevious, staysInRoom, pickReminderJoke, pickDayEndJoke, fmtLessonReminder, fmtDayEnd, ephemeralKeyboard, jokeText, LR_BEFORE, LR_DELETE_AFTER_START, DE_DELETE_AFTER } from '../src/lessons.mjs';
+import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath, noTimetable, bcMessage, parseSubject } from '../src/shared.mjs';
 
 const { BOT_TOKEN, WORKER_URL, ADMIN_KEY } = process.env;
 const SITE_URL = (process.env.SITE_URL || '').replace(/\/+$/, '');
@@ -99,8 +101,11 @@ let sent = 0;
  * Returns true when the chat is settled (delivered, or gone for good) and false when it still needs a retry later.
  * Never throws on a network error: one dropped connection must not abort a long send half-way.
  */
-async function send(chatId, text, replyMarkup, photo, copy) {
+let lastMessageId = null; // message id of the last successful send (lesson reminders are deleted later by it)
+async function send(chatId, text, replyMarkup, photo, copy, opts = {}) {
+  lastMessageId = null;
   if (DRY) {
+    lastMessageId = 1;
     console.log(`\n--- to ${chatId} ---\n${copy ? `[copy of message ${copy.message_id}]` : photo ? '[photo] ' + photo.photo + '\n' + photo.caption : text}`);
     sent++;
     return true;
@@ -114,7 +119,7 @@ async function send(chatId, text, replyMarkup, photo, copy) {
         ? await tg('copyMessage', { chat_id: chatId, from_chat_id: copy.from_chat_id, message_id: copy.message_id, reply_markup: replyMarkup })
         : photo
         ? await tg('sendPhoto', { chat_id: chatId, photo: photo.photo, caption: photo.caption, parse_mode: 'HTML', reply_markup: replyMarkup })
-        : await tg('sendMessage', { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: replyMarkup });
+        : await tg('sendMessage', { chat_id: chatId, text, ...(opts.plain ? {} : { parse_mode: 'HTML' }), disable_web_page_preview: true, disable_notification: !!opts.silent, reply_markup: replyMarkup });
     } catch (e) {
       console.warn(`send ${chatId}: ${e.cause?.code || e.message} — retry ${attempt + 1}/5`);
       await sleep(2000 * (attempt + 1));
@@ -122,7 +127,7 @@ async function send(chatId, text, replyMarkup, photo, copy) {
     }
     // picture couldn't be fetched → fall back to the text version once
     if (!r.ok && photo && r.error_code === 400 && /photo|file|url|image/i.test(r.description || '')) { photo = null; attempt--; continue; }
-    if (r.ok) { sent++; await sleep(40); return true; }
+    if (r.ok) { sent++; lastMessageId = r.result?.message_id ?? null; await sleep(40); return true; }
     const code = r.error_code;
     const desc = r.description || '';
     if (code === 429) { await sleep(((r.parameters?.retry_after || 3) + 1) * 1000); continue; }
@@ -342,6 +347,84 @@ async function sendQueuedBroadcast() {
   return true;
 }
 
+/**
+ * Lesson reminders + end-of-day messages (lessons.yml, woken by the Worker at the right minutes). Each run:
+ *  1. deletes the messages whose time is up (a reminder 10 min after its class started, the end-of-day message after an hour);
+ *  2. sends every reminder due now — a class starting in 2…14 minutes — to private chats that have them on (chats.lr), and the
+ *     end-of-day message to chats whose last class ended up to 45 minutes ago (chats.de). Each is CLAIMED first ("L:<day>:<start>",
+ *     "E:<day>"), so overlapping or repeated runs never send one twice.
+ * A class that simply continues the previous one (same subject, teacher and room, right after it) gets no second reminder.
+ */
+async function sendLessons(index) {
+  const realNow = process.env.FAKE_NOW ? Number(process.env.FAKE_NOW) : Date.now();
+  // 1. deletions
+  let deleted = 0;
+  for (let round = 0; round < 20; round++) {
+    const { rows } = await worker(`/internal/eph/due?now=${realNow + 60e3}`);
+    if (!rows.length) break;
+    const done = [];
+    for (const r of rows) {
+      if (!DRY) { try { await tg('deleteMessage', { chat_id: r.chat_id, message_id: r.msg_id }); } catch {} await sleep(35); }
+      done.push([r.chat_id, r.msg_id]); deleted++;
+    }
+    await worker('/internal/eph/done', { items: done });
+    if (rows.length < 500) break;
+  }
+  // 2. sends
+  const now = nowTk(realNow);
+  const wd = weekday(now);
+  if (wd === 6) { console.log(`lessons: Sunday — deleted ${deleted}`); return; }
+  const day = ymd(now);
+  const dayNum = Math.floor(now.getTime() / 864e5);
+  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - (now.getTime() - realNow); // Tashkent midnight, as a real time
+  const at = (min) => midnight + min * 60e3;
+  let reminders = 0, ends = 0;
+  for await (const page of subscriberPages('lessons')) {
+    const todo = [];
+    for (const sub of page) {
+      if (sub.kind !== 'private' || !sub.group_id) continue;
+      const g = await loadGroup(sub);
+      if (!g || noTimetable(g)) continue;
+      const slots = daySlots(g, index, now);
+      if (!slots.length) continue;
+      const teacher = sub.role === 'teacher';
+      slots.forEach((slot, i) => {
+        const prev = slots[i - 1];
+        if (!sub.lr || nowMin < slot.start - LR_BEFORE - 4 || nowMin > slot.start - 2 || continuesPrevious(prev, slot)) return;
+        const stay = staysInRoom(prev, slot);
+        const type = parseSubject(slot.lessons[0].s).type;
+        const joke = pickReminderJoke({ teacher, type, first: i === 0, last: i === slots.length - 1, start: slot.start, wd, stay, lecture: type === 'lecture', subject: slot.lessons[0].s, seed: sub.chat_id, day: dayNum });
+        todo.push({ sub, tag: `L:${day}:${slot.start}`, kind: 'lr', slot, stay, joke, delAt: at(slot.start + LR_DELETE_AFTER_START) });
+      });
+      const last = slots[slots.length - 1];
+      if (sub.de && nowMin >= last.end && nowMin <= last.end + 45) {
+        todo.push({ sub, tag: `E:${day}`, kind: 'de', joke: pickDayEndJoke({ teacher, wd, seed: sub.chat_id, day: dayNum }), delAt: at(last.end + DE_DELETE_AFTER) });
+      }
+    }
+    if (!todo.length) continue;
+    const claimed = DRY ? null : new Set((await worker('/internal/lclaim', { items: todo.map((x) => ({ tag: x.tag, chat_id: x.sub.chat_id })) })).claimed.map((c) => `${c.tag}|${c.chat_id}`));
+    const eph = [], intro = [];
+    for (const x of todo) {
+      if (claimed && !claimed.has(`${x.tag}|${x.sub.chat_id}`)) continue; // another run already sent this one
+      const lang = x.sub.lang, teacher = x.sub.role === 'teacher';
+      const jt = x.joke ? jokeText(x.joke.entry, lang) : '';
+      let text;
+      if (x.kind === 'lr') {
+        const first = !x.sub.lri && !intro.includes(x.sub.chat_id);
+        text = fmtLessonReminder(x.slot, lang, { teacher, stay: x.stay, minutes: Math.max(1, x.slot.start - nowMin), joke: jt, intro: first });
+        if (first) intro.push(x.sub.chat_id);
+      } else {
+        text = fmtDayEnd(lang, teacher, jt);
+      }
+      const ok = await send(x.sub.chat_id, text, ephemeralKeyboard(lang, x.kind, x.joke?.key || 's_any'), null, null, { plain: true, silent: x.kind === 'de' });
+      if (ok && lastMessageId) { eph.push([x.sub.chat_id, lastMessageId, x.delAt]); if (x.kind === 'lr') reminders++; else ends++; }
+    }
+    if (!DRY && (eph.length || intro.length)) await worker('/internal/eph/add', { items: eph, intro });
+  }
+  console.log(`lessons: ${reminders} reminders, ${ends} end-of-day messages, ${deleted} deleted`);
+}
+
 async function main() {
   const mode = process.argv[2];
   if (!BOT_TOKEN || !WORKER_URL || !ADMIN_KEY) throw new Error('BOT_TOKEN, WORKER_URL and ADMIN_KEY must be set');
@@ -375,12 +458,14 @@ async function main() {
       if (failedWeekly) console.log(`auto: weekly timetable — ${failedWeekly} chats to retry`);
     }
     await sendQueuedBroadcast(); // an announcement the admin queued in the Mini App (if any)
+  } else if (mode === 'lessons') {
+    await sendLessons(index);
   } else if (mode === 'broadcast') {
     await sendQueuedBroadcast();
   } else if (mode === 'announce') {
     await sendAnnounce();
   } else {
-    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow|auto|announce|broadcast');
+    throw new Error('Usage: node scripts/notify.mjs changes|weekly|tomorrow|auto|announce|broadcast|lessons');
   }
 
   if (!DRY && (removed.length || migrated.length)) {

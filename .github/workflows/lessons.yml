@@ -1,0 +1,35 @@
+name: Lessons
+
+# Reminders before every class and the "classes are over" message at the end of the day (scripts/notify.mjs lessons).
+# Woken by the Worker's Cron Trigger at the minutes something is due (see lessonsTick in worker/worker.mjs); kept apart from the
+# Timetable workflow so a long EduPage run never holds a reminder back. No dependencies to install: it starts in seconds.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lessons
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          ref: main
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+
+      - name: Send lesson reminders / end-of-day messages, delete expired ones
+        env:
+          BOT_TOKEN: ${{ secrets.BOT_TOKEN }}
+          ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
+          WORKER_URL: ${{ vars.WORKER_URL }}
+          SITE_URL: ${{ vars.SITE_URL }}
+        run: node scripts/notify.mjs lessons

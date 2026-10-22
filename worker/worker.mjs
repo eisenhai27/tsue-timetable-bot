@@ -23,6 +23,7 @@ import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
   fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX,
 } from '../src/shared.mjs';
+import { lw as lessonWords, nextJoke, jokeList, jokeText, isTeacherKey, LR_BEFORE } from '../src/lessons.mjs';
 
 const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
 const TPAGE = 16; // teachers per page in the picker
@@ -58,14 +59,56 @@ export default {
   // a Cron Trigger for this Worker in the dashboard and set GITHUB_PAT + GITHUB_REPO to turn it
   // on; without them this quietly does nothing, so it's safe to leave unconfigured.
   async scheduled(event, env, ctx) {
-    await dispatchWorkflow(env);
+    const at = event?.scheduledTime || Date.now();
+    await Promise.all([
+      timetableTick(env, at).catch((e) => console.error('timetable tick', e?.message)),
+      lessonsTick(env, at).catch((e) => console.error('lessons tick', e?.message)),
+    ]);
   },
 };
 
+/** The main workflow (EduPage check, evening reminders, announcements): at most every 9 minutes, however often the cron fires. */
+async function timetableTick(env, at) {
+  if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
+  const D = await db(env);
+  const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
+  if (at - last < 9 * 60e3) return;
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
+  await dispatchWorkflow(env);
+}
+
+/**
+ * The lesson reminders run as their own small workflow (lessons.yml), woken at the moments something is due — 12 minutes before
+ * each class (so it lands ~10 minutes before), right after each class ends (the end-of-day message) and when messages are due to
+ * disappear. Any cron frequency works: every moment passed since the previous tick (up to 30 min back) counts. Every minute is best.
+ */
+async function lessonsTick(env, at) {
+  if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
+  const tn = tashkentNow(at);
+  if (weekday(tn) === 6) return; // Sunday
+  const index = await getIndex(env).catch(() => null);
+  const periods = index?.periods || [];
+  if (!periods.length) return;
+  const toM = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
+  const marks = new Set();
+  for (const p of periods) {
+    const a = toM(p.start), b = toM(p.end);
+    marks.add(a - LR_BEFORE - 2); marks.add(a + LR_BEFORE + 1); marks.add(b + 1); marks.add(b + 61);
+  }
+  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+  const dayKey = ymd(tn);
+  const D = await db(env);
+  const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_tick'").first())?.v || 'null');
+  const from = st && st.day === dayKey ? Math.max(st.min, nowMin - 30) : nowMin - 1;
+  const due = [...marks].some((m) => m > from && m <= nowMin);
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_tick', ?)").bind(JSON.stringify({ day: dayKey, min: nowMin })).run();
+  if (due) await dispatchWorkflow(env, 'lessons.yml');
+}
+
 /** Wakes the GitHub Action (it then sends whatever is due: reminders, weekly posts, queued announcements). Quietly does nothing without GITHUB_PAT. */
-async function dispatchWorkflow(env) {
+async function dispatchWorkflow(env, file = 'timetable.yml') {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return false;
-  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/timetable.yml/dispatches`, {
+  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${file}/dispatches`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${env.GITHUB_PAT}`,
@@ -289,6 +332,19 @@ async function db(env) {
         chat_id INTEGER NOT NULL,
         via TEXT NOT NULL DEFAULT 's',
         created_at INTEGER)`),
+      // lesson reminders / end-of-day messages: which chat got which one today (one per tag, so overlapping runs never
+      // send twice) and which messages are to be deleted when (they disappear after the class / after an hour)
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS lclaim (
+        tag TEXT NOT NULL,
+        chat_id INTEGER NOT NULL,
+        at INTEGER NOT NULL,
+        PRIMARY KEY (tag, chat_id))`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS eph (
+        chat_id INTEGER NOT NULL,
+        msg_id INTEGER NOT NULL,
+        del_at INTEGER NOT NULL,
+        PRIMARY KEY (chat_id, msg_id))`),
+      env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_eph_del ON eph(del_at)'),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
         k TEXT PRIMARY KEY,
         v TEXT)`),
@@ -326,6 +382,11 @@ async function db(env) {
       const fcols = (await env.DB.prepare('PRAGMA table_info(feedback)').all()).results || [];
       if (!fcols.some((c) => c.name === 'via')) await addColumn('ALTER TABLE feedback ADD COLUMN via TEXT');
     }
+    // lr = reminder before every class, de = "classes are over" at the end of the day (both on for everyone — except people who
+    // had switched the change alerts off: they asked for fewer messages), lri = the first reminder (with its short intro) was sent
+    if (!cols.some((c) => c.name === 'lr')) await addColumn('ALTER TABLE chats ADD COLUMN lr INTEGER NOT NULL DEFAULT 1', 'UPDATE chats SET lr = 0 WHERE alerts = 0');
+    if (!cols.some((c) => c.name === 'de')) await addColumn('ALTER TABLE chats ADD COLUMN de INTEGER NOT NULL DEFAULT 1', 'UPDATE chats SET de = 0 WHERE alerts = 0');
+    if (!cols.some((c) => c.name === 'lri')) await addColumn('ALTER TABLE chats ADD COLUMN lri INTEGER NOT NULL DEFAULT 0');
     if (!cols.some((c) => c.name === 'kbv')) {
       // kbv = which reply keyboard this chat has been given (see KB_VERSION)
       await addColumn('ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0');
@@ -692,7 +753,7 @@ async function onInternal(request, url, env) {
     // 'all' = every chat with a group set, regardless of the alerts/weekly toggles (used for admin broadcasts)
     // 'everyone' = like 'all', plus the private chats that never picked a group (people who started the bot but could not find theirs)
     // 'tomorrow' = the daily reminder: chats whose own time (remind_at) lies in (from, to] — or everyone who has it on when no window is given
-    let filter = mode === 'all' || mode === 'everyone' ? '' : `AND ${mode === 'weekly' ? 'weekly' : 'alerts'} = 1`;
+    let filter = mode === 'all' || mode === 'everyone' ? '' : mode === 'lessons' ? "AND kind = 'private' AND (lr = 1 OR de = 1)" : `AND ${mode === 'weekly' ? 'weekly' : 'alerts'} = 1`;
     const binds = [];
     if (mode === 'tomorrow') {
       filter = 'AND remind_at >= 0';
@@ -709,7 +770,7 @@ async function onInternal(request, url, env) {
       binds.push(day);
     }
     const { results } = await D
-      .prepare(`SELECT chat_id, kind, role, group_id, lang FROM chats WHERE ${mode === 'everyone' ? "(group_id IS NOT NULL OR kind = 'private')" : 'group_id IS NOT NULL'} ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`)
+      .prepare(`SELECT chat_id, kind, role, group_id, lang, lr, de, lri FROM chats WHERE ${mode === 'everyone' ? "(group_id IS NOT NULL OR kind = 'private')" : 'group_id IS NOT NULL'} ${filter} AND chat_id > ? ORDER BY chat_id LIMIT ?`)
       .bind(...binds, after, limit)
       .all();
     return json({ rows: results, next: results.length === limit ? results[results.length - 1].chat_id : null });
@@ -757,6 +818,37 @@ async function onInternal(request, url, env) {
       body: await request.text(),
     });
     return new Response(res.body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
+  }
+  // ---- lesson reminders / end-of-day messages, for the Action (scripts/notify.mjs lessons)
+  if (url.pathname === '/internal/lclaim' && request.method === 'POST') {
+    // one atomic claim per (tag, chat): "L:<day>:<start>" = the reminder of one class, "E:<day>" = the end-of-day message
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => x && /^[LE]:\d{4}-\d\d-\d\d(:\d{1,4})?$/.test(String(x.tag)) && Number.isSafeInteger(x.chat_id)).slice(0, 1000);
+    if (!items.length) return json({ claimed: [] });
+    const now = Date.now();
+    const res = await D.batch(items.map((x) => D.prepare('INSERT OR IGNORE INTO lclaim (tag, chat_id, at) VALUES (?, ?, ?) RETURNING tag, chat_id').bind(x.tag, x.chat_id, now)));
+    if (Math.random() < 0.05) await D.prepare('DELETE FROM lclaim WHERE at < ?').bind(now - 3 * 864e5).run();
+    return json({ claimed: res.flatMap((r) => r.results || []) });
+  }
+  if (url.pathname === '/internal/eph/add' && request.method === 'POST') {
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => Array.isArray(x) && x.length === 3 && x.every(Number.isSafeInteger)).slice(0, 1000);
+    const intro = (Array.isArray(body?.intro) ? body.intro : []).filter(Number.isSafeInteger).slice(0, 1000);
+    const stmts = items.map(([c, m, t]) => D.prepare('INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) VALUES (?, ?, ?)').bind(c, m, t));
+    for (let i = 0; i < intro.length; i += 80) { const part = intro.slice(i, i + 80); stmts.push(D.prepare(`UPDATE chats SET lri = 1 WHERE chat_id IN (${part.map(() => '?').join(',')})`).bind(...part)); }
+    if (stmts.length) await D.batch(stmts);
+    return json({ ok: true, added: items.length });
+  }
+  if (url.pathname === '/internal/eph/due') {
+    const now = Number(url.searchParams.get('now') || Date.now());
+    const { results } = await D.prepare('SELECT chat_id, msg_id FROM eph WHERE del_at <= ? ORDER BY del_at LIMIT 500').bind(now).all();
+    return json({ rows: results });
+  }
+  if (url.pathname === '/internal/eph/done' && request.method === 'POST') {
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => Array.isArray(x) && x.length === 2 && x.every(Number.isSafeInteger)).slice(0, 1000);
+    if (items.length) await D.batch(items.map(([c, m]) => D.prepare('DELETE FROM eph WHERE chat_id = ? AND msg_id = ?').bind(c, m)));
+    return json({ ok: true });
   }
   // ---- queued announcements, for the Action (see onAdminApi)
   if (url.pathname === '/internal/broadcast/next') {
@@ -1957,6 +2049,8 @@ async function showSettings(env, chatId, row, messageId) {
     ],
   };
   if (row.kind === 'private') {
+    const LW = lessonWords(row.lang);
+    kb.inline_keyboard.splice(2, 0, [{ text: LW.setLr(!!row.lr), callback_data: 's:lr' }], [{ text: LW.setDe(!!row.de), callback_data: 's:de' }]);
     kb.inline_keyboard.push([{ text: L.btnRole, callback_data: 's:role' }]);
     kb.inline_keyboard.push([{ text: L.btnFeedback, callback_data: 's:feedback' }]);
   }
@@ -1967,6 +2061,45 @@ async function showSettings(env, chatId, row, messageId) {
   }
   if (messageId) return tg(env, 'editMessageText', { chat_id: chatId, message_id: messageId, text, parse_mode: 'HTML', reply_markup: kb });
   return send(env, chatId, text, { reply_markup: kb });
+}
+
+/**
+ * Buttons under a lesson reminder / end-of-day message: "🔕 Turn off" (kind lr|de), "↩️ Turn back on" (lr:on:<joke key>) and
+ * "😄 Another one" (jk:<joke key>), which swaps the joke paragraph in place. Plain-text messages, edited as they are.
+ */
+async function onEphemeralButton(env, cb, row, parts) {
+  const msg = cb.message, chatId = msg.chat.id, lang = row?.lang || 'uz';
+  if (msg.chat.type !== 'private' || !row) return;
+  const LW = lessonWords(lang);
+  const text = String(msg.text || '');
+  const keyOf = () => (msg.reply_markup?.inline_keyboard || []).flat().map((b) => /^jk:(\w+)$/.exec(b.callback_data || '')?.[1]).find(Boolean) || null;
+  if (parts[0] === 'jk') {
+    const key = parts[1];
+    const list = jokeList(key);
+    if (!list || isTeacherKey(key) !== (row.role === 'teacher')) return; // teacher lines only for teachers, student lines only for students
+    const paras = text.split('\n\n');
+    const i = paras.findIndex((p) => list.some((e) => jokeText(e, lang) === p.trim()));
+    if (i < 0) return;
+    const next = nextJoke(key, paras[i].trim(), lang);
+    if (!next) return;
+    paras[i] = next;
+    return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: paras.join('\n\n'), reply_markup: msg.reply_markup });
+  }
+  const kind = parts[0], act = parts[1];
+  const offLine = kind === 'lr' ? LW.offLr : LW.offDe, onLine = kind === 'lr' ? LW.onLr : LW.onDe;
+  const base = text.split('\n\n').filter((p) => p !== offLine && p !== onLine).join('\n\n');
+  if (act === 'off') {
+    await updateChat(env, chatId, { [kind]: 0 });
+    const key = keyOf();
+    return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: `${base}\n\n${offLine}`, reply_markup: { inline_keyboard: [[{ text: LW.back, callback_data: `${kind}:on${key ? ':' + key : ''}` }]] } });
+  }
+  if (act === 'on') {
+    await updateChat(env, chatId, { [kind]: 1 });
+    const key = parts[2] && jokeList(parts[2]) ? parts[2] : null;
+    const row1 = [{ text: LW.off, callback_data: `${kind}:off` }];
+    if (key) row1.push({ text: LW.more, callback_data: `jk:${key}` });
+    return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: `${base}\n\n${onLine}`, reply_markup: { inline_keyboard: [row1] } });
+  }
 }
 
 const recentTaps = new Map(); // "chat:message:data" → time of the last tap
@@ -2003,6 +2136,7 @@ async function onCallback(env, cb) {
   tg(env, 'answerCallbackQuery', { callback_query_id: cb.id }); // stop the loading spinner (no need to wait)
   // the same "choose" button tapped twice within a few seconds: the first tap already did everything (and sent the follow-up messages)
   if ((kind === 'g' || kind === 'tp') && repeatedTap(chatId, msg.message_id, cb.data)) return;
+  if (kind === 'lr' || kind === 'de' || kind === 'jk') return onEphemeralButton(env, cb, row, parts);
   if (kind === 'adm') {
     if (isAdminChat(env, chatId)) await sendStats(env, chatId, msg.message_id); // refresh — admin's own chat only
     return;
@@ -2059,6 +2193,11 @@ async function onCallback(env, cb) {
   }
   if (kind === 's') {
     const what = parts[1];
+    if ((what === 'lr' || what === 'de') && chat.type === 'private') {
+      const val = row[what] ? 0 : 1;
+      await updateChat(env, chatId, { [what]: val });
+      return showSettings(env, chatId, { ...row, [what]: val }, msg.message_id);
+    }
     if (what === 'alerts' || what === 'weekly') {
       const val = row[what] ? 0 : 1;
       await updateChat(env, chatId, { [what]: val });
