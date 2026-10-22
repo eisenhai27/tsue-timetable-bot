@@ -356,6 +356,13 @@ async function sendQueuedBroadcast() {
  * A class that simply continues the previous one (same subject, teacher and room, right after it) gets no second reminder.
  */
 async function sendLessons(index) {
+  // LESSON_AT = the planned minute (HH:MM, Tashkent) the Worker woke this run for: wait for it (the run is started a few minutes early)
+  const at0 = /^(\d\d):(\d\d)$/.exec(process.env.LESSON_AT || '');
+  if (at0 && !process.env.FAKE_NOW) {
+    const t = nowTk();
+    const wait = ((Number(at0[1]) * 60 + Number(at0[2])) * 60 - (t.getUTCHours() * 3600 + t.getUTCMinutes() * 60 + t.getUTCSeconds())) * 1000;
+    if (wait > 0 && wait < 40 * 60e3) { console.log(`lessons: waiting ${Math.round(wait / 1000)} s for ${process.env.LESSON_AT}`); await sleep(wait + 3000); }
+  }
   const realNow = process.env.FAKE_NOW ? Number(process.env.FAKE_NOW) : Date.now();
   // 1. deletions
   let deleted = 0;
@@ -417,7 +424,7 @@ async function sendLessons(index) {
       } else {
         text = fmtDayEnd(lang, teacher, jt);
       }
-      const ok = await send(x.sub.chat_id, text, ephemeralKeyboard(lang, x.kind, x.joke?.key || 's_any'), null, null, { plain: true, silent: x.kind === 'de' });
+      const ok = await send(x.sub.chat_id, text, ephemeralKeyboard(lang, x.kind, x.joke?.key || 's_any'), null, null, { silent: x.kind === 'de' });
       if (ok && lastMessageId) { eph.push([x.sub.chat_id, lastMessageId, x.delAt]); if (x.kind === 'lr') reminders++; else ends++; }
     }
     if (!DRY && (eph.length || intro.length)) await worker('/internal/eph/add', { items: eph, intro });

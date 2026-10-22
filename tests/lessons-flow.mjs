@@ -21,6 +21,21 @@ const run = (fakeMs) => new Promise((resolve) => {
   let o = ''; p.stdout.on('data', (d) => (o += d)); p.stderr.on('data', (d) => (o += d));
   p.on('close', (code) => resolve({ code, o }));
 });
+// what Telegram hands back for a message we sent as HTML: plain text + entities (bold / italic / blockquote… with UTF-16 offsets)
+function asTelegram(html) {
+  let text = '', ents = [];
+  const open = [];
+  const map = { b: 'bold', i: 'italic', u: 'underline', code: 'code', blockquote: 'blockquote', s: 'strikethrough' };
+  const re = /<(\/?)(b|i|u|code|blockquote|s)>|&lt;|&gt;|&amp;|[\s\S]/g;
+  let m;
+  while ((m = re.exec(html))) {
+    if (m[2]) {
+      if (!m[1]) open.push({ type: map[m[2]], offset: text.length });
+      else { const e = open.pop(); ents.push({ ...e, length: text.length - e.offset }); }
+    } else text += m[0] === '&lt;' ? '<' : m[0] === '&gt;' ? '>' : m[0] === '&amp;' ? '&' : m[0];
+  }
+  return { text, entities: ents };
+}
 const to = (l, id) => l.filter((c) => c.method === 'sendMessage' && c.data.chat_id === id);
 
 const index = JSON.parse(fs.readFileSync(new URL('../docs/data/index.json', import.meta.url)));
@@ -52,7 +67,7 @@ check('the run exits cleanly', r.code === 0, r.o.slice(-600));
 const m0 = to(l, 8801);
 check('the student gets ONE reminder: time, subject, room, a joke', m0.length === 1 && /12 daqiqadan keyin dars/.test(m0[0].data.text) && /📘 /.test(m0[0].data.text) && /🕘 /.test(m0[0].data.text), m0.map((c) => c.data.text));
 check('…the first one carries the short intro', /🆕/.test(m0[0]?.data.text || ''));
-check('…plain text (the buttons edit it), with sound', !m0[0]?.data.parse_mode && !m0[0]?.data.disable_notification);
+check('…HTML: the room in bold, the joke as a quote; with sound', m0[0]?.data.parse_mode === 'HTML' && /🚪 <b>/.test(m0[0].data.text) && /<blockquote>/.test(m0[0].data.text) && !m0[0].data.disable_notification);
 const kb0 = m0[0]?.data.reply_markup?.inline_keyboard?.flat() || [];
 check('…buttons: 🔕 turn off and 😄 another one', kb0.some((b) => b.callback_data === 'lr:off') && kb0.some((b) => /^jk:\w+$/.test(b.callback_data)), kb0);
 check('the chat that switched it off gets nothing', to(l, 8803).length === 0);
@@ -64,16 +79,17 @@ check('a second run a minute later sends nothing new (claimed)', to(await log(),
 // ---- the buttons
 const sent = m0[0];
 await reset();
-await post(cb(kb0.find((b) => /^jk:/.test(b.callback_data)).callback_data, S, SU, { message_id: sent.result.message_id, text: sent.data.text, reply_markup: sent.data.reply_markup }));
+const tgSent = asTelegram(sent.data.text);
+await post(cb(kb0.find((b) => /^jk:/.test(b.callback_data)).callback_data, S, SU, { message_id: sent.result.message_id, ...tgSent, reply_markup: sent.data.reply_markup }));
 l = await log();
 const ed = l.find((c) => c.method === 'editMessageText');
-const lastPara = (t) => t.split('\n\n').filter((p) => !p.startsWith('🆕')).pop();
-check('😄 another one → the joke changes in place, the rest stays', ed && ed.data.text !== sent.data.text && lastPara(ed.data.text) !== lastPara(sent.data.text) && ed.data.text.split('\n\n')[0] === sent.data.text.split('\n\n')[0] && /🆕/.test(ed.data.text), [sent.data.text, ed?.data.text]);
+const quote = (t) => /<blockquote>([\s\S]*?)<\/blockquote>/.exec(t)?.[1].replace(/<[^>]+>/g, '');
+check('😄 another one → a different joke, still a quote; everything else (bold room, intro) stays', ed && ed.data.parse_mode === 'HTML' && quote(ed.data.text) && quote(ed.data.text) !== quote(sent.data.text) && ed.data.text.replace(/<blockquote>[\s\S]*?<\/blockquote>/, '') === sent.data.text.replace(/<blockquote>[\s\S]*?<\/blockquote>/, ''), [sent.data.text, ed?.data.text]);
 await reset();
-await post(cb('lr:off', S, SU, { message_id: sent.result.message_id, text: sent.data.text, reply_markup: sent.data.reply_markup }));
+await post(cb('lr:off', S, SU, { message_id: sent.result.message_id, ...tgSent, reply_markup: sent.data.reply_markup }));
 l = await log();
 const off = l.find((c) => c.method === 'editMessageText');
-check('🔕 → reminders off, the message says so and offers ↩️ turn back on', off && /o'chirildi/.test(off.data.text) && /^lr:on:\w+$/.test(off.data.reply_markup.inline_keyboard[0][0].callback_data), off?.data);
+check('🔕 → reminders off, the message says so and offers ↩️ turn back on (formatting kept)', off && /o'chirildi/.test(off.data.text) && /🚪 <b>/.test(off.data.text) && /<blockquote>/.test(off.data.text) && /^lr:on:\w+$/.test(off.data.reply_markup.inline_keyboard[0][0].callback_data), off?.data);
 const s1 = slots[1];
 await reset(); await run(real(day, s1.start - 12));
 const l1 = await log();
@@ -81,10 +97,10 @@ check('…and the next class brings no reminder', to(l1, 8801).length === 0);
 // (this run is also past "10 minutes after the first class started")
 check('10 minutes after the class started, the reminder is deleted', l1.some((c) => c.method === 'deleteMessage' && c.data.chat_id === 8801 && c.data.message_id === sent.result.message_id), l1.filter((c) => c.method === 'deleteMessage'));
 await reset();
-await post(cb(off.data.reply_markup.inline_keyboard[0][0].callback_data, S, SU, { message_id: sent.result.message_id, text: off.data.text }));
+await post(cb(off.data.reply_markup.inline_keyboard[0][0].callback_data, S, SU, { message_id: sent.result.message_id, ...asTelegram(off.data.text) }));
 l = await log();
 const on = l.find((c) => c.method === 'editMessageText');
-check('↩️ → back on, with both buttons again', on && /yoqildi/.test(on.data.text) && !/o'chirildi/.test(on.data.text) && on.data.reply_markup.inline_keyboard[0].length === 2, on?.data);
+check('↩️ → back on, with both buttons again', on && /yoqildi/.test(on.data.text) && !/o'chirildi/.test(on.data.text) && /🚪 <b>/.test(on.data.text) && on.data.reply_markup.inline_keyboard[0].length === 2, on?.data);
 
 
 // ---- end of the day

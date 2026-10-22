@@ -3,6 +3,7 @@
 # and a fake Telegram (tests/mock-telegram.mjs). Needs the ports from .dev.vars: 1236 (site), 8790 (Telegram), 8787 (Worker).
 set -u
 node tests/lessons-unit.mjs | tail -1
+node --no-warnings tests/lessons-cron.mjs | tail -1
 cd "$(dirname "$0")/.."
 pkill -x workerd 2>/dev/null; pkill -f "[w]rangler dev" 2>/dev/null; pkill -f "[h]ttp.server 1236" 2>/dev/null; pkill -f "[m]ock-telegram" 2>/dev/null
 sleep 1
@@ -12,7 +13,7 @@ cleanup() { for p in "${PIDS[@]}"; do kill "$p" 2>/dev/null; done; pkill -x work
 trap cleanup EXIT
 python3 -m http.server 1236 --directory docs >/dev/null 2>&1 & PIDS+=($!)
 node tests/mock-telegram.mjs >/dev/null 2>&1 & PIDS+=($!)
-npx wrangler dev --port 8787 --ip 127.0.0.1 --var FLOOD_MAX:100000 >"${TMPDIR:-/tmp}/wrangler-test.log" 2>&1 & PIDS+=($!)
+npx wrangler dev --port 8787 --ip 127.0.0.1 --var FLOOD_MAX:100000 --var GITHUB_PAT:testpat --var GITHUB_REPO:me/repo --var GITHUB_API:http://localhost:8790 >"${TMPDIR:-/tmp}/wrangler-test.log" 2>&1 & PIDS+=($!)
 for i in $(seq 1 60); do curl -s localhost:8787/ >/dev/null && break; sleep 1; done
 node tests/bot-flow.mjs
 node tests/notify-dedupe.mjs

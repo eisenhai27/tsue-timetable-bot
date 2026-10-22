@@ -13,7 +13,7 @@ http.createServer((req, res) => {
     const multipart = /multipart\/form-data/.test(req.headers['content-type'] || '');
     // (a picture upload: only the chat id is of interest to the tests)
     const data = multipart ? { multipart: true, chat_id: Number(/name="chat_id"\r\n\r\n(-?\d+)/.exec(body)?.[1]), fields: [...body.matchAll(/name="(\w+)"/g)].map((m) => m[1]), caption: /name="caption"\r\n\r\n([^\r]*)/.exec(body)?.[1] } : body ? JSON.parse(body) : {};
-    const entry = { method, data, bot: (req.url.split('/')[1] || '').slice(3) }; // which bot's token made the call
+    const entry = { method, data, bot: (req.url.split('/')[1] || '').slice(3), url: req.url }; // which bot's token made the call
     log.push(entry);
     let result = true;
     if (method === 'sendMessage') result = { message_id: ++msgId, chat: { id: data.chat_id }, text: data.text };

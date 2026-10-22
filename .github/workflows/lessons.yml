@@ -1,22 +1,27 @@
 name: Lessons
 
 # Reminders before every class and the "classes are over" message at the end of the day (scripts/notify.mjs lessons).
-# Woken by the Worker's Cron Trigger at the minutes something is due (see lessonsTick in worker/worker.mjs); kept apart from the
+# Woken by the Worker for fixed moments of the school day (see lessonsTick in worker/worker.mjs / lessonRunPlan in src/lessons.mjs);
+# it waits for the planned minute (input `at`), runs once and stops. Kept apart from the
 # Timetable workflow so a long EduPage run never holds a reminder back. No dependencies to install: it starts in seconds.
 on:
   workflow_dispatch:
+    inputs:
+      at:
+        description: 'Planned minute (HH:MM, Tashkent) — the run waits for it; empty = run now'
+        type: string
+        default: ''
 
 permissions:
   contents: read
 
-concurrency:
-  group: lessons
-  cancel-in-progress: false
+# No concurrency group on purpose: a run waiting for its minute must not hold up (or, as a pending run, be cancelled by) the next
+# one. Two runs at once are harmless: every message is claimed in the database before it is sent.
 
 jobs:
   run:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 50
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
@@ -32,4 +37,5 @@ jobs:
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
           WORKER_URL: ${{ vars.WORKER_URL }}
           SITE_URL: ${{ vars.SITE_URL }}
+          LESSON_AT: ${{ inputs.at }}
         run: node scripts/notify.mjs lessons

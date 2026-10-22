@@ -2,7 +2,7 @@
 // end-of-day message ("today's classes are over", deleted after an hour). Text building and joke picking live here so the
 // GitHub Action (scripts/notify.mjs, which sends them) and the Worker (the buttons under them) share one copy.
 import { JOKES, SUBJECT_JOKES } from './jokes.mjs';
-import { LANGS, parseSubject, typeLabel, roomLabel, lessonsForDay, weekParity, weekday } from './shared.mjs';
+import { LANGS, esc, parseSubject, typeLabel, roomLabel, lessonsForDay, weekParity, weekday } from './shared.mjs';
 
 export const LR_BEFORE = 10; // minutes before a class
 export const LR_DELETE_AFTER_START = 10; // the reminder disappears this long after the class started
@@ -135,36 +135,119 @@ export function pickDayEndJoke(ctx, rand = Math.random) {
   return { key, entry: list[Math.floor(rand() * list.length)] };
 }
 
-/** Another joke from the same list for the "😄 Another one" button (never the one shown). */
+/**
+ * What "😄 Another one" picks from: the line's own list, widened by the general list of the SAME audience when it is short
+ * (Monday has one line) — a student list never widens into teacher lines, nor the other way round.
+ */
+export function jokePool(key) {
+  const list = jokeList(key) || [];
+  if (!list.length || list.length >= 4) return list;
+  const wider = isTeacherKey(key) ? (/^t_(thanks|wish)/.test(key) ? JOKES.t_thanks : JOKES.t_start) : (/^s_end/.test(key) ? JOKES.s_end : JOKES.s_any);
+  return [...list, ...wider.filter((e) => !list.includes(e))];
+}
+
+/** Another line for the "😄 Another one" button (never the one shown). */
 export function nextJoke(key, current, lang) {
-  const list = jokeList(key);
+  const list = jokePool(key);
   if (!list?.length) return null;
   const others = list.filter((e) => textOf(e, lang) !== current);
   const pool = others.length ? others : list;
   return textOf(pool[Math.floor(Math.random() * pool.length)], lang);
 }
 
-/** The reminder text (plain text: the buttons edit it in place). `minutes` = time left until the class. */
+/**
+ * The joke as a quote, in a different type style each time (italic, bold, bold italic, underlined, monospace…), so it stands
+ * apart from the class details. `rand` = a 0…1 random source.
+ */
+const JOKE_STYLES = [
+  (t) => `<blockquote><i>${t}</i></blockquote>`,
+  (t) => `<blockquote><b>${t}</b></blockquote>`,
+  (t) => `<blockquote><b><i>${t}</i></b></blockquote>`,
+  (t) => `<blockquote><u><i>${t}</i></u></blockquote>`,
+  (t) => `<blockquote><code>${t}</code></blockquote>`,
+  (t) => `<blockquote>${t}</blockquote>`,
+];
+export const jokeHtml = (text, rand = Math.random) => JOKE_STYLES[Math.floor(rand() * JOKE_STYLES.length)](esc(text));
+
+/** The reminder (HTML): class details with the room in bold, then the joke as a quote. `minutes` = time left until the class. */
 export function fmtLessonReminder(slot, lang, opts) {
   const w = lw(lang);
-  const lines = [w.inMin(opts.minutes)];
+  const lines = [esc(w.inMin(opts.minutes))];
   for (const l of slot.lessons) {
     const sub = parseSubject(l.s, lang);
-    lines.push('', `📘 ${sub.name}${sub.type ? ` · ${typeLabel(sub.type, lang).toLowerCase()}` : ''}${l.g ? ` (${l.g})` : ''}`);
-    const who = opts.teacher ? (l.gr ? `👥 ${l.gr}` : null) : (l.t ? `👨‍🏫 ${l.t}` : null);
+    lines.push('', `📘 ${esc(sub.name)}${sub.type ? ` · ${esc(typeLabel(sub.type, lang).toLowerCase())}` : ''}${l.g ? ` (${esc(l.g)})` : ''}`);
+    const who = opts.teacher ? (l.gr ? `👥 ${esc(l.gr)}` : null) : (l.t ? `👨‍🏫 ${esc(l.t)}` : null);
     if (who) lines.push(who);
-    if (l.r) lines.push(`🚪 ${roomLabel(l.r, lang)}${opts.stay ? ` · ${w.stay.replace(/^🪑 /, '')}` : ''}`);
+    if (l.r) lines.push(`🚪 <b>${esc(roomLabel(l.r, lang))}</b>${opts.stay ? ` · ${esc(w.stay.replace(/^🪑 /, ''))}` : ''}`);
   }
   lines.push(`🕘 ${hm(slot.start)}–${hm(slot.end)}`);
-  if (opts.joke) lines.push('', opts.joke);
-  if (opts.intro) lines.push('', w.intro);
+  if (opts.joke) lines.push('', jokeHtml(opts.joke, opts.rand));
+  if (opts.intro) lines.push('', esc(w.intro));
   return lines.join('\n');
 }
 
-export const fmtDayEnd = (lang, teacher, joke) => `${teacher ? lw(lang).endT : lw(lang).endS}\n\n${joke}`;
+export const fmtDayEnd = (lang, teacher, joke, rand) => `${esc(teacher ? lw(lang).endT : lw(lang).endS)}\n\n${jokeHtml(joke, rand)}`;
 
 /** Buttons under them: turn this kind off, or swap the joke. kind = 'lr' (reminder) | 'de' (end of day). */
 export const ephemeralKeyboard = (lang, kind, jokeKey) => ({
   inline_keyboard: [[{ text: lw(lang).off, callback_data: `${kind}:off` }, { text: lw(lang).more, callback_data: `jk:${jokeKey}` }]],
 });
+
+// ---- editing a sent message in place (the buttons): Telegram hands back plain text + entities; turn them into HTML again
+const ENT = {
+  bold: ['<b>', '</b>'], italic: ['<i>', '</i>'], underline: ['<u>', '</u>'], strikethrough: ['<s>', '</s>'], code: ['<code>', '</code>'],
+  blockquote: ['<blockquote>', '</blockquote>'], expandable_blockquote: ['<blockquote expandable>', '</blockquote>'], spoiler: ['<tg-spoiler>', '</tg-spoiler>'],
+};
+/** text + entities (UTF-16 offsets, as Telegram sends them) → HTML. Only the kinds this bot uses; others stay plain. */
+export function entitiesToHtml(text, entities = []) {
+  const list = (entities || []).filter((e) => ENT[e.type] && e.length > 0).sort((a, b) => a.offset - b.offset || b.length - a.length);
+  let out = '', k = 0;
+  const stack = [];
+  for (let i = 0; i <= text.length; i++) {
+    while (stack.length && stack[stack.length - 1].offset + stack[stack.length - 1].length <= i) out += ENT[stack.pop().type][1];
+    if (i === text.length) break;
+    while (k < list.length && list[k].offset === i) { out += ENT[list[k].type][0]; stack.push(list[k++]); }
+    out += esc(text[i]);
+  }
+  while (stack.length) out += ENT[stack.pop().type][1];
+  return out;
+}
+/** A message as paragraphs (split on blank lines): [{ text, html }], each keeping its own formatting. */
+export function paragraphs(text, entities = []) {
+  const out = [];
+  let from = 0;
+  const parts = String(text || '').split('\n\n');
+  for (const part of parts) {
+    const to = from + part.length;
+    const ents = (entities || []).filter((e) => e.offset < to && e.offset + e.length > from)
+      .map((e) => ({ ...e, offset: Math.max(e.offset, from) - from, length: Math.min(e.offset + e.length, to) - Math.max(e.offset, from) }));
+    out.push({ text: part, html: entitiesToHtml(part, ents) });
+    from = to + 2;
+  }
+  return out;
+}
+
+/**
+ * When the lessons workflow has to run, in minutes after midnight (Tashkent): shortly before each class (the reminder), 10 minutes
+ * after each class starts (its reminder disappears), right after each class ends (end-of-day messages; with 10-minute breaks this is
+ * also the next class's reminder) and an hour after the last class (the last end-of-day messages disappear). Moments less than
+ * 4 minutes apart are one run (the later one). Outside these moments nothing runs.
+ */
+export function lessonRunPlan(periods) {
+  const marks = [];
+  const ends = [];
+  for (const p of periods || []) {
+    const a = toMin(p.start), b = toMin(p.end);
+    marks.push(a - LR_BEFORE - 1, a + LR_DELETE_AFTER_START + 1, b + 1);
+    ends.push(b);
+  }
+  if (ends.length) marks.push(Math.max(...ends) + DE_DELETE_AFTER + 2);
+  const sorted = [...new Set(marks)].sort((x, y) => x - y);
+  const plan = [];
+  for (const m of sorted) {
+    if (plan.length && m - plan[plan.length - 1] < 4) plan[plan.length - 1] = m; // merge: keep the later moment
+    else plan.push(m);
+  }
+  return plan;
+}
 export { textOf as jokeText, hm as clock, toMin as clockToMin };

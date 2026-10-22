@@ -23,7 +23,7 @@ import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
   fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX,
 } from '../src/shared.mjs';
-import { lw as lessonWords, nextJoke, jokeList, jokeText, isTeacherKey, LR_BEFORE } from '../src/lessons.mjs';
+import { lw as lessonWords, nextJoke, jokeList, jokePool, jokeText, jokeHtml, isTeacherKey, paragraphs, lessonRunPlan, clock } from '../src/lessons.mjs';
 
 const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
 const TPAGE = 16; // teachers per page in the picker
@@ -78,37 +78,38 @@ async function timetableTick(env, at) {
 }
 
 /**
- * The lesson reminders run as their own small workflow (lessons.yml), woken at the moments something is due — 12 minutes before
- * each class (so it lands ~10 minutes before), right after each class ends (the end-of-day message) and when messages are due to
- * disappear. Any cron frequency works: every moment passed since the previous tick (up to 30 min back) counts. Every minute is best.
+ * The lesson reminders run as their own small workflow (lessons.yml), only at fixed moments of the school day (lessonRunPlan:
+ * before each class, 10 minutes after it starts, after it ends, ~19 a day). The cron keeps its usual pace: on each tick the Worker
+ * looks ahead to the next tick, and a moment that falls in between is handed to the workflow, which waits for that exact minute
+ * and runs once. Between those moments, at night and on Sundays nothing runs.
  */
 async function lessonsTick(env, at) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
   const tn = tashkentNow(at);
   if (weekday(tn) === 6) return; // Sunday
   const index = await getIndex(env).catch(() => null);
-  const periods = index?.periods || [];
-  if (!periods.length) return;
-  const toM = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + m; };
-  const marks = new Set();
-  for (const p of periods) {
-    const a = toM(p.start), b = toM(p.end);
-    marks.add(a - LR_BEFORE - 2); marks.add(a + LR_BEFORE + 1); marks.add(b + 1); marks.add(b + 61);
-  }
-  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+  const plan = lessonRunPlan(index?.periods || []);
+  if (!plan.length) return;
+  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes() + tn.getUTCSeconds() / 60;
   const dayKey = ymd(tn);
   const D = await db(env);
-  const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_tick'").first())?.v || 'null');
-  const from = st && st.day === dayKey ? Math.max(st.min, nowMin - 30) : nowMin - 1;
-  const due = [...marks].some((m) => m > from && m <= nowMin);
-  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_tick', ?)").bind(JSON.stringify({ day: dayKey, min: nowMin })).run();
-  if (due) await dispatchWorkflow(env, 'lessons.yml');
+  const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_plan'").first())?.v || 'null');
+  const state = st && st.day === dayKey ? st : { day: dayKey, done: [], gap: st?.gap || 10, last: null }; // (the cron's pace carries over to the next day)
+  if (state.last != null && nowMin > state.last) state.gap = Math.min(30, Math.max(1, nowMin - state.last)); // how often the cron fires
+  state.last = nowMin;
+  // every planned moment from now until the next tick (plus a minute of slack), not handed out yet today
+  const due = plan.filter((m) => m >= nowMin - 5 && m <= nowMin + state.gap + 1 && !state.done.includes(m)); // (a moment just missed still runs)
+  for (const m of due) {
+    if (await dispatchWorkflow(env, 'lessons.yml', { at: clock(m) })) state.done.push(m);
+  }
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_plan', ?)").bind(JSON.stringify(state)).run();
 }
 
-/** Wakes the GitHub Action (it then sends whatever is due: reminders, weekly posts, queued announcements). Quietly does nothing without GITHUB_PAT. */
-async function dispatchWorkflow(env, file = 'timetable.yml') {
+async function dispatchWorkflow(env, file = 'timetable.yml', inputs = null) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return false;
-  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${file}/dispatches`, {
+  // GITHUB_API exists only so the local tests can catch the dispatch; honoured for localhost alone (the PAT goes with it)
+  const api = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(String(env.GITHUB_API || '')) ? env.GITHUB_API : 'https://api.github.com';
+  const res = await fetch(`${api}/repos/${env.GITHUB_REPO}/actions/workflows/${file}/dispatches`, {
     method: 'POST',
     headers: {
       Authorization: `Bearer ${env.GITHUB_PAT}`,
@@ -116,7 +117,7 @@ async function dispatchWorkflow(env, file = 'timetable.yml') {
       'Content-Type': 'application/json',
       'User-Agent': 'tdiu-jadval-cron',
     },
-    body: JSON.stringify({ ref: 'main' }),
+    body: JSON.stringify(inputs ? { ref: 'main', inputs } : { ref: 'main' }),
   });
   if (!res.ok) console.error('GitHub dispatch failed:', res.status, await res.text().catch(() => ''));
   return res.ok;
@@ -2071,34 +2072,34 @@ async function onEphemeralButton(env, cb, row, parts) {
   const msg = cb.message, chatId = msg.chat.id, lang = row?.lang || 'uz';
   if (msg.chat.type !== 'private' || !row) return;
   const LW = lessonWords(lang);
-  const text = String(msg.text || '');
+  const paras = paragraphs(String(msg.text || ''), msg.entities || []); // the message as it is now, formatting kept
   const keyOf = () => (msg.reply_markup?.inline_keyboard || []).flat().map((b) => /^jk:(\w+)$/.exec(b.callback_data || '')?.[1]).find(Boolean) || null;
+  const edit = (html, reply_markup) => tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: html, parse_mode: 'HTML', reply_markup });
   if (parts[0] === 'jk') {
     const key = parts[1];
-    const list = jokeList(key);
-    if (!list || isTeacherKey(key) !== (row.role === 'teacher')) return; // teacher lines only for teachers, student lines only for students
-    const paras = text.split('\n\n');
-    const i = paras.findIndex((p) => list.some((e) => jokeText(e, lang) === p.trim()));
+    const list = jokePool(key);
+    if (!list.length || isTeacherKey(key) !== (row.role === 'teacher')) return; // teacher lines only for teachers, student lines only for students
+    const i = paras.findIndex((p) => list.some((e) => jokeText(e, lang) === p.text.trim()));
     if (i < 0) return;
-    const next = nextJoke(key, paras[i].trim(), lang);
+    const next = nextJoke(key, paras[i].text.trim(), lang);
     if (!next) return;
-    paras[i] = next;
-    return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: paras.join('\n\n'), reply_markup: msg.reply_markup });
+    paras[i] = { text: next, html: jokeHtml(next) }; // a new line in a new type style
+    return edit(paras.map((p) => p.html).join('\n\n'), msg.reply_markup);
   }
   const kind = parts[0], act = parts[1];
   const offLine = kind === 'lr' ? LW.offLr : LW.offDe, onLine = kind === 'lr' ? LW.onLr : LW.onDe;
-  const base = text.split('\n\n').filter((p) => p !== offLine && p !== onLine).join('\n\n');
+  const base = paras.filter((p) => p.text !== offLine && p.text !== onLine).map((p) => p.html).join('\n\n');
   if (act === 'off') {
     await updateChat(env, chatId, { [kind]: 0 });
     const key = keyOf();
-    return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: `${base}\n\n${offLine}`, reply_markup: { inline_keyboard: [[{ text: LW.back, callback_data: `${kind}:on${key ? ':' + key : ''}` }]] } });
+    return edit(`${base}\n\n${esc(offLine)}`, { inline_keyboard: [[{ text: LW.back, callback_data: `${kind}:on${key ? ':' + key : ''}` }]] });
   }
   if (act === 'on') {
     await updateChat(env, chatId, { [kind]: 1 });
     const key = parts[2] && jokeList(parts[2]) ? parts[2] : null;
     const row1 = [{ text: LW.off, callback_data: `${kind}:off` }];
     if (key) row1.push({ text: LW.more, callback_data: `jk:${key}` });
-    return tg(env, 'editMessageText', { chat_id: chatId, message_id: msg.message_id, text: `${base}\n\n${onLine}`, reply_markup: { inline_keyboard: [row1] } });
+    return edit(`${base}\n\n${esc(onLine)}`, { inline_keyboard: [row1] });
   }
 }
 

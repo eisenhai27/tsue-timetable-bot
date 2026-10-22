@@ -234,9 +234,14 @@ get these switched on for them.
 Jokes live in `src/jokes.mjs` (uz / ru / en; teacher lines are the `t_` lists and never go to students, nor the other way round).
 They are picked at random from the lists that fit the moment (morning, lecture, lab, last class, Friday, a subject…).
 
-How it runs: the Worker's Cron Trigger wakes the small `lessons.yml` workflow at the minutes something is due (12 minutes before
-each class, after each class, and when messages expire); `scripts/notify.mjs lessons` claims each message in the database before
-sending, so overlapping runs never send twice. **Set the Worker's Cron Trigger to every minute (`* * * * *`)** for on-time
-reminders; the main Timetable workflow is still woken at most every ~10 minutes.
+How it looks: the room is always in **bold**, and the joke sits in a quote in a different type style each time (italic, bold,
+underlined, monospace…), so it stands apart from the class details.
 
-Tests: `tests/lessons-unit.mjs`, `tests/lessons-flow.mjs`.
+How it runs: only at fixed moments of the school day (`lessonRunPlan` in `src/lessons.mjs`, ~19 on a school day: shortly before
+each class, 10 minutes after it starts, right after it ends, and an hour after the last class) — never every minute, nothing at
+night or on Sundays. The Worker's Cron Trigger keeps its usual pace (every 10–15 minutes is fine); on each tick it looks ahead to
+the next one and hands any planned moment in between to the small `lessons.yml` workflow, which waits for that exact minute, runs
+`scripts/notify.mjs lessons` once and stops. Every message is claimed in the database before it is sent, so two runs never send
+one twice.
+
+Tests: `tests/lessons-unit.mjs`, `tests/lessons-flow.mjs`, `tests/lessons-cron.mjs` (the cron ticks over whole days, in-process).

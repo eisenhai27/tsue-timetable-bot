@@ -924,6 +924,8 @@ var SUBJECT_JOKES = [
 
 // src/lessons.mjs
 var LR_BEFORE = 10;
+var LR_DELETE_AFTER_START = 10;
+var DE_DELETE_AFTER = 60;
 var W2 = {
   uz: {
     inMin: (m) => m <= 1 ? "\u23F0 Hozir dars boshlanadi" : `\u23F0 ${m} daqiqadan keyin dars`,
@@ -975,6 +977,11 @@ var W2 = {
   }
 };
 var lw = (lang) => W2[lang] || W2.uz;
+var toMin = (t) => {
+  const [h, m] = String(t).split(":").map(Number);
+  return h * 60 + m;
+};
+var hm = (m) => `${String(Math.floor(m / 60)).padStart(2, "0")}:${String(m % 60).padStart(2, "0")}`;
 function jokeList(key) {
   const m = /^sub(\d+)$/.exec(String(key));
   if (m) return SUBJECT_JOKES[Number(m[1])]?.list || null;
@@ -982,12 +989,82 @@ function jokeList(key) {
 }
 var textOf = (entry, lang) => entry[LANGS.includes(lang) ? lang : "uz"] || entry.uz;
 var isTeacherKey = (key) => String(key).startsWith("t_");
+function jokePool(key) {
+  const list = jokeList(key) || [];
+  if (!list.length || list.length >= 4) return list;
+  const wider = isTeacherKey(key) ? /^t_(thanks|wish)/.test(key) ? JOKES.t_thanks : JOKES.t_start : /^s_end/.test(key) ? JOKES.s_end : JOKES.s_any;
+  return [...list, ...wider.filter((e) => !list.includes(e))];
+}
 function nextJoke(key, current, lang) {
-  const list = jokeList(key);
+  const list = jokePool(key);
   if (!list?.length) return null;
   const others = list.filter((e) => textOf(e, lang) !== current);
   const pool = others.length ? others : list;
   return textOf(pool[Math.floor(Math.random() * pool.length)], lang);
+}
+var JOKE_STYLES = [
+  (t) => `<blockquote><i>${t}</i></blockquote>`,
+  (t) => `<blockquote><b>${t}</b></blockquote>`,
+  (t) => `<blockquote><b><i>${t}</i></b></blockquote>`,
+  (t) => `<blockquote><u><i>${t}</i></u></blockquote>`,
+  (t) => `<blockquote><code>${t}</code></blockquote>`,
+  (t) => `<blockquote>${t}</blockquote>`
+];
+var jokeHtml = (text, rand = Math.random) => JOKE_STYLES[Math.floor(rand() * JOKE_STYLES.length)](esc(text));
+var ENT = {
+  bold: ["<b>", "</b>"],
+  italic: ["<i>", "</i>"],
+  underline: ["<u>", "</u>"],
+  strikethrough: ["<s>", "</s>"],
+  code: ["<code>", "</code>"],
+  blockquote: ["<blockquote>", "</blockquote>"],
+  expandable_blockquote: ["<blockquote expandable>", "</blockquote>"],
+  spoiler: ["<tg-spoiler>", "</tg-spoiler>"]
+};
+function entitiesToHtml(text, entities = []) {
+  const list = (entities || []).filter((e) => ENT[e.type] && e.length > 0).sort((a, b) => a.offset - b.offset || b.length - a.length);
+  let out = "", k = 0;
+  const stack = [];
+  for (let i = 0; i <= text.length; i++) {
+    while (stack.length && stack[stack.length - 1].offset + stack[stack.length - 1].length <= i) out += ENT[stack.pop().type][1];
+    if (i === text.length) break;
+    while (k < list.length && list[k].offset === i) {
+      out += ENT[list[k].type][0];
+      stack.push(list[k++]);
+    }
+    out += esc(text[i]);
+  }
+  while (stack.length) out += ENT[stack.pop().type][1];
+  return out;
+}
+function paragraphs(text, entities = []) {
+  const out = [];
+  let from = 0;
+  const parts = String(text || "").split("\n\n");
+  for (const part of parts) {
+    const to = from + part.length;
+    const ents = (entities || []).filter((e) => e.offset < to && e.offset + e.length > from).map((e) => ({ ...e, offset: Math.max(e.offset, from) - from, length: Math.min(e.offset + e.length, to) - Math.max(e.offset, from) }));
+    out.push({ text: part, html: entitiesToHtml(part, ents) });
+    from = to + 2;
+  }
+  return out;
+}
+function lessonRunPlan(periods) {
+  const marks = [];
+  const ends = [];
+  for (const p of periods || []) {
+    const a = toMin(p.start), b = toMin(p.end);
+    marks.push(a - LR_BEFORE - 1, a + LR_DELETE_AFTER_START + 1, b + 1);
+    ends.push(b);
+  }
+  if (ends.length) marks.push(Math.max(...ends) + DE_DELETE_AFTER + 2);
+  const sorted = [...new Set(marks)].sort((x, y) => x - y);
+  const plan = [];
+  for (const m of sorted) {
+    if (plan.length && m - plan[plan.length - 1] < 4) plan[plan.length - 1] = m;
+    else plan.push(m);
+  }
+  return plan;
 }
 
 // worker/worker.mjs
@@ -1039,32 +1116,25 @@ async function lessonsTick(env, at) {
   const tn = tashkentNow(at);
   if (weekday(tn) === 6) return;
   const index = await getIndex(env).catch(() => null);
-  const periods = index?.periods || [];
-  if (!periods.length) return;
-  const toM = (t) => {
-    const [h, m] = String(t).split(":").map(Number);
-    return h * 60 + m;
-  };
-  const marks = /* @__PURE__ */ new Set();
-  for (const p of periods) {
-    const a = toM(p.start), b = toM(p.end);
-    marks.add(a - LR_BEFORE - 2);
-    marks.add(a + LR_BEFORE + 1);
-    marks.add(b + 1);
-    marks.add(b + 61);
-  }
-  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+  const plan = lessonRunPlan(index?.periods || []);
+  if (!plan.length) return;
+  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes() + tn.getUTCSeconds() / 60;
   const dayKey = ymd(tn);
   const D = await db(env);
-  const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_tick'").first())?.v || "null");
-  const from = st && st.day === dayKey ? Math.max(st.min, nowMin - 30) : nowMin - 1;
-  const due = [...marks].some((m) => m > from && m <= nowMin);
-  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_tick', ?)").bind(JSON.stringify({ day: dayKey, min: nowMin })).run();
-  if (due) await dispatchWorkflow(env, "lessons.yml");
+  const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_plan'").first())?.v || "null");
+  const state = st && st.day === dayKey ? st : { day: dayKey, done: [], gap: st?.gap || 10, last: null };
+  if (state.last != null && nowMin > state.last) state.gap = Math.min(30, Math.max(1, nowMin - state.last));
+  state.last = nowMin;
+  const due = plan.filter((m) => m >= nowMin - 5 && m <= nowMin + state.gap + 1 && !state.done.includes(m));
+  for (const m of due) {
+    if (await dispatchWorkflow(env, "lessons.yml", { at: hm(m) })) state.done.push(m);
+  }
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_plan', ?)").bind(JSON.stringify(state)).run();
 }
-async function dispatchWorkflow(env, file = "timetable.yml") {
+async function dispatchWorkflow(env, file = "timetable.yml", inputs = null) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return false;
-  const res = await fetch(`https://api.github.com/repos/${env.GITHUB_REPO}/actions/workflows/${file}/dispatches`, {
+  const api = /^http:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(String(env.GITHUB_API || "")) ? env.GITHUB_API : "https://api.github.com";
+  const res = await fetch(`${api}/repos/${env.GITHUB_REPO}/actions/workflows/${file}/dispatches`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${env.GITHUB_PAT}`,
@@ -1072,7 +1142,7 @@ async function dispatchWorkflow(env, file = "timetable.yml") {
       "Content-Type": "application/json",
       "User-Agent": "tdiu-jadval-cron"
     },
-    body: JSON.stringify({ ref: "main" })
+    body: JSON.stringify(inputs ? { ref: "main", inputs } : { ref: "main" })
   });
   if (!res.ok) console.error("GitHub dispatch failed:", res.status, await res.text().catch(() => ""));
   return res.ok;
@@ -2986,38 +3056,38 @@ async function onEphemeralButton(env, cb, row, parts) {
   const msg = cb.message, chatId = msg.chat.id, lang = row?.lang || "uz";
   if (msg.chat.type !== "private" || !row) return;
   const LW = lw(lang);
-  const text = String(msg.text || "");
+  const paras = paragraphs(String(msg.text || ""), msg.entities || []);
   const keyOf = () => (msg.reply_markup?.inline_keyboard || []).flat().map((b) => /^jk:(\w+)$/.exec(b.callback_data || "")?.[1]).find(Boolean) || null;
+  const edit = (html, reply_markup) => tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: html, parse_mode: "HTML", reply_markup });
   if (parts[0] === "jk") {
     const key = parts[1];
-    const list = jokeList(key);
-    if (!list || isTeacherKey(key) !== (row.role === "teacher")) return;
-    const paras = text.split("\n\n");
-    const i = paras.findIndex((p) => list.some((e) => textOf(e, lang) === p.trim()));
+    const list = jokePool(key);
+    if (!list.length || isTeacherKey(key) !== (row.role === "teacher")) return;
+    const i = paras.findIndex((p) => list.some((e) => textOf(e, lang) === p.text.trim()));
     if (i < 0) return;
-    const next = nextJoke(key, paras[i].trim(), lang);
+    const next = nextJoke(key, paras[i].text.trim(), lang);
     if (!next) return;
-    paras[i] = next;
-    return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: paras.join("\n\n"), reply_markup: msg.reply_markup });
+    paras[i] = { text: next, html: jokeHtml(next) };
+    return edit(paras.map((p) => p.html).join("\n\n"), msg.reply_markup);
   }
   const kind = parts[0], act = parts[1];
   const offLine = kind === "lr" ? LW.offLr : LW.offDe, onLine = kind === "lr" ? LW.onLr : LW.onDe;
-  const base = text.split("\n\n").filter((p) => p !== offLine && p !== onLine).join("\n\n");
+  const base = paras.filter((p) => p.text !== offLine && p.text !== onLine).map((p) => p.html).join("\n\n");
   if (act === "off") {
     await updateChat(env, chatId, { [kind]: 0 });
     const key = keyOf();
-    return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: `${base}
+    return edit(`${base}
 
-${offLine}`, reply_markup: { inline_keyboard: [[{ text: LW.back, callback_data: `${kind}:on${key ? ":" + key : ""}` }]] } });
+${esc(offLine)}`, { inline_keyboard: [[{ text: LW.back, callback_data: `${kind}:on${key ? ":" + key : ""}` }]] });
   }
   if (act === "on") {
     await updateChat(env, chatId, { [kind]: 1 });
     const key = parts[2] && jokeList(parts[2]) ? parts[2] : null;
     const row1 = [{ text: LW.off, callback_data: `${kind}:off` }];
     if (key) row1.push({ text: LW.more, callback_data: `jk:${key}` });
-    return tg(env, "editMessageText", { chat_id: chatId, message_id: msg.message_id, text: `${base}
+    return edit(`${base}
 
-${onLine}`, reply_markup: { inline_keyboard: [row1] } });
+${esc(onLine)}`, { inline_keyboard: [row1] });
   }
 }
 var recentTaps = /* @__PURE__ */ new Map();
