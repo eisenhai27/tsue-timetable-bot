@@ -398,14 +398,15 @@ async function sendLessons(index) {
       const teacher = sub.role === 'teacher';
       slots.forEach((slot, i) => {
         const prev = slots[i - 1];
-        if (!sub.lr || nowMin < slot.start - LR_BEFORE - 4 || nowMin > slot.start - 2 || continuesPrevious(prev, slot)) return;
+        // never early: from exactly LR_BEFORE minutes before the class (a late run still sends until 2 minutes before it)
+        if (!sub.lr || nowMin < slot.start - LR_BEFORE || nowMin > slot.start - 2 || continuesPrevious(prev, slot)) return;
         const stay = staysInRoom(prev, slot);
         const type = parseSubject(slot.lessons[0].s).type;
         const joke = pickReminderJoke({ teacher, type, first: i === 0, last: i === slots.length - 1, start: slot.start, wd, stay, lecture: type === 'lecture', subject: slot.lessons[0].s, seed: sub.chat_id, day: dayNum });
         todo.push({ sub, tag: `L:${day}:${slot.start}`, kind: 'lr', slot, stay, joke, delAt: at(slot.start + LR_DELETE_AFTER_START) });
       });
       const last = slots[slots.length - 1];
-      if (sub.de && nowMin >= last.end && nowMin <= last.end + 45) {
+      if (sub.de && nowMin >= last.end - 1 && nowMin <= last.end + 45) { // (from a minute before the bell: that run is the next class's reminder)
         todo.push({ sub, tag: `E:${day}`, kind: 'de', joke: pickDayEndJoke({ teacher, wd, seed: sub.chat_id, day: dayNum }), delAt: at(last.end + DE_DELETE_AFTER) });
       }
     }

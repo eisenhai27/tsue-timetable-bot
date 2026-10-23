@@ -1,10 +1,10 @@
-// Lesson reminders ("⏰ in 10 minutes: …", sent before every class and deleted 10 minutes after it starts) and the
+// Lesson reminders ("⏰ in 11 minutes: …", sent before every class and deleted 10 minutes after it starts) and the
 // end-of-day message ("today's classes are over", deleted after an hour). Text building and joke picking live here so the
 // GitHub Action (scripts/notify.mjs, which sends them) and the Worker (the buttons under them) share one copy.
 import { JOKES, SUBJECT_JOKES } from './jokes.mjs';
 import { LANGS, esc, parseSubject, typeLabel, roomLabel, lessonsForDay, weekParity, weekday } from './shared.mjs';
 
-export const LR_BEFORE = 10; // minutes before a class
+export const LR_BEFORE = 11; // minutes before a class: the reminder goes out exactly this long before it starts
 export const LR_DELETE_AFTER_START = 10; // the reminder disappears this long after the class started
 export const DE_DELETE_AFTER = 60; // the end-of-day message disappears after an hour
 
@@ -228,26 +228,33 @@ export function paragraphs(text, entities = []) {
 }
 
 /**
- * When the lessons workflow has to run, in minutes after midnight (Tashkent): shortly before each class (the reminder), 10 minutes
- * after each class starts (its reminder disappears), right after each class ends (end-of-day messages; with 10-minute breaks this is
- * also the next class's reminder) and an hour after the last class (the last end-of-day messages disappear). Moments less than
- * 4 minutes apart are one run (the later one). Outside these moments nothing runs.
+ * When the lessons workflow has to run, in minutes after midnight (Tashkent):
+ *  - exactly LR_BEFORE minutes before each class (the reminder) — these moments are fixed and never moved;
+ *  - 10 minutes after each class starts (its reminder disappears), right after each class ends (end-of-day messages; these may
+ *    go a minute before the bell) and an hour after the last class (the last end-of-day messages disappear) — these may run up to
+ *    4 minutes later, so one near a reminder moment is done by that run, and such moments less than 4 minutes apart are one run
+ *    (the later one).
+ * Outside these moments nothing runs.
  */
 export function lessonRunPlan(periods) {
-  const marks = [];
+  const fixed = new Set();
+  const flex = []; // [moment, how many minutes earlier it may run]
   const ends = [];
   for (const p of periods || []) {
     const a = toMin(p.start), b = toMin(p.end);
-    marks.push(a - LR_BEFORE - 1, a + LR_DELETE_AFTER_START + 1, b + 1);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    fixed.add(a - LR_BEFORE);
+    flex.push([a + LR_DELETE_AFTER_START + 1, 1], [b + 1, 2]); // (the end-of-day message may go a minute before the bell)
     ends.push(b);
   }
-  if (ends.length) marks.push(Math.max(...ends) + DE_DELETE_AFTER + 2);
-  const sorted = [...new Set(marks)].sort((x, y) => x - y);
-  const plan = [];
-  for (const m of sorted) {
-    if (plan.length && m - plan[plan.length - 1] < 4) plan[plan.length - 1] = m; // merge: keep the later moment
-    else plan.push(m);
+  if (ends.length) flex.push([Math.max(...ends) + DE_DELETE_AFTER + 2, 1]);
+  const fx = [...fixed];
+  const rest = [...new Set(flex.filter(([m, early]) => !fx.some((f) => f - m >= -early && f - m <= 4)).map(([m]) => m))].sort((x, y) => x - y);
+  const merged = [];
+  for (const m of rest) {
+    if (merged.length && m - merged[merged.length - 1] < 4) merged[merged.length - 1] = m; // keep the later moment
+    else merged.push(m);
   }
-  return plan;
+  return [...new Set([...fx, ...merged])].sort((x, y) => x - y);
 }
 export { textOf as jokeText, hm as clock, toMin as clockToMin };

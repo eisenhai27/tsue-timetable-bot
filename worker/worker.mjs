@@ -67,42 +67,67 @@ export default {
   },
 };
 
-/** The main workflow (EduPage check, evening reminders, announcements): at most every 9 minutes, however often the cron fires. */
+/**
+ * The main workflow (EduPage check, evening reminders, announcements): at most every 9 minutes in the day. At night
+ * (22:00–05:00 Tashkent) nothing changes on EduPage and nobody needs an instant alert, so it runs once an hour — plus
+ * right after a chat's own "tomorrow's classes" time (someone may have set it to 22:30 or 23:00), so that message stays on time.
+ */
 async function timetableTick(env, at) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
   const D = await db(env);
   const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
   if (at - last < 9 * 60e3) return;
+  const h = tashkentNow(at).getUTCHours();
+  if ((h >= 22 || h < 5) && at - last < 60 * 60e3 && !(await reminderDueSince(D, last, at))) return;
   await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
-  await dispatchWorkflow(env);
+  if (!(await dispatchWorkflow(env))) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(last)).run(); // retry next tick
+}
+
+/** Does any chat's daily reminder time (remind_at, minutes after midnight in Tashkent) fall after `fromMs` and up to `toMs`? */
+async function reminderDueSince(D, fromMs, toMs) {
+  const m = (ms) => { const t = tashkentNow(ms); return t.getUTCHours() * 60 + t.getUTCMinutes(); };
+  const a = m(Math.max(fromMs, toMs - 3 * 3600e3)), b = m(toMs);
+  const q = (x, y) => D.prepare('SELECT 1 FROM chats WHERE remind_at > ? AND remind_at <= ? LIMIT 1').bind(x, y).first();
+  return Boolean(a <= b ? await q(a, b) : (await q(a, 1440)) || (await q(-1, b))); // (the window may cross midnight)
 }
 
 /**
  * The lesson reminders run as their own small workflow (lessons.yml), only at fixed moments of the school day (lessonRunPlan:
- * before each class, 10 minutes after it starts, after it ends, ~19 a day). The cron keeps its usual pace: on each tick the Worker
- * looks ahead to the next tick, and a moment that falls in between is handed to the workflow, which waits for that exact minute
- * and runs once. Between those moments, at night and on Sundays nothing runs.
+ * exactly 11 minutes before each class, 10 minutes after it starts, after it ends). On each cron tick the Worker looks ahead to
+ * the next tick, and a moment that falls before it (plus a few minutes, so GitHub has time to start the job) is handed to the
+ * workflow now; the workflow waits for that exact minute and runs once. The day's plan is worked out once (kept in the database),
+ * and outside school hours, at night and on Sundays the tick does nothing at all — not even a database write.
  */
+const LR_LEAD = 5; // minutes: a moment this close after the next tick is dispatched already now
 async function lessonsTick(env, at) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
   const tn = tashkentNow(at);
   if (weekday(tn) === 6) return; // Sunday
-  const index = await getIndex(env).catch(() => null);
-  const plan = lessonRunPlan(index?.periods || []);
-  if (!plan.length) return;
   const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes() + tn.getUTCSeconds() / 60;
+  if (nowMin < 6 * 60 || nowMin > 23 * 60) return; // no classes at night: no work at all
   const dayKey = ymd(tn);
   const D = await db(env);
   const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_plan'").first())?.v || 'null');
-  const state = st && st.day === dayKey ? st : { day: dayKey, done: [], gap: st?.gap || 10, last: null }; // (the cron's pace carries over to the next day)
-  if (state.last != null && nowMin > state.last) state.gap = Math.min(30, Math.max(1, nowMin - state.last)); // how often the cron fires
-  state.last = nowMin;
-  // every planned moment from now until the next tick (plus a minute of slack), not handed out yet today
-  const due = plan.filter((m) => m >= nowMin - 5 && m <= nowMin + state.gap + 1 && !state.done.includes(m)); // (a moment just missed still runs)
-  for (const m of due) {
-    if (await dispatchWorkflow(env, 'lessons.yml', { at: clock(m) })) state.done.push(m);
+  const state = st && st.day === dayKey && Array.isArray(st.plan) ? st : { day: dayKey, done: [], gap: st?.gap || 10, last: null, plan: null };
+  if (!state.plan) {
+    const index = await getIndex(env).catch(() => null);
+    if (!index) return; // try again next tick
+    state.plan = lessonRunPlan(index.periods || []);
   }
-  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_plan', ?)").bind(JSON.stringify(state)).run();
+  const gapBefore = state.gap;
+  if (state.last != null && nowMin > state.last && nowMin - state.last <= 30) state.gap = Math.min(30, Math.max(1, Math.round(nowMin - state.last))); // how often the cron fires
+  const changedGap = state.gap !== gapBefore || !st || st.day !== dayKey;
+  state.last = nowMin;
+  // every planned moment from now until the next tick (plus the lead), not handed out yet today (a moment just missed still runs)
+  const due = state.plan.filter((m) => m >= nowMin - 5 && m <= nowMin + state.gap + LR_LEAD && !state.done.includes(m));
+  // Nothing to hand out and nothing new to remember: skip the write, except to keep `last` fresh while classes are on
+  const first = state.plan[0] ?? 0, lastM = state.plan[state.plan.length - 1] ?? 0;
+  const active = nowMin >= first - state.gap - LR_LEAD - 15 && nowMin <= lastM + 5;
+  let sent = false;
+  for (const m of due) {
+    if (await dispatchWorkflow(env, 'lessons.yml', { at: clock(m) })) { state.done.push(m); sent = true; }
+  }
+  if (sent || changedGap || active) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_plan', ?)").bind(JSON.stringify(state)).run();
 }
 
 async function dispatchWorkflow(env, file = 'timetable.yml', inputs = null) {
@@ -119,8 +144,31 @@ async function dispatchWorkflow(env, file = 'timetable.yml', inputs = null) {
     },
     body: JSON.stringify(inputs ? { ref: 'main', inputs } : { ref: 'main' }),
   });
-  if (!res.ok) console.error('GitHub dispatch failed:', res.status, await res.text().catch(() => ''));
+  const body = res.ok ? '' : await res.text().catch(() => '');
+  if (!res.ok) console.error('GitHub dispatch failed:', res.status, body);
+  await noteGithubHealth(env, res.ok, res.status, body).catch(() => {});
   return res.ok;
+}
+
+/**
+ * When the GitHub wake-up starts failing (an expired token, missing "Actions: write", a renamed repo…), nothing else shows it:
+ * the bot keeps answering, but reminders and alerts quietly stop. So the first failure is remembered and the admin is told once
+ * (and once more when it works again); the 📊 stats show it too. Only the change of state writes to the database, and the
+ * write itself decides who tells (two ticks failing at once still send one message).
+ */
+async function noteGithubHealth(env, ok, status, body) {
+  const D = await db(env);
+  const prev = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'gh_err'").first())?.v || 'null');
+  if (ok === !prev) return; // nothing changed
+  const tell = (text) => env.ADMIN_CHAT_ID && (env.ADMIN_BOT_TOKEN ? atg : tg)(env, 'sendMessage', { chat_id: Number(env.ADMIN_CHAT_ID), text, parse_mode: 'HTML' }).catch(() => {});
+  if (ok) {
+    const del = await D.prepare("DELETE FROM admin_state WHERE k = 'gh_err'").run();
+    if (del?.meta?.changes) await tell("✅ <b>GitHub bilan aloqa tiklandi</b> — eslatmalar va o'zgarish xabarlari yana ishlayapti.");
+    return;
+  }
+  const hint = status === 401 ? 'token eskirgan yoki o\'chirilgan' : status === 403 ? "tokenda <b>Actions: Read and write</b> ruxsati yo'q" : status === 404 ? "token bu repoga ruxsat bermaydi (yoki GITHUB_REPO noto'g'ri)" : 'GitHub javobi';
+  const ins = await D.prepare("INSERT OR IGNORE INTO admin_state (k, v) VALUES ('gh_err', ?)").bind(JSON.stringify({ status, at: Date.now(), msg: String(body).slice(0, 200) })).run();
+  if (ins?.meta?.changes) await tell(`⚠️ <b>GitHub'ni uyg'otib bo'lmayapti</b> (xato ${status}: ${hint}).\nDars eslatmalari, o'zgarish xabarlari va kechki eslatmalar to'xtab qoladi.\n\nTuzatish: GitHub → Settings → Developer settings → Fine-grained tokens → tokenda <i>Repository access</i> = tsue-timetable-bot, <i>Permissions → Actions: Read and write</i>. Yangi token bo'lsa — Cloudflare → Worker → Settings → Variables → <code>GITHUB_PAT</code>.`);
 }
 
 async function route(request, env, ctx) {
@@ -1260,6 +1308,7 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     D.prepare('SELECT MIN(day) d FROM usage'),
   ]);
   const r = a.results[0] || {};
+  const ghErr = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'gh_err'").first().catch(() => null))?.v || 'null');
   const n = (v) => v || 0;
   const dm = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
   const feat = (rows) => {
@@ -1295,6 +1344,7 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     `🌐 Til: 🇺🇿 ${n(r.uz)} · 🇷🇺 ${n(r.ru)} · 🇬🇧 ${n(r.en)}`,
     `🔔 O'zgarish xabari: ${n(r.alerts)} · 🌙 Kechki eslatma: ${n(r.remind)} · 🗓 Haftalik: ${n(r.weekly)}`,
     `✍️ Fikr-mulohaza: jami ${n(fb.results[0]?.total)} · bugun ${n(fb.results[0]?.today)}`,
+    ghErr ? `⚠️ <b>GitHub chaqiruvi ishlamayapti</b>: xato ${ghErr.status} (${hhmm(((ghErr.at + 5 * 3600e3) % 864e5) / 6e4 | 0)} dan beri)` : null,
     '',
     "<i>Mini App ochilishlari bu yerda hisoblanmaydi (u alohida sayt).</i>",
   ].filter((x) => x !== null);

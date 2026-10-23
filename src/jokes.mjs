@@ -1,4 +1,4 @@
-// Short, kind jokes and wishes for the lesson reminders ("⏰ 10 daqiqadan keyin…") and the end-of-day message.
+// Short, kind jokes and wishes for the lesson reminders ("⏰ 11 daqiqadan keyin…") and the end-of-day message.
 // Rules for anything added here: nobody is laughed at — not teachers, not students, not any group of people. Light everyday
 // humour (coffee, 08:00, Friday, the last class), encouragement, and for teachers warm wishes and thanks.
 // Every entry exists in all three languages; `win: true` marks a line about windows (lecture halls often have none).
@@ -54,7 +54,7 @@ export const JOKES = {
     j("🌤 Kayfiyat ob-havosi: ochiq, bilim yog'ishi kutilmoqda.", '🌤 Прогноз настроения: ясно, ожидаются осадки в виде знаний.', '🌤 Mood forecast: clear skies with a chance of knowledge.'),
     j('🧃 Suv, ruchka, daftar — darsning uch qahramoni. Hammasi joyidami?', '🧃 Вода, ручка, тетрадь — три героя пары. Все на месте?', '🧃 Water, pen, notebook: the three heroes of every class. All present?'),
     j('🏆 Darsga vaqtida kelish — kichik, lekin haqiqiy g\'alaba.', '🏆 Прийти на пару вовремя — маленькая, но настоящая победа.', '🏆 Getting to class on time is a small but real win.'),
-    j('🚶 Shoshilmang, 10 daqiqa bor — bemalol yetib olasiz.', '🚶 Не спешите, есть 10 минут — спокойно успеете.', "🚶 No rush, you've got 10 minutes. Plenty of time."),
+    j('🚶 Shoshilmang, 11 daqiqa bor — bemalol yetib olasiz.', '🚶 Не спешите, есть 11 минут — спокойно успеете.', "🚶 No rush, you've got 11 minutes. Plenty of time."),
     j('😊 Kursdoshingizga salom bering — kimdir bugun shunga muhtoj.', '😊 Поздоровайтесь с однокурсником — кому-то сегодня это очень нужно.', '😊 Say hi to a classmate. Someone needs that today.'),
   ],
   // students who stay in the same room for the next class
@@ -66,7 +66,7 @@ export const JOKES = {
     j('💧 Xonadan chiqmasangiz ham, suv ichishni unutmang.', '💧 Даже если не выходите из аудитории, не забудьте попить воды.', "💧 Even if you're not leaving the room, don't forget to drink some water."),
     j("📍 Joy o'zgarmadi — eng yaxshi o'rindiq hali ham sizniki!", '📍 Место то же — лучшее кресло всё ещё ваше!', '📍 Same room, so the best seat is still yours!'),
     j('🗂 Daftarni yopmang — keyingi dars shu yerda boshlanadi.', '🗂 Не закрывайте тетрадь — следующая пара начнётся здесь же.', "🗂 Don't close your notebook. The next class starts right here."),
-    j("😌 Bugun yo'lda vaqt yo'qotmaysiz — 10 daqiqa toza dam olish!", '😌 Сегодня не надо никуда идти — 10 минут чистого отдыха!', '😌 No walking between rooms today: 10 minutes of pure rest!'),
+    j("😌 Bugun yo'lda vaqt yo'qotmaysiz — 11 daqiqa toza dam olish!", '😌 Сегодня не надо никуда идти — 11 минут чистого отдыха!', '😌 No walking between rooms today: 11 minutes of pure rest!'),
     j("👀 Ko'zlaringizga dam bering: bir daqiqa derazadan uzoqqa qarang.", '👀 Дайте глазам отдохнуть: минуту посмотрите вдаль в окно.', '👀 Rest your eyes: look out of the window into the distance for a minute.', { win: true }),
     j("🤝 Yoningizdagi kursdosh bilan bir og'iz gaplashing — tanaffus shunga ham kerak.", '🤝 Перекиньтесь парой слов с соседом — перемена и для этого тоже.', "🤝 Have a quick chat with the person next to you. That's what breaks are for."),
   ],
@@ -153,7 +153,7 @@ export const SUBJECT_JOKES = [
     j('🎯 Maqsadli auditoriya aniq — bu siz!', '🎯 Целевая аудитория определена — это вы!', "🎯 Target audience identified: it's you!"),
   ] },
   { re: /menejment|менеджмент|boshqaruv|управлен/i, list: [
-    j('🗂 Vaqtni boshqarish birinchi qoida. Mana, 10 daqiqa oldin xabardorsiz!', '🗂 Управление временем — первое правило. Вот, вы в курсе за 10 минут!', "🗂 Time management is rule number one. Look, you're already 10 minutes ahead!"),
+    j('🗂 Vaqtni boshqarish birinchi qoida. Mana, 11 daqiqa oldin xabardorsiz!', '🗂 Управление временем — первое правило. Вот, вы в курсе за 11 минут!', "🗂 Time management is rule number one. Look, you're already 11 minutes ahead!"),
   ] },
   { re: /ingliz|english|английск/i, list: [
     j("🇬🇧 Today's plan: learn, smile, repeat!", "🇬🇧 Today's plan: learn, smile, repeat!", "🇬🇧 Today's plan: learn, smile, repeat!"),

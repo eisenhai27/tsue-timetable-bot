@@ -790,7 +790,7 @@ var JOKES = {
     j("\u{1F324} Kayfiyat ob-havosi: ochiq, bilim yog'ishi kutilmoqda.", "\u{1F324} \u041F\u0440\u043E\u0433\u043D\u043E\u0437 \u043D\u0430\u0441\u0442\u0440\u043E\u0435\u043D\u0438\u044F: \u044F\u0441\u043D\u043E, \u043E\u0436\u0438\u0434\u0430\u044E\u0442\u0441\u044F \u043E\u0441\u0430\u0434\u043A\u0438 \u0432 \u0432\u0438\u0434\u0435 \u0437\u043D\u0430\u043D\u0438\u0439.", "\u{1F324} Mood forecast: clear skies with a chance of knowledge."),
     j("\u{1F9C3} Suv, ruchka, daftar \u2014 darsning uch qahramoni. Hammasi joyidami?", "\u{1F9C3} \u0412\u043E\u0434\u0430, \u0440\u0443\u0447\u043A\u0430, \u0442\u0435\u0442\u0440\u0430\u0434\u044C \u2014 \u0442\u0440\u0438 \u0433\u0435\u0440\u043E\u044F \u043F\u0430\u0440\u044B. \u0412\u0441\u0435 \u043D\u0430 \u043C\u0435\u0441\u0442\u0435?", "\u{1F9C3} Water, pen, notebook: the three heroes of every class. All present?"),
     j("\u{1F3C6} Darsga vaqtida kelish \u2014 kichik, lekin haqiqiy g'alaba.", "\u{1F3C6} \u041F\u0440\u0438\u0439\u0442\u0438 \u043D\u0430 \u043F\u0430\u0440\u0443 \u0432\u043E\u0432\u0440\u0435\u043C\u044F \u2014 \u043C\u0430\u043B\u0435\u043D\u044C\u043A\u0430\u044F, \u043D\u043E \u043D\u0430\u0441\u0442\u043E\u044F\u0449\u0430\u044F \u043F\u043E\u0431\u0435\u0434\u0430.", "\u{1F3C6} Getting to class on time is a small but real win."),
-    j("\u{1F6B6} Shoshilmang, 10 daqiqa bor \u2014 bemalol yetib olasiz.", "\u{1F6B6} \u041D\u0435 \u0441\u043F\u0435\u0448\u0438\u0442\u0435, \u0435\u0441\u0442\u044C 10 \u043C\u0438\u043D\u0443\u0442 \u2014 \u0441\u043F\u043E\u043A\u043E\u0439\u043D\u043E \u0443\u0441\u043F\u0435\u0435\u0442\u0435.", "\u{1F6B6} No rush, you've got 10 minutes. Plenty of time."),
+    j("\u{1F6B6} Shoshilmang, 11 daqiqa bor \u2014 bemalol yetib olasiz.", "\u{1F6B6} \u041D\u0435 \u0441\u043F\u0435\u0448\u0438\u0442\u0435, \u0435\u0441\u0442\u044C 11 \u043C\u0438\u043D\u0443\u0442 \u2014 \u0441\u043F\u043E\u043A\u043E\u0439\u043D\u043E \u0443\u0441\u043F\u0435\u0435\u0442\u0435.", "\u{1F6B6} No rush, you've got 11 minutes. Plenty of time."),
     j("\u{1F60A} Kursdoshingizga salom bering \u2014 kimdir bugun shunga muhtoj.", "\u{1F60A} \u041F\u043E\u0437\u0434\u043E\u0440\u043E\u0432\u0430\u0439\u0442\u0435\u0441\u044C \u0441 \u043E\u0434\u043D\u043E\u043A\u0443\u0440\u0441\u043D\u0438\u043A\u043E\u043C \u2014 \u043A\u043E\u043C\u0443-\u0442\u043E \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u044D\u0442\u043E \u043E\u0447\u0435\u043D\u044C \u043D\u0443\u0436\u043D\u043E.", "\u{1F60A} Say hi to a classmate. Someone needs that today.")
   ],
   // students who stay in the same room for the next class
@@ -802,7 +802,7 @@ var JOKES = {
     j("\u{1F4A7} Xonadan chiqmasangiz ham, suv ichishni unutmang.", "\u{1F4A7} \u0414\u0430\u0436\u0435 \u0435\u0441\u043B\u0438 \u043D\u0435 \u0432\u044B\u0445\u043E\u0434\u0438\u0442\u0435 \u0438\u0437 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438, \u043D\u0435 \u0437\u0430\u0431\u0443\u0434\u044C\u0442\u0435 \u043F\u043E\u043F\u0438\u0442\u044C \u0432\u043E\u0434\u044B.", "\u{1F4A7} Even if you're not leaving the room, don't forget to drink some water."),
     j("\u{1F4CD} Joy o'zgarmadi \u2014 eng yaxshi o'rindiq hali ham sizniki!", "\u{1F4CD} \u041C\u0435\u0441\u0442\u043E \u0442\u043E \u0436\u0435 \u2014 \u043B\u0443\u0447\u0448\u0435\u0435 \u043A\u0440\u0435\u0441\u043B\u043E \u0432\u0441\u0451 \u0435\u0449\u0451 \u0432\u0430\u0448\u0435!", "\u{1F4CD} Same room, so the best seat is still yours!"),
     j("\u{1F5C2} Daftarni yopmang \u2014 keyingi dars shu yerda boshlanadi.", "\u{1F5C2} \u041D\u0435 \u0437\u0430\u043A\u0440\u044B\u0432\u0430\u0439\u0442\u0435 \u0442\u0435\u0442\u0440\u0430\u0434\u044C \u2014 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0430\u0440\u0430 \u043D\u0430\u0447\u043D\u0451\u0442\u0441\u044F \u0437\u0434\u0435\u0441\u044C \u0436\u0435.", "\u{1F5C2} Don't close your notebook. The next class starts right here."),
-    j("\u{1F60C} Bugun yo'lda vaqt yo'qotmaysiz \u2014 10 daqiqa toza dam olish!", "\u{1F60C} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043D\u0435 \u043D\u0430\u0434\u043E \u043D\u0438\u043A\u0443\u0434\u0430 \u0438\u0434\u0442\u0438 \u2014 10 \u043C\u0438\u043D\u0443\u0442 \u0447\u0438\u0441\u0442\u043E\u0433\u043E \u043E\u0442\u0434\u044B\u0445\u0430!", "\u{1F60C} No walking between rooms today: 10 minutes of pure rest!"),
+    j("\u{1F60C} Bugun yo'lda vaqt yo'qotmaysiz \u2014 11 daqiqa toza dam olish!", "\u{1F60C} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043D\u0435 \u043D\u0430\u0434\u043E \u043D\u0438\u043A\u0443\u0434\u0430 \u0438\u0434\u0442\u0438 \u2014 11 \u043C\u0438\u043D\u0443\u0442 \u0447\u0438\u0441\u0442\u043E\u0433\u043E \u043E\u0442\u0434\u044B\u0445\u0430!", "\u{1F60C} No walking between rooms today: 11 minutes of pure rest!"),
     j("\u{1F440} Ko'zlaringizga dam bering: bir daqiqa derazadan uzoqqa qarang.", "\u{1F440} \u0414\u0430\u0439\u0442\u0435 \u0433\u043B\u0430\u0437\u0430\u043C \u043E\u0442\u0434\u043E\u0445\u043D\u0443\u0442\u044C: \u043C\u0438\u043D\u0443\u0442\u0443 \u043F\u043E\u0441\u043C\u043E\u0442\u0440\u0438\u0442\u0435 \u0432\u0434\u0430\u043B\u044C \u0432 \u043E\u043A\u043D\u043E.", "\u{1F440} Rest your eyes: look out of the window into the distance for a minute.", { win: true }),
     j("\u{1F91D} Yoningizdagi kursdosh bilan bir og'iz gaplashing \u2014 tanaffus shunga ham kerak.", "\u{1F91D} \u041F\u0435\u0440\u0435\u043A\u0438\u043D\u044C\u0442\u0435\u0441\u044C \u043F\u0430\u0440\u043E\u0439 \u0441\u043B\u043E\u0432 \u0441 \u0441\u043E\u0441\u0435\u0434\u043E\u043C \u2014 \u043F\u0435\u0440\u0435\u043C\u0435\u043D\u0430 \u0438 \u0434\u043B\u044F \u044D\u0442\u043E\u0433\u043E \u0442\u043E\u0436\u0435.", "\u{1F91D} Have a quick chat with the person next to you. That's what breaks are for.")
   ],
@@ -887,7 +887,7 @@ var SUBJECT_JOKES = [
     j("\u{1F3AF} Maqsadli auditoriya aniq \u2014 bu siz!", "\u{1F3AF} \u0426\u0435\u043B\u0435\u0432\u0430\u044F \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u044F \u043E\u043F\u0440\u0435\u0434\u0435\u043B\u0435\u043D\u0430 \u2014 \u044D\u0442\u043E \u0432\u044B!", "\u{1F3AF} Target audience identified: it's you!")
   ] },
   { re: /menejment|менеджмент|boshqaruv|управлен/i, list: [
-    j("\u{1F5C2} Vaqtni boshqarish birinchi qoida. Mana, 10 daqiqa oldin xabardorsiz!", "\u{1F5C2} \u0423\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C \u2014 \u043F\u0435\u0440\u0432\u043E\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u043E. \u0412\u043E\u0442, \u0432\u044B \u0432 \u043A\u0443\u0440\u0441\u0435 \u0437\u0430 10 \u043C\u0438\u043D\u0443\u0442!", "\u{1F5C2} Time management is rule number one. Look, you're already 10 minutes ahead!")
+    j("\u{1F5C2} Vaqtni boshqarish birinchi qoida. Mana, 11 daqiqa oldin xabardorsiz!", "\u{1F5C2} \u0423\u043F\u0440\u0430\u0432\u043B\u0435\u043D\u0438\u0435 \u0432\u0440\u0435\u043C\u0435\u043D\u0435\u043C \u2014 \u043F\u0435\u0440\u0432\u043E\u0435 \u043F\u0440\u0430\u0432\u0438\u043B\u043E. \u0412\u043E\u0442, \u0432\u044B \u0432 \u043A\u0443\u0440\u0441\u0435 \u0437\u0430 11 \u043C\u0438\u043D\u0443\u0442!", "\u{1F5C2} Time management is rule number one. Look, you're already 11 minutes ahead!")
   ] },
   { re: /ingliz|english|английск/i, list: [
     j("\u{1F1EC}\u{1F1E7} Today's plan: learn, smile, repeat!", "\u{1F1EC}\u{1F1E7} Today's plan: learn, smile, repeat!", "\u{1F1EC}\u{1F1E7} Today's plan: learn, smile, repeat!")
@@ -923,7 +923,7 @@ var SUBJECT_JOKES = [
 ];
 
 // src/lessons.mjs
-var LR_BEFORE = 10;
+var LR_BEFORE = 11;
 var LR_DELETE_AFTER_START = 10;
 var DE_DELETE_AFTER = 60;
 var W2 = {
@@ -1050,21 +1050,25 @@ function paragraphs(text, entities = []) {
   return out;
 }
 function lessonRunPlan(periods) {
-  const marks = [];
+  const fixed = /* @__PURE__ */ new Set();
+  const flex = [];
   const ends = [];
   for (const p of periods || []) {
     const a = toMin(p.start), b = toMin(p.end);
-    marks.push(a - LR_BEFORE - 1, a + LR_DELETE_AFTER_START + 1, b + 1);
+    if (!Number.isFinite(a) || !Number.isFinite(b)) continue;
+    fixed.add(a - LR_BEFORE);
+    flex.push([a + LR_DELETE_AFTER_START + 1, 1], [b + 1, 2]);
     ends.push(b);
   }
-  if (ends.length) marks.push(Math.max(...ends) + DE_DELETE_AFTER + 2);
-  const sorted = [...new Set(marks)].sort((x, y) => x - y);
-  const plan = [];
-  for (const m of sorted) {
-    if (plan.length && m - plan[plan.length - 1] < 4) plan[plan.length - 1] = m;
-    else plan.push(m);
+  if (ends.length) flex.push([Math.max(...ends) + DE_DELETE_AFTER + 2, 1]);
+  const fx = [...fixed];
+  const rest = [...new Set(flex.filter(([m, early]) => !fx.some((f) => f - m >= -early && f - m <= 4)).map(([m]) => m))].sort((x, y) => x - y);
+  const merged = [];
+  for (const m of rest) {
+    if (merged.length && m - merged[merged.length - 1] < 4) merged[merged.length - 1] = m;
+    else merged.push(m);
   }
-  return plan;
+  return [.../* @__PURE__ */ new Set([...fx, ...merged])].sort((x, y) => x - y);
 }
 
 // worker/worker.mjs
@@ -1108,28 +1112,51 @@ async function timetableTick(env, at) {
   const D = await db(env);
   const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
   if (at - last < 9 * 6e4) return;
+  const h = tashkentNow(at).getUTCHours();
+  if ((h >= 22 || h < 5) && at - last < 60 * 6e4 && !await reminderDueSince(D, last, at)) return;
   await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
-  await dispatchWorkflow(env);
+  if (!await dispatchWorkflow(env)) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(last)).run();
 }
+async function reminderDueSince(D, fromMs, toMs) {
+  const m = (ms) => {
+    const t = tashkentNow(ms);
+    return t.getUTCHours() * 60 + t.getUTCMinutes();
+  };
+  const a = m(Math.max(fromMs, toMs - 3 * 36e5)), b = m(toMs);
+  const q = (x, y) => D.prepare("SELECT 1 FROM chats WHERE remind_at > ? AND remind_at <= ? LIMIT 1").bind(x, y).first();
+  return Boolean(a <= b ? await q(a, b) : await q(a, 1440) || await q(-1, b));
+}
+var LR_LEAD = 5;
 async function lessonsTick(env, at) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
   const tn = tashkentNow(at);
   if (weekday(tn) === 6) return;
-  const index = await getIndex(env).catch(() => null);
-  const plan = lessonRunPlan(index?.periods || []);
-  if (!plan.length) return;
   const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes() + tn.getUTCSeconds() / 60;
+  if (nowMin < 6 * 60 || nowMin > 23 * 60) return;
   const dayKey = ymd(tn);
   const D = await db(env);
   const st = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'lr_plan'").first())?.v || "null");
-  const state = st && st.day === dayKey ? st : { day: dayKey, done: [], gap: st?.gap || 10, last: null };
-  if (state.last != null && nowMin > state.last) state.gap = Math.min(30, Math.max(1, nowMin - state.last));
-  state.last = nowMin;
-  const due = plan.filter((m) => m >= nowMin - 5 && m <= nowMin + state.gap + 1 && !state.done.includes(m));
-  for (const m of due) {
-    if (await dispatchWorkflow(env, "lessons.yml", { at: hm(m) })) state.done.push(m);
+  const state = st && st.day === dayKey && Array.isArray(st.plan) ? st : { day: dayKey, done: [], gap: st?.gap || 10, last: null, plan: null };
+  if (!state.plan) {
+    const index = await getIndex(env).catch(() => null);
+    if (!index) return;
+    state.plan = lessonRunPlan(index.periods || []);
   }
-  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_plan', ?)").bind(JSON.stringify(state)).run();
+  const gapBefore = state.gap;
+  if (state.last != null && nowMin > state.last && nowMin - state.last <= 30) state.gap = Math.min(30, Math.max(1, Math.round(nowMin - state.last)));
+  const changedGap = state.gap !== gapBefore || !st || st.day !== dayKey;
+  state.last = nowMin;
+  const due = state.plan.filter((m) => m >= nowMin - 5 && m <= nowMin + state.gap + LR_LEAD && !state.done.includes(m));
+  const first = state.plan[0] ?? 0, lastM = state.plan[state.plan.length - 1] ?? 0;
+  const active = nowMin >= first - state.gap - LR_LEAD - 15 && nowMin <= lastM + 5;
+  let sent = false;
+  for (const m of due) {
+    if (await dispatchWorkflow(env, "lessons.yml", { at: hm(m) })) {
+      state.done.push(m);
+      sent = true;
+    }
+  }
+  if (sent || changedGap || active) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('lr_plan', ?)").bind(JSON.stringify(state)).run();
 }
 async function dispatchWorkflow(env, file = "timetable.yml", inputs = null) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return false;
@@ -1144,8 +1171,29 @@ async function dispatchWorkflow(env, file = "timetable.yml", inputs = null) {
     },
     body: JSON.stringify(inputs ? { ref: "main", inputs } : { ref: "main" })
   });
-  if (!res.ok) console.error("GitHub dispatch failed:", res.status, await res.text().catch(() => ""));
+  const body = res.ok ? "" : await res.text().catch(() => "");
+  if (!res.ok) console.error("GitHub dispatch failed:", res.status, body);
+  await noteGithubHealth(env, res.ok, res.status, body).catch(() => {
+  });
   return res.ok;
+}
+async function noteGithubHealth(env, ok, status, body) {
+  const D = await db(env);
+  const prev = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'gh_err'").first())?.v || "null");
+  if (ok === !prev) return;
+  const tell = (text) => env.ADMIN_CHAT_ID && (env.ADMIN_BOT_TOKEN ? atg : tg)(env, "sendMessage", { chat_id: Number(env.ADMIN_CHAT_ID), text, parse_mode: "HTML" }).catch(() => {
+  });
+  if (ok) {
+    const del = await D.prepare("DELETE FROM admin_state WHERE k = 'gh_err'").run();
+    if (del?.meta?.changes) await tell("\u2705 <b>GitHub bilan aloqa tiklandi</b> \u2014 eslatmalar va o'zgarish xabarlari yana ishlayapti.");
+    return;
+  }
+  const hint = status === 401 ? "token eskirgan yoki o'chirilgan" : status === 403 ? "tokenda <b>Actions: Read and write</b> ruxsati yo'q" : status === 404 ? "token bu repoga ruxsat bermaydi (yoki GITHUB_REPO noto'g'ri)" : "GitHub javobi";
+  const ins = await D.prepare("INSERT OR IGNORE INTO admin_state (k, v) VALUES ('gh_err', ?)").bind(JSON.stringify({ status, at: Date.now(), msg: String(body).slice(0, 200) })).run();
+  if (ins?.meta?.changes) await tell(`\u26A0\uFE0F <b>GitHub'ni uyg'otib bo'lmayapti</b> (xato ${status}: ${hint}).
+Dars eslatmalari, o'zgarish xabarlari va kechki eslatmalar to'xtab qoladi.
+
+Tuzatish: GitHub \u2192 Settings \u2192 Developer settings \u2192 Fine-grained tokens \u2192 tokenda <i>Repository access</i> = tsue-timetable-bot, <i>Permissions \u2192 Actions: Read and write</i>. Yangi token bo'lsa \u2014 Cloudflare \u2192 Worker \u2192 Settings \u2192 Variables \u2192 <code>GITHUB_PAT</code>.`);
 }
 async function route(request, env, ctx) {
   const url = new URL(request.url);
@@ -2287,6 +2335,7 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     D.prepare("SELECT MIN(day) d FROM usage")
   ]);
   const r = a.results[0] || {};
+  const ghErr = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'gh_err'").first().catch(() => null))?.v || "null");
   const n = (v) => v || 0;
   const dm2 = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
   const feat = (rows) => {
@@ -2322,6 +2371,7 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     `\u{1F310} Til: \u{1F1FA}\u{1F1FF} ${n(r.uz)} \xB7 \u{1F1F7}\u{1F1FA} ${n(r.ru)} \xB7 \u{1F1EC}\u{1F1E7} ${n(r.en)}`,
     `\u{1F514} O'zgarish xabari: ${n(r.alerts)} \xB7 \u{1F319} Kechki eslatma: ${n(r.remind)} \xB7 \u{1F5D3} Haftalik: ${n(r.weekly)}`,
     `\u270D\uFE0F Fikr-mulohaza: jami ${n(fb.results[0]?.total)} \xB7 bugun ${n(fb.results[0]?.today)}`,
+    ghErr ? `\u26A0\uFE0F <b>GitHub chaqiruvi ishlamayapti</b>: xato ${ghErr.status} (${hhmm((ghErr.at + 5 * 36e5) % 864e5 / 6e4 | 0)} dan beri)` : null,
     "",
     "<i>Mini App ochilishlari bu yerda hisoblanmaydi (u alohida sayt).</i>"
   ].filter((x) => x !== null);

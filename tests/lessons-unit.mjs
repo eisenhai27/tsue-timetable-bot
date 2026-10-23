@@ -107,11 +107,12 @@ const plan = lessonRunPlan(index.periods);
 const at = plan.map(clock);
 check(`a fixed plan of moments, not every minute (${plan.length} a day): ${at.join(' ')}`, plan.length >= 12 && plan.length <= 26);
 const starts = index.periods.map((p) => toMin(p.start)), endsM = index.periods.map((p) => toMin(p.end));
-check('every class has a moment 9–13 minutes before it (the reminder)', starts.every((a) => plan.some((m) => a - m >= 9 && a - m <= 13)), at);
+check('every class has a moment exactly 11 minutes before it (the reminder)', starts.every((a) => plan.includes(a - 11)), at);
 check('…one 10–14 minutes after it starts (its reminder disappears)', starts.every((a) => plan.some((m) => m - a >= 10 && m - a <= 14)));
-check('…one right after it ends (end-of-day messages)', endsM.every((b) => plan.some((m) => m - b >= 0 && m - b <= 4)));
+check('…one around the bell when it ends (end-of-day messages: from 1 minute before, up to 4 after)', endsM.every((b) => plan.some((m) => m - b >= -1 && m - b <= 4)));
 check('…and one an hour after the last class', plan.some((m) => m - Math.max(...endsM) >= 60 && m - Math.max(...endsM) <= 65));
-check('no two moments closer than 4 minutes', plan.every((m, i) => i === 0 || m - plan[i - 1] >= 4));
+check('no two moments closer than 4 minutes, except two reminders', plan.every((m, i) => i === 0 || m - plan[i - 1] >= 4 || (starts.includes(m + 11) && starts.includes(plan[i - 1] + 11))));
+check('a day of short breaks: the reminder never moves, nothing runs before the bell but the day-end message', (() => { const p = lessonRunPlan([{ start: '08:30', end: '09:50' }, { start: '10:00', end: '11:20' }]); return p.includes(8 * 60 + 19) && p.includes(9 * 60 + 49) && !p.includes(9 * 60 + 51) && p.includes(8 * 60 + 41); })());
 
 console.log(fails ? `\n${fails} lessons check(s) failed` : '\nAll lessons unit checks passed ✅');
 process.exit(fails ? 1 : 0);

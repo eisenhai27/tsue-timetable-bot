@@ -58,14 +58,14 @@ await reset(); await post(cb('s:lr', OFF, OFFU));
 let l = await log();
 check('Settings has the "⏰ reminder before class" switch, and it turns off', l.some((c) => c.method === 'editMessageText' && /Dars oldidan eslatma: ❌/.test(JSON.stringify(c.data.reply_markup))), l.map((c) => c.method));
 
-// ---- 12 minutes before the first class
+// ---- 11 minutes before the first class
 const s0 = slots[0];
 await reset();
-let r = await run(real(day, s0.start - 12));
+let r = await run(real(day, s0.start - 11));
 l = await log();
 check('the run exits cleanly', r.code === 0, r.o.slice(-600));
 const m0 = to(l, 8801);
-check('the student gets ONE reminder: time, subject, room, a joke', m0.length === 1 && /12 daqiqadan keyin dars/.test(m0[0].data.text) && /📘 /.test(m0[0].data.text) && /🕘 /.test(m0[0].data.text), m0.map((c) => c.data.text));
+check('the student gets ONE reminder: time, subject, room, a joke', m0.length === 1 && /11 daqiqadan keyin dars/.test(m0[0].data.text) && /📘 /.test(m0[0].data.text) && /🕘 /.test(m0[0].data.text), m0.map((c) => c.data.text));
 check('…the first one carries the short intro', /🆕/.test(m0[0]?.data.text || ''));
 check('…HTML: the room in bold, the joke as a quote; with sound', m0[0]?.data.parse_mode === 'HTML' && /🚪 <b>/.test(m0[0].data.text) && /<blockquote>/.test(m0[0].data.text) && !m0[0].data.disable_notification);
 const kb0 = m0[0]?.data.reply_markup?.inline_keyboard?.flat() || [];
@@ -73,7 +73,7 @@ check('…buttons: 🔕 turn off and 😄 another one', kb0.some((b) => b.callba
 check('the chat that switched it off gets nothing', to(l, 8803).length === 0);
 check('group chats get nothing', !l.some((c) => c.method === 'sendMessage' && c.data.chat_id < 0));
 await reset();
-await run(real(day, s0.start - 11));
+await run(real(day, s0.start - 10));
 check('a second run a minute later sends nothing new (claimed)', to(await log(), 8801).length === 0);
 
 // ---- the buttons
@@ -91,7 +91,7 @@ l = await log();
 const off = l.find((c) => c.method === 'editMessageText');
 check('🔕 → reminders off, the message says so and offers ↩️ turn back on (formatting kept)', off && /o'chirildi/.test(off.data.text) && /🚪 <b>/.test(off.data.text) && /<blockquote>/.test(off.data.text) && /^lr:on:\w+$/.test(off.data.reply_markup.inline_keyboard[0][0].callback_data), off?.data);
 const s1 = slots[1];
-await reset(); await run(real(day, s1.start - 12));
+await reset(); await run(real(day, s1.start - 11));
 const l1 = await log();
 check('…and the next class brings no reminder', to(l1, 8801).length === 0);
 // (this run is also past "10 minutes after the first class started")
@@ -116,7 +116,7 @@ check('the chat with reminders off still gets the end-of-day message (it is a se
 // ---- the teacher
 let tday = new Date('2026-10-26T00:00:00Z'), tslots = [];
 for (let i = 0; i < 21; i++, tday = addDays(tday, 1)) { tslots = daySlots(teacherTT, index, tday); if (tslots.length && tday.getUTCDay() !== 0) break; }
-await reset(); await run(real(tday, tslots[0].start - 12));
+await reset(); await run(real(tday, tslots[0].start - 11));
 l = await log();
 const tm = to(l, 8802)[0];
 check('the teacher gets a reminder with the group instead of a teacher', tm && /👥 /.test(tm.data.text) && !/👨‍🏫/.test(tm.data.text), to(l, 8802).map((c) => c.data.text));
