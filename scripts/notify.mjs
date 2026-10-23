@@ -257,11 +257,11 @@ async function sendTomorrow(index, window, day) {
     }
     const mine = day ? await claim('tmr', day, todo.map((x) => x.sub.chat_id)) : null;
     const retry = [];
-    for (const { sub, g, text } of todo) {
-      if (mine && !mine.has(sub.chat_id)) continue; // another run already took this chat today
-      if (await send(sub.chat_id, text, await keyboard(sub, g.id))) n++;
+    await paced(todo, async ({ sub, g, text }) => { // several at once, at Telegram's pace (21:00 is everyone's default time)
+      if (mine && !mine.has(sub.chat_id)) return; // another run already took this chat today
+      if (await send(sub.chat_id, text, await keyboard(sub, g.id), null, null, { pace: true })) n++;
       else { failed++; retry.push(sub.chat_id); }
-    }
+    });
     if (mine) await unclaim('tmr', day, retry);
   }
   return { n, failed };
