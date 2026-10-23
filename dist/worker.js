@@ -1113,7 +1113,7 @@ async function timetableTick(env, at) {
   const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
   if (at - last < 9 * 6e4) return;
   const h = tashkentNow(at).getUTCHours();
-  if ((h >= 22 || h < 5) && at - last < 60 * 6e4 && !await reminderDueSince(D, last, at)) return;
+  if ((h >= 22 || h < 5) && at - last < 60 * 6e4 && !await reminderDueSince(D, last, at) && !await D.prepare("SELECT 1 FROM eph WHERE del_at <= ? LIMIT 1").bind(at + 6e4).first()) return;
   await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
   if (!await dispatchWorkflow(env)) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(last)).run();
 }
@@ -2025,6 +2025,7 @@ async function onAdminWebhook(request, env) {
     atg(env, "answerCallbackQuery", { callback_query_id: cb.id });
     if (cb.data === "adm:stats") await sendStats(env, chatId, cb.message.message_id, true);
     else if (String(cb.data || "").startsWith("bc:")) await onDraftButton(env, cb);
+    else if (String(cb.data || "").startsWith("fb:")) await onFeedbackButton(env, cb);
     return new Response("ok");
   }
   if (!msg) return new Response("ok");
@@ -2058,15 +2059,7 @@ async function onAdminWebhook(request, env) {
     return new Response("ok");
   }
   if (cmd === "fikrlar") {
-    const { results } = await (await db(env)).prepare("SELECT chat_id, name, text, created_at, via FROM feedback ORDER BY id DESC LIMIT 5").all();
-    if (!results.length) {
-      await atg(env, "sendMessage", { chat_id: chatId, text: "\u270D\uFE0F Hali fikr-mulohaza yo'q." });
-      return new Response("ok");
-    }
-    for (const f of results.reverse()) {
-      const tn = tashkentNow(f.created_at || 0);
-      await forwardFeedback(env, f.chat_id, f.name, f.text, `${ymd(tn).slice(8, 10)}.${ymd(tn).slice(5, 7)} ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())}`, f.via === "a" ? "a" : "s");
-    }
+    await sendFeedbackPage(env, chatId, 0);
     return new Response("ok");
   }
   let target = null, text = null, via = "s";
@@ -2104,9 +2097,57 @@ async function onAdminWebhook(request, env) {
   await startDraft(env, msg);
   return new Response("ok");
 }
+var FB_PAGE = 3;
+async function sendFeedbackPage(env, chatId, offset = 0, editId = null) {
+  const D = await db(env);
+  offset = Math.max(0, Math.floor(Number(offset) || 0));
+  const [{ results }, cnt] = await Promise.all([
+    D.prepare("SELECT id, chat_id, name, text, created_at, via FROM feedback ORDER BY id DESC LIMIT ? OFFSET ?").bind(FB_PAGE, offset).all(),
+    D.prepare("SELECT COUNT(*) n FROM feedback").first()
+  ]);
+  const total = cnt?.n || 0;
+  const when = (ms) => {
+    const tn = tashkentNow(ms || 0);
+    return `${ymd(tn).slice(8, 10)}.${ymd(tn).slice(5, 7)} ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())}`;
+  };
+  let text, rows = [];
+  if (!results.length) {
+    text = total ? "\u270D\uFE0F Bundan oldingi fikr yo'q." : "\u270D\uFE0F Hali fikr-mulohaza yo'q.";
+  } else {
+    text = [
+      `\u270D\uFE0F <b>So'nggi fikrlar</b> (${offset + 1}\u2013${offset + results.length} / ${total})`,
+      ...results.map((f, i) => `
+<b>${offset + i + 1}.</b> ${esc(f.name || "Anonim")} \xB7 <i>${when(f.created_at)}</i>${f.via === "a" ? " \xB7 <i>admin bot</i>" : ""}
+${esc(String(f.text).slice(0, 1e3))}${String(f.text).length > 1e3 ? "\u2026" : ""}`),
+      "\n\u21A9\uFE0F Javob berish uchun pastdagi tugmani bosing."
+    ].join("\n");
+    rows.push(results.map((f, i) => ({ text: `\u21A9\uFE0F ${offset + i + 1}-ga javob`, callback_data: `fb:r:${f.id}` })));
+  }
+  const nav = [];
+  if (offset > 0) nav.push({ text: "\u2B05\uFE0F Yangiroqlar", callback_data: `fb:p:${Math.max(0, offset - FB_PAGE)}` });
+  if (offset + FB_PAGE < total) nav.push({ text: "Oldingi 3 ta \u27A1\uFE0F", callback_data: `fb:p:${offset + FB_PAGE}` });
+  if (nav.length) rows.push(nav);
+  const body = { chat_id: chatId, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup: { inline_keyboard: rows } };
+  return editId ? atg(env, "editMessageText", { ...body, message_id: editId }) : atg(env, "sendMessage", body);
+}
+async function onFeedbackButton(env, cb) {
+  const [, act, val] = String(cb.data).split(":");
+  const chatId = cb.message.chat.id;
+  if (act === "p") return sendFeedbackPage(env, chatId, val, cb.message.message_id);
+  if (act !== "r" || !/^\d+$/.test(val || "")) return;
+  const D = await db(env);
+  const f = await D.prepare("SELECT chat_id, name, text, via FROM feedback WHERE id = ?").bind(Number(val)).first();
+  if (!f) return atg(env, "sendMessage", { chat_id: chatId, text: "\u231B Bu fikr topilmadi." });
+  const excerpt = String(f.text).slice(0, 200) + (String(f.text).length > 200 ? "\u2026" : "");
+  const r = await atg(env, "sendMessage", { chat_id: chatId, parse_mode: "HTML", text: `\u21A9\uFE0F <b>${esc(f.name || "Anonim")}</b> ga javobingizni yozing:
+<i>\xAB${esc(excerpt)}\xBB</i>`, reply_markup: { force_reply: true, input_field_placeholder: "Javob matni\u2026" } });
+  if (r?.ok && r.result?.message_id) await D.prepare("INSERT OR REPLACE INTO feedback_replies_a (admin_msg_id, chat_id, via, created_at) VALUES (?,?,?,?)").bind(r.result.message_id, f.chat_id, f.via === "a" ? "a" : "s", Date.now()).run();
+}
 var DRAFT_MAX_FILE = 20 * 1024 * 1024;
 var AUD_LANG = [["all", "Hammasi"], ["uz", "UZ"], ["ru", "RU"], ["en", "EN"]];
 var AUD_ROLE = [["all", "Hammasi"], ["student", "Talaba"], ["teacher", "O'qituvchi"]];
+var BC_TTL = [[0, "\u267E Doim"], [1, "1 soat"], [3, "3 soat"], [6, "6 soat"], [12, "12 soat"], [24, "24 soat"]];
+var ttlText = (h) => h ? `\u23F3 ${h} soatdan keyin o'chiriladi` : "\u267E Doim turadi (o'chirilmaydi)";
 var draftGet = async (env) => JSON.parse((await (await db(env)).prepare("SELECT v FROM admin_state WHERE k = 'bc_draft'").first())?.v || "null");
 var draftPut = async (env, d) => (await db(env)).prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('bc_draft', ?)").bind(JSON.stringify(d)).run();
 function draftMedia(msg) {
@@ -2151,7 +2192,7 @@ async function startDraft(env, msg) {
     r = await res.json().catch(() => ({ ok: false }));
   }
   if (!r?.ok || !r.result?.message_id) return say("\u274C Namunani @tdiujadval_bot ga yuborib bo'lmadi. U yerda botni ishga tushirganmisiz (Start)?");
-  const d = { id: Math.random().toString(36).slice(2, 8), src: r.result.message_id, kind: media ? media.field : "text", filter: { lang: "all", role: "all", group: "", scope: "all" }, app: true, invite: true, at: Date.now() };
+  const d = { id: Math.random().toString(36).slice(2, 8), src: r.result.message_id, kind: media ? media.field : "text", filter: { lang: "all", role: "all", group: "", scope: "all" }, app: true, invite: true, ttl: 0, at: Date.now() };
   await draftPut(env, d);
   await refreshDraftPreview(env, d);
   const panel = await draftPanel(env, d);
@@ -2172,6 +2213,7 @@ async function draftPanel(env, d, confirm = false) {
       "",
       `\u{1F4E3} E'lon (${kinds[d.kind] || d.kind}) <b>${n}</b> ta shaxsiy chatga yuboriladi.`,
       `\u{1F465} Til: ${name(AUD_LANG, d.filter.lang)} \xB7 Kim: ${name(AUD_ROLE, d.filter.role)}`,
+      ttlText(d.ttl || 0),
       "\u{1F6AB} Guruhlarga yuborilmaydi.",
       "",
       "Yuborilgach to'xtatib bo'lmaydi \u2014 faqat hali yetib bormaganlarini bekor qilish mumkin."
@@ -2184,10 +2226,12 @@ async function draftPanel(env, d, confirm = false) {
     "\u{1F9EA} Namuna @tdiujadval_bot dagi chatingizga yuborildi \u2014 talabalar aynan shuni ko'radi.",
     "",
     `\u{1F465} Qabul qiluvchilar: <b>${n}</b> ta shaxsiy chat`,
-    `\u{1F518} Ilova va taklif tugmalari: ${d.app || d.invite ? "bor" : "yo'q"}`
+    `\u{1F518} Ilova va taklif tugmalari: ${d.app || d.invite ? "bor" : "yo'q"}`,
+    ttlText(d.ttl || 0)
   ].join("\n"), markup: { inline_keyboard: [
     pick(AUD_LANG, "lang"),
     pick(AUD_ROLE, "role"),
+    ...[BC_TTL.slice(0, 3), BC_TTL.slice(3)].map((row) => row.map(([h, t]) => ({ text: ((d.ttl || 0) === h ? "\u2713 " : "") + t, callback_data: `bc:${d.id}:t:${h}` }))),
     [{ text: `\u{1F518} Tugmalar: ${d.app || d.invite ? "bor \u2713" : "yo'q"}`, callback_data: `bc:${d.id}:btn` }],
     [{ text: "\u27A1\uFE0F Davom etish", callback_data: `bc:${d.id}:ok` }, { text: "\u274C Bekor", callback_data: `bc:${d.id}:x` }]
   ] } };
@@ -2209,6 +2253,7 @@ async function onDraftButton(env, cb) {
     d.app = d.invite = !(d.app || d.invite);
     await refreshDraftPreview(env, d);
   }
+  if (act === "t" && BC_TTL.some((x) => String(x[0]) === val)) d.ttl = Number(val);
   if (act === "go") {
     const D = await db(env);
     const filter = bcFilter(d.filter);
@@ -2222,12 +2267,13 @@ async function onDraftButton(env, cb) {
     }
     const busy = await D.prepare("SELECT id FROM broadcasts WHERE status IN ('queued','sending') LIMIT 1").first();
     if (busy) return edit(`\u23F3 Boshqa e'lon (#${busy.id}) hali yuborilmoqda. U tugagach qayta tasdiqlang.`, { inline_keyboard: [[{ text: "\u{1F504} Qayta urinish", callback_data: `bc:${d.id}:ok` }]] });
-    const payload = { copy: { from_chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src }, kind: d.kind, texts: {}, photo: null, btn: null, app: d.app, invite: d.invite };
+    const payload = { copy: { from_chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src }, kind: d.kind, texts: {}, photo: null, btn: null, app: d.app, invite: d.invite, ttl: d.ttl || 0 };
     const ins = await D.prepare("INSERT INTO broadcasts (created_at, payload, filter, total) VALUES (?, ?, ?, ?) RETURNING id").bind(Date.now(), JSON.stringify(payload), JSON.stringify(filter), n).first();
     d.done = true;
     await draftPut(env, d);
     await dispatchWorkflow(env);
     return edit(`\u2705 Navbatga qo'yildi: <b>#${ins.id}</b>, ${n} ta chat.
+${ttlText(d.ttl || 0)}.
 Taxminan 15 daqiqa ichida yuboriladi. Holatini E'lon oynasida ko'rasiz (u yerda bekor qilish ham mumkin).`, { inline_keyboard: [[{ text: "\u{1F4E3} E'lon oynasi", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] });
   }
   await draftPut(env, d);

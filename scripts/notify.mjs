@@ -325,18 +325,25 @@ async function sendQueuedBroadcast() {
   const bot = await botName();
   console.log(`broadcast #${job.id}: sending`);
   let after = -1e15, cancelled = false, ok = 0, bad = 0;
+  // "⏳ delete after N hours": every delivered copy is noted with its own deletion time (the auto/lessons runs delete it)
+  const ttl = [1, 3, 6, 12, 24].includes(Number(job.payload.ttl)) ? Number(job.payload.ttl) : 0;
   while (!cancelled) {
+    const eph = [];
     const page = await worker(`/internal/broadcast/chats?id=${job.id}&after=${after}&limit=200`);
     if (!page.rows.length) break;
     const done = [], failed = [];
     for (const chat of page.rows) {
       const m = bcMessage(job.payload, chat, { site: SITE_URL, bot });
       const before = removed.length;
-      if (await send(chat.chat_id, m.text, m.markup, job.payload.copy ? null : m.photo, job.payload.copy)) { done.push(chat.chat_id); if (removed.length === before) ok++; else bad++; }
+      if (await send(chat.chat_id, m.text, m.markup, job.payload.copy ? null : m.photo, job.payload.copy)) {
+        done.push(chat.chat_id);
+        if (removed.length === before) { ok++; if (ttl && lastMessageId) eph.push([chat.chat_id, lastMessageId, Date.now() + ttl * 3600e3]); } else bad++;
+      }
       else { failed.push(chat.chat_id); bad++; }
     }
     // chats that blocked the bot count as "not delivered" (failed) but are settled — they are also removed from the bot's list at the end
     const dead = new Set(removed);
+    if (eph.length && !DRY) await worker('/internal/eph/add', { items: eph });
     const r = await worker('/internal/broadcast/progress', { id: job.id, done: done.filter((c) => !dead.has(c)), failed: [...failed, ...done.filter((c) => dead.has(c))] });
     if (r.status === 'cancelled') { cancelled = true; console.log(`broadcast #${job.id}: cancelled by the admin`); }
     if (page.next == null) break;
@@ -355,16 +362,8 @@ async function sendQueuedBroadcast() {
  *     "E:<day>"), so overlapping or repeated runs never send one twice.
  * A class that simply continues the previous one (same subject, teacher and room, right after it) gets no second reminder.
  */
-async function sendLessons(index) {
-  // LESSON_AT = the planned minute (HH:MM, Tashkent) the Worker woke this run for: wait for it (the run is started a few minutes early)
-  const at0 = /^(\d\d):(\d\d)$/.exec(process.env.LESSON_AT || '');
-  if (at0 && !process.env.FAKE_NOW) {
-    const t = nowTk();
-    const wait = ((Number(at0[1]) * 60 + Number(at0[2])) * 60 - (t.getUTCHours() * 3600 + t.getUTCMinutes() * 60 + t.getUTCSeconds())) * 1000;
-    if (wait > 0 && wait < 40 * 60e3) { console.log(`lessons: waiting ${Math.round(wait / 1000)} s for ${process.env.LESSON_AT}`); await sleep(wait + 3000); }
-  }
-  const realNow = process.env.FAKE_NOW ? Number(process.env.FAKE_NOW) : Date.now();
-  // 1. deletions
+/** Deletes the bot's messages whose time is up (lesson reminders, end-of-day messages, announcements sent with "⏳ N hours"). */
+async function deleteDue(realNow = Date.now()) {
   let deleted = 0;
   for (let round = 0; round < 20; round++) {
     const { rows } = await worker(`/internal/eph/due?now=${realNow + 60e3}`);
@@ -377,6 +376,20 @@ async function sendLessons(index) {
     await worker('/internal/eph/done', { items: done });
     if (rows.length < 500) break;
   }
+  return deleted;
+}
+
+async function sendLessons(index) {
+  // LESSON_AT = the planned minute (HH:MM, Tashkent) the Worker woke this run for: wait for it (the run is started a few minutes early)
+  const at0 = /^(\d\d):(\d\d)$/.exec(process.env.LESSON_AT || '');
+  if (at0 && !process.env.FAKE_NOW) {
+    const t = nowTk();
+    const wait = ((Number(at0[1]) * 60 + Number(at0[2])) * 60 - (t.getUTCHours() * 3600 + t.getUTCMinutes() * 60 + t.getUTCSeconds())) * 1000;
+    if (wait > 0 && wait < 40 * 60e3) { console.log(`lessons: waiting ${Math.round(wait / 1000)} s for ${process.env.LESSON_AT}`); await sleep(wait + 3000); }
+  }
+  const realNow = process.env.FAKE_NOW ? Number(process.env.FAKE_NOW) : Date.now();
+  // 1. deletions
+  const deleted = await deleteDue(realNow);
   // 2. sends
   const now = nowTk(realNow);
   const wd = weekday(now);
@@ -466,6 +479,8 @@ async function main() {
       if (failedWeekly) console.log(`auto: weekly timetable — ${failedWeekly} chats to retry`);
     }
     await sendQueuedBroadcast(); // an announcement the admin queued in the Mini App (if any)
+    const gone = await deleteDue(); // announcements whose "⏳ N hours" are up (and any lesson message a lessons run missed)
+    if (gone) console.log(`auto: deleted ${gone} expired messages`);
   } else if (mode === 'lessons') {
     await sendLessons(index);
   } else if (mode === 'broadcast') {

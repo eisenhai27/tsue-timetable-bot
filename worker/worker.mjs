@@ -70,7 +70,8 @@ export default {
 /**
  * The main workflow (EduPage check, evening reminders, announcements): at most every 9 minutes in the day. At night
  * (22:00–05:00 Tashkent) nothing changes on EduPage and nobody needs an instant alert, so it runs once an hour — plus
- * right after a chat's own "tomorrow's classes" time (someone may have set it to 22:30 or 23:00), so that message stays on time.
+ * right after a chat's own "tomorrow's classes" time (someone may have set it to 22:30 or 23:00), so that message stays on time,
+ * and when an announcement is due to be deleted ("⏳ delete after N hours").
  */
 async function timetableTick(env, at) {
   if (!env.GITHUB_PAT || !env.GITHUB_REPO) return;
@@ -78,7 +79,7 @@ async function timetableTick(env, at) {
   const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
   if (at - last < 9 * 60e3) return;
   const h = tashkentNow(at).getUTCHours();
-  if ((h >= 22 || h < 5) && at - last < 60 * 60e3 && !(await reminderDueSince(D, last, at))) return;
+  if ((h >= 22 || h < 5) && at - last < 60 * 60e3 && !(await reminderDueSince(D, last, at)) && !(await D.prepare('SELECT 1 FROM eph WHERE del_at <= ? LIMIT 1').bind(at + 60e3).first())) return;
   await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
   if (!(await dispatchWorkflow(env))) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(last)).run(); // retry next tick
 }
@@ -1062,6 +1063,7 @@ async function onAdminWebhook(request, env) {
     atg(env, 'answerCallbackQuery', { callback_query_id: cb.id });
     if (cb.data === 'adm:stats') await sendStats(env, chatId, cb.message.message_id, true);
     else if (String(cb.data || '').startsWith('bc:')) await onDraftButton(env, cb);
+    else if (String(cb.data || '').startsWith('fb:')) await onFeedbackButton(env, cb);
     return new Response('ok');
   }
   if (!msg) return new Response('ok');
@@ -1087,12 +1089,7 @@ async function onAdminWebhook(request, env) {
     return new Response('ok');
   }
   if (cmd === 'fikrlar') {
-    const { results } = await (await db(env)).prepare('SELECT chat_id, name, text, created_at, via FROM feedback ORDER BY id DESC LIMIT 5').all();
-    if (!results.length) { await atg(env, 'sendMessage', { chat_id: chatId, text: "✍️ Hali fikr-mulohaza yo'q." }); return new Response('ok'); }
-    for (const f of results.reverse()) {
-      const tn = tashkentNow(f.created_at || 0);
-      await forwardFeedback(env, f.chat_id, f.name, f.text, `${ymd(tn).slice(8, 10)}.${ymd(tn).slice(5, 7)} ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())}`, f.via === 'a' ? 'a' : 's');
-    }
+    await sendFeedbackPage(env, chatId, 0);
     return new Response('ok');
   }
   // an answer to feedback: Reply to the forwarded message, or /reply <id> text — delivered by the STUDENT bot
@@ -1119,6 +1116,50 @@ async function onAdminWebhook(request, env) {
   return new Response('ok');
 }
 
+// ---- ✍️ Fikrlar: the last 3 in ONE message (newest first), with "older / newer" paging. Each has a ↩️ button: it posts a short
+// "write your answer" prompt (force_reply), and replying to that prompt goes back to that person — the usual Reply route.
+const FB_PAGE = 3;
+async function sendFeedbackPage(env, chatId, offset = 0, editId = null) {
+  const D = await db(env);
+  offset = Math.max(0, Math.floor(Number(offset) || 0));
+  const [{ results }, cnt] = await Promise.all([
+    D.prepare('SELECT id, chat_id, name, text, created_at, via FROM feedback ORDER BY id DESC LIMIT ? OFFSET ?').bind(FB_PAGE, offset).all(),
+    D.prepare('SELECT COUNT(*) n FROM feedback').first(),
+  ]);
+  const total = cnt?.n || 0;
+  const when = (ms) => { const tn = tashkentNow(ms || 0); return `${ymd(tn).slice(8, 10)}.${ymd(tn).slice(5, 7)} ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())}`; };
+  let text, rows = [];
+  if (!results.length) {
+    text = total ? '✍️ Bundan oldingi fikr yo\'q.' : "✍️ Hali fikr-mulohaza yo'q.";
+  } else {
+    text = [
+      `✍️ <b>So'nggi fikrlar</b> (${offset + 1}–${offset + results.length} / ${total})`,
+      ...results.map((f, i) => `\n<b>${offset + i + 1}.</b> ${esc(f.name || 'Anonim')} · <i>${when(f.created_at)}</i>${f.via === 'a' ? ' · <i>admin bot</i>' : ''}\n${esc(String(f.text).slice(0, 1000))}${String(f.text).length > 1000 ? '…' : ''}`),
+      '\n↩️ Javob berish uchun pastdagi tugmani bosing.',
+    ].join('\n');
+    rows.push(results.map((f, i) => ({ text: `↩️ ${offset + i + 1}-ga javob`, callback_data: `fb:r:${f.id}` })));
+  }
+  const nav = [];
+  if (offset > 0) nav.push({ text: '⬅️ Yangiroqlar', callback_data: `fb:p:${Math.max(0, offset - FB_PAGE)}` });
+  if (offset + FB_PAGE < total) nav.push({ text: 'Oldingi 3 ta ➡️', callback_data: `fb:p:${offset + FB_PAGE}` });
+  if (nav.length) rows.push(nav);
+  const body = { chat_id: chatId, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup: { inline_keyboard: rows } };
+  return editId ? atg(env, 'editMessageText', { ...body, message_id: editId }) : atg(env, 'sendMessage', body);
+}
+
+async function onFeedbackButton(env, cb) {
+  const [, act, val] = String(cb.data).split(':');
+  const chatId = cb.message.chat.id;
+  if (act === 'p') return sendFeedbackPage(env, chatId, val, cb.message.message_id);
+  if (act !== 'r' || !/^\d+$/.test(val || '')) return;
+  const D = await db(env);
+  const f = await D.prepare('SELECT chat_id, name, text, via FROM feedback WHERE id = ?').bind(Number(val)).first();
+  if (!f) return atg(env, 'sendMessage', { chat_id: chatId, text: '⌛ Bu fikr topilmadi.' });
+  const excerpt = String(f.text).slice(0, 200) + (String(f.text).length > 200 ? '…' : '');
+  const r = await atg(env, 'sendMessage', { chat_id: chatId, parse_mode: 'HTML', text: `↩️ <b>${esc(f.name || 'Anonim')}</b> ga javobingizni yozing:\n<i>«${esc(excerpt)}»</i>`, reply_markup: { force_reply: true, input_field_placeholder: 'Javob matni…' } });
+  if (r?.ok && r.result?.message_id) await D.prepare('INSERT OR REPLACE INTO feedback_replies_a (admin_msg_id, chat_id, via, created_at) VALUES (?,?,?,?)').bind(r.result.message_id, f.chat_id, f.via === 'a' ? 'a' : 's', Date.now()).run();
+}
+
 // ---- announcements from the admin bot: send or FORWARD anything (text, photo, video, GIF, file) → a draft.
 // The draft is first copied into the owner's own chat with the STUDENT bot — exactly what students will see (file ids belong to one
 // bot, so media is re-uploaded through the student bot) — then the owner picks the audience and must confirm with the recipient count.
@@ -1126,6 +1167,9 @@ async function onAdminWebhook(request, env) {
 const DRAFT_MAX_FILE = 20 * 1024 * 1024; // Telegram lets a bot download files up to 20 MB
 const AUD_LANG = [['all', 'Hammasi'], ['uz', 'UZ'], ['ru', 'RU'], ['en', 'EN']];
 const AUD_ROLE = [['all', 'Hammasi'], ['student', 'Talaba'], ['teacher', "O'qituvchi"]];
+// how long the announcement stays in the students' chats (hours; 0 = for good). Telegram lets a bot delete its message for 48 h.
+const BC_TTL = [[0, '♾ Doim'], [1, '1 soat'], [3, '3 soat'], [6, '6 soat'], [12, '12 soat'], [24, '24 soat']];
+const ttlText = (h) => (h ? `⏳ ${h} soatdan keyin o'chiriladi` : '♾ Doim turadi (o\'chirilmaydi)');
 const draftGet = async (env) => JSON.parse((await (await db(env)).prepare("SELECT v FROM admin_state WHERE k = 'bc_draft'").first())?.v || 'null');
 const draftPut = async (env, d) => (await db(env)).prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('bc_draft', ?)").bind(JSON.stringify(d)).run();
 
@@ -1166,7 +1210,7 @@ async function startDraft(env, msg) {
     r = await res.json().catch(() => ({ ok: false }));
   }
   if (!r?.ok || !r.result?.message_id) return say("❌ Namunani @tdiujadval_bot ga yuborib bo'lmadi. U yerda botni ishga tushirganmisiz (Start)?");
-  const d = { id: Math.random().toString(36).slice(2, 8), src: r.result.message_id, kind: media ? media.field : 'text', filter: { lang: 'all', role: 'all', group: '', scope: 'all' }, app: true, invite: true, at: Date.now() };
+  const d = { id: Math.random().toString(36).slice(2, 8), src: r.result.message_id, kind: media ? media.field : 'text', filter: { lang: 'all', role: 'all', group: '', scope: 'all' }, app: true, invite: true, ttl: 0, at: Date.now() };
   await draftPut(env, d);
   await refreshDraftPreview(env, d);
   const panel = await draftPanel(env, d);
@@ -1189,6 +1233,7 @@ async function draftPanel(env, d, confirm = false) {
       "⚠️ <b>Tasdiqlang</b>", '',
       `📣 E'lon (${kinds[d.kind] || d.kind}) <b>${n}</b> ta shaxsiy chatga yuboriladi.`,
       `👥 Til: ${name(AUD_LANG, d.filter.lang)} · Kim: ${name(AUD_ROLE, d.filter.role)}`,
+      ttlText(d.ttl || 0),
       "🚫 Guruhlarga yuborilmaydi.", '',
       "Yuborilgach to'xtatib bo'lmaydi — faqat hali yetib bormaganlarini bekor qilish mumkin.",
     ].join('\n'), markup: { inline_keyboard: [[{ text: `✅ Ha, ${n} ta chatga yuborish`, callback_data: `bc:${d.id}:go:${n}` }], [{ text: '↩️ Orqaga', callback_data: `bc:${d.id}:back` }]] } };
@@ -1199,9 +1244,11 @@ async function draftPanel(env, d, confirm = false) {
     "🧪 Namuna @tdiujadval_bot dagi chatingizga yuborildi — talabalar aynan shuni ko'radi.", '',
     `👥 Qabul qiluvchilar: <b>${n}</b> ta shaxsiy chat`,
     `🔘 Ilova va taklif tugmalari: ${d.app || d.invite ? 'bor' : "yo'q"}`,
+    ttlText(d.ttl || 0),
   ].join('\n'), markup: { inline_keyboard: [
     pick(AUD_LANG, 'lang'),
     pick(AUD_ROLE, 'role'),
+    ...[BC_TTL.slice(0, 3), BC_TTL.slice(3)].map((row) => row.map(([h, t]) => ({ text: ((d.ttl || 0) === h ? '✓ ' : '') + t, callback_data: `bc:${d.id}:t:${h}` }))),
     [{ text: `🔘 Tugmalar: ${d.app || d.invite ? 'bor ✓' : "yo'q"}`, callback_data: `bc:${d.id}:btn` }],
     [{ text: '➡️ Davom etish', callback_data: `bc:${d.id}:ok` }, { text: '❌ Bekor', callback_data: `bc:${d.id}:x` }],
   ] } };
@@ -1217,6 +1264,7 @@ async function onDraftButton(env, cb) {
   if (act === 'l' && AUD_LANG.some((x) => x[0] === val)) d.filter.lang = val;
   if (act === 'r' && AUD_ROLE.some((x) => x[0] === val)) d.filter.role = val;
   if (act === 'btn') { d.app = d.invite = !(d.app || d.invite); await refreshDraftPreview(env, d); }
+  if (act === 't' && BC_TTL.some((x) => String(x[0]) === val)) d.ttl = Number(val);
   if (act === 'go') {
     const D = await db(env);
     const filter = bcFilter(d.filter);
@@ -1225,11 +1273,11 @@ async function onDraftButton(env, cb) {
     if (Number(val) !== n) { const p = await draftPanel(env, d, true); return edit(`⚠️ Qabul qiluvchilar soni o'zgardi (${n}). Qayta tasdiqlang.\n\n` + p.text, p.markup); }
     const busy = await D.prepare("SELECT id FROM broadcasts WHERE status IN ('queued','sending') LIMIT 1").first();
     if (busy) return edit(`⏳ Boshqa e'lon (#${busy.id}) hali yuborilmoqda. U tugagach qayta tasdiqlang.`, { inline_keyboard: [[{ text: '🔄 Qayta urinish', callback_data: `bc:${d.id}:ok` }]] });
-    const payload = { copy: { from_chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src }, kind: d.kind, texts: {}, photo: null, btn: null, app: d.app, invite: d.invite };
+    const payload = { copy: { from_chat_id: Number(env.ADMIN_CHAT_ID), message_id: d.src }, kind: d.kind, texts: {}, photo: null, btn: null, app: d.app, invite: d.invite, ttl: d.ttl || 0 };
     const ins = await D.prepare('INSERT INTO broadcasts (created_at, payload, filter, total) VALUES (?, ?, ?, ?) RETURNING id').bind(Date.now(), JSON.stringify(payload), JSON.stringify(filter), n).first();
     d.done = true; await draftPut(env, d);
     await dispatchWorkflow(env);
-    return edit(`✅ Navbatga qo'yildi: <b>#${ins.id}</b>, ${n} ta chat.\nTaxminan 15 daqiqa ichida yuboriladi. Holatini E'lon oynasida ko'rasiz (u yerda bekor qilish ham mumkin).`, { inline_keyboard: [[{ text: "📣 E'lon oynasi", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] });
+    return edit(`✅ Navbatga qo'yildi: <b>#${ins.id}</b>, ${n} ta chat.\n${ttlText(d.ttl || 0)}.\nTaxminan 15 daqiqa ichida yuboriladi. Holatini E'lon oynasida ko'rasiz (u yerda bekor qilish ham mumkin).`, { inline_keyboard: [[{ text: "📣 E'lon oynasi", web_app: { url: `${siteUrl(env)}/#tab=admin` } }]] });
   }
   await draftPut(env, d);
   const p = await draftPanel(env, d, act === 'ok');
