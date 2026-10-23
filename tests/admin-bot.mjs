@@ -176,7 +176,7 @@ check('the same panel cannot queue it twice', viaAdmin(await log()).some((c) => 
   const copies = l.filter((c) => c.method === 'copyMessage');
   check('the sender delivers it as a COPY of the sample (video and all) to every private chat, by the student bot', out.code === 0 && copies.length === n && copies.every((c) => c.bot === TOKEN && c.data.from_chat_id === ADMIN && c.data.message_id === up?.result?.message_id && c.data.chat_id > 0), { out: out.o.slice(-400), copies: copies.length, n });
   check('…with the app / invite buttons', copies.every((c) => (c.data.reply_markup?.inline_keyboard || []).length >= 1));
-  const due = async (ms) => (await (await fetch(`${W}/internal/eph/due?now=${ms}`, { headers: { 'X-Admin-Key': 'secretkey' } })).json()).rows.length;
+  const due = async (ms) => (await (await fetch(`${W}/internal/bcdel/due?now=${ms}`, { headers: { 'X-Admin-Key': 'secretkey' } })).json()).rows.length;
   check('⏳ every delivered copy is set to be deleted after 3 hours (not before)', (await due(Date.now() + 2.9 * 3600e3)) === 0 && (await due(Date.now() + 3.1 * 3600e3)) === n, { early: await due(Date.now() + 2.9 * 3600e3), late: await due(Date.now() + 3.1 * 3600e3), n });
 }
 await reset(); await adminBot(msg('Ertaga soat 10 da uchrashuv bor', me, meU, { entities: [{ type: 'bold', offset: 0, length: 6 }] }));

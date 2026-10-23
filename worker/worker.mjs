@@ -79,9 +79,19 @@ async function timetableTick(env, at) {
   const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
   if (at - last < 9 * 60e3) return;
   const h = tashkentNow(at).getUTCHours();
-  if ((h >= 22 || h < 5) && at - last < 60 * 60e3 && !(await reminderDueSince(D, last, at)) && !(await D.prepare('SELECT 1 FROM eph WHERE del_at <= ? LIMIT 1').bind(at + 60e3).first())) return;
+  if ((h >= 22 || h < 5) && at - last < 60 * 60e3 && !(await reminderDueSince(D, last, at)) && !(await somethingToDelete(D, at + 60e3))) return;
   await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
   if (!(await dispatchWorkflow(env))) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(last)).run(); // retry next tick
+}
+
+/** Is any message due to be deleted by now (end-of-day messages, "⏳ N hours" announcements)? Three indexed lookups. */
+async function somethingToDelete(D, now) {
+  const [a, b, c] = await D.batch([
+    D.prepare("SELECT 1 x FROM admin_state WHERE k >= 'pend:' AND k <= ? LIMIT 1").bind(`pend:${String(Math.floor(now)).padStart(15, '0')}:~`),
+    D.prepare('SELECT 1 x FROM broadcasts WHERE del_at IS NOT NULL AND del_at <= ? AND purged_at IS NULL LIMIT 1').bind(now),
+    D.prepare('SELECT 1 x FROM eph WHERE del_at <= ? LIMIT 1').bind(now),
+  ]);
+  return [a, b, c].some((r) => r.results?.length);
 }
 
 /** Does any chat's daily reminder time (remind_at, minutes after midnight in Tashkent) fall after `fromMs` and up to `toMs`? */
@@ -325,7 +335,15 @@ async function getEntity(env, row) {
 // ---------------------------------------------------------------- database
 
 let schemaReady = false;
+// Bump when the tables/columns below change. A fresh Worker instance (~900 a day) then only reads this one row instead of
+// re-checking every table — that check used to be more than half of all the database reads.
+const SCHEMA_VERSION = '2026-10-24a';
 async function db(env) {
+  if (!schemaReady) {
+    try {
+      if ((await env.DB.prepare("SELECT v FROM admin_state WHERE k = 'schema'").first())?.v === SCHEMA_VERSION) schemaReady = true;
+    } catch {} // a brand-new database: no admin_state table yet
+  }
   if (!schemaReady) {
     await env.DB.batch([
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS chats (
@@ -433,6 +451,9 @@ async function db(env) {
       if (!bcols.some((c) => c.name === 'msg_id')) await addColumn('ALTER TABLE broadcast_done ADD COLUMN msg_id INTEGER');
       const bbcols = (await env.DB.prepare('PRAGMA table_info(broadcasts)').all()).results || [];
       if (!bbcols.some((c) => c.name === 'deleted_at')) await addColumn('ALTER TABLE broadcasts ADD COLUMN deleted_at INTEGER');
+      // del_at = when its copies are to be deleted ("⏳ N hours", or 🗑 = now); purged_at = when that was done
+      if (!bbcols.some((c) => c.name === 'del_at')) await addColumn('ALTER TABLE broadcasts ADD COLUMN del_at INTEGER');
+      if (!bbcols.some((c) => c.name === 'purged_at')) await addColumn('ALTER TABLE broadcasts ADD COLUMN purged_at INTEGER');
     }
     {
       // feedback.via: 'a' = written to the admin bot by someone who found it (answered there), else the student bot
@@ -444,6 +465,10 @@ async function db(env) {
     if (!cols.some((c) => c.name === 'lr')) await addColumn('ALTER TABLE chats ADD COLUMN lr INTEGER NOT NULL DEFAULT 1', 'UPDATE chats SET lr = 0 WHERE alerts = 0');
     if (!cols.some((c) => c.name === 'de')) await addColumn('ALTER TABLE chats ADD COLUMN de INTEGER NOT NULL DEFAULT 1', 'UPDATE chats SET de = 0 WHERE alerts = 0');
     if (!cols.some((c) => c.name === 'lri')) await addColumn('ALTER TABLE chats ADD COLUMN lri INTEGER NOT NULL DEFAULT 0');
+    // lr_tag = the last lesson reminder this chat got ('YYYY-MM-DD:start'), de_day = the day of its last end-of-day message:
+    // claimed right in the chat's own row (one write per message, nothing to clean up later)
+    if (!cols.some((c) => c.name === 'lr_tag')) await addColumn('ALTER TABLE chats ADD COLUMN lr_tag TEXT');
+    if (!cols.some((c) => c.name === 'de_day')) await addColumn('ALTER TABLE chats ADD COLUMN de_day TEXT');
     if (!cols.some((c) => c.name === 'kbv')) {
       // kbv = which reply keyboard this chat has been given (see KB_VERSION)
       await addColumn('ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0');
@@ -460,6 +485,7 @@ async function db(env) {
     await env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)').run();
     // usage keys are a short fixed vocabulary now (see track()); drop the long junk keys anyone could have created before that
     await env.DB.prepare('DELETE FROM usage WHERE length(k) > 30').run();
+    await env.DB.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('schema', ?)").bind(SCHEMA_VERSION).run();
     schemaReady = true;
   }
   return env.DB;
@@ -729,10 +755,9 @@ async function bcDeleteNow(env, D, id) {
   const now = Date.now();
   if (now - b.created_at > BC_DELETE_WINDOW) return { ok: false, error: 'too old' };
   await D.prepare("UPDATE broadcasts SET status = 'cancelled', finished_at = ? WHERE id = ? AND status IN ('queued','sending')").bind(now, id).run(); // stop the rest
-  const ins = await D.prepare('INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) SELECT chat_id, msg_id, ? FROM broadcast_done WHERE bid = ? AND ok = 1 AND msg_id IS NOT NULL').bind(now, id).run();
-  const n = ins.meta?.changes || 0;
+  const n = (await D.prepare('SELECT COUNT(*) n FROM broadcast_done WHERE bid = ? AND ok = 1 AND msg_id IS NOT NULL').bind(id).first())?.n || 0;
   if (!n && b.status === 'done') return { ok: false, error: 'no ids' }; // sent before copies were noted: nothing to find
-  await D.prepare('UPDATE broadcasts SET deleted_at = ? WHERE id = ?').bind(now, id).run();
+  await D.prepare('UPDATE broadcasts SET deleted_at = ?, del_at = ?, purged_at = NULL WHERE id = ?').bind(now, now, id).run();
   const woke = await dispatchWorkflow(env, 'lessons.yml', { at: '' }); // the small workflow: starts in seconds, deletes first
   return { ok: true, n, woke };
 }
@@ -909,6 +934,75 @@ async function onInternal(request, url, env) {
     return new Response(res.body, { status: res.status, headers: { 'content-type': res.headers.get('content-type') || 'application/json' } });
   }
   // ---- lesson reminders / end-of-day messages, for the Action (scripts/notify.mjs lessons)
+  if (url.pathname === '/internal/lclaim2' && request.method === 'POST') {
+    // Claims straight in the chat's own row: one write per message, nothing left behind to clean up.
+    //  kind 'lr': tag 'YYYY-MM-DD:<start>' (a class's reminder) → chats.lr_tag (and lri = 1: the first reminder's intro is done)
+    //  kind 'de': tag 'YYYY-MM-DD' (the end-of-day message) → chats.de_day
+    const body = await request.json().catch(() => null);
+    const kind = body?.kind, tag = String(body?.tag || '');
+    const okTag = kind === 'lr' ? /^\d{4}-\d\d-\d\d:\d{1,4}$/.test(tag) : kind === 'de' ? /^\d{4}-\d\d-\d\d$/.test(tag) : false;
+    const ids = (Array.isArray(body?.ids) ? body.ids : []).filter(Number.isSafeInteger).slice(0, 5000);
+    if (!okTag || !ids.length) return json({ claimed: [] });
+    const col = kind === 'lr' ? 'lr_tag' : 'de_day';
+    const set = kind === 'lr' ? 'lr_tag = ?, lri = 1' : 'de_day = ?';
+    const stmts = [];
+    for (let i = 0; i < ids.length; i += 90) {
+      const part = ids.slice(i, i + 90);
+      stmts.push(D.prepare(`UPDATE chats SET ${set} WHERE chat_id IN (${part.map(() => '?').join(',')}) AND (${col} IS NULL OR ${col} != ?) RETURNING chat_id`).bind(tag, ...part, tag));
+    }
+    const res = await D.batch(stmts);
+    return json({ claimed: res.flatMap((r) => (r.results || []).map((x) => x.chat_id)) });
+  }
+  // Messages to delete later (lesson reminders, end-of-day messages) are kept as a few JSON lists in admin_state, not one row
+  // each: "pend:<earliest time, 15 digits>:<random>" → [[chat_id, message_id, delete_at], …]. Writing one list is one row.
+  if (url.pathname === '/internal/pend/add' && request.method === 'POST') {
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => Array.isArray(x) && x.length === 3 && x.every(Number.isSafeInteger)).slice(0, 20000);
+    const stmts = [];
+    for (let i = 0; i < items.length; i += 1500) {
+      const part = items.slice(i, i + 1500);
+      const first = Math.min(...part.map((x) => x[2]));
+      stmts.push(D.prepare('INSERT INTO admin_state (k, v) VALUES (?, ?)').bind(`pend:${String(first).padStart(15, '0')}:${crypto.randomUUID().slice(0, 8)}`, JSON.stringify(part)));
+    }
+    if (stmts.length) await D.batch(stmts);
+    return json({ ok: true, lists: stmts.length });
+  }
+  if (url.pathname === '/internal/pend/due') {
+    const now = Number(url.searchParams.get('now') || Date.now());
+    // only the lists that hold something already due (their key starts with their earliest time)
+    const { results } = await D.prepare("SELECT k, v FROM admin_state WHERE k >= 'pend:' AND k <= ? ORDER BY k LIMIT 50").bind(`pend:${String(Math.floor(now)).padStart(15, '0')}:~`).all();
+    return json({ rows: results.map((r) => ({ k: r.k, items: JSON.parse(r.v) })) });
+  }
+  if (url.pathname === '/internal/pend/done' && request.method === 'POST') {
+    // each list handed back with what is left in it (empty = drop the list)
+    const body = await request.json().catch(() => null);
+    const rows = (Array.isArray(body?.rows) ? body.rows : []).filter((r) => r && /^pend:\d{15}:[\w-]{1,12}$/.test(String(r.k)) && Array.isArray(r.keep)).slice(0, 50);
+    const stmts = [];
+    for (const r of rows) {
+      const keep = r.keep.filter((x) => Array.isArray(x) && x.length === 3 && x.every(Number.isSafeInteger));
+      stmts.push(D.prepare('DELETE FROM admin_state WHERE k = ?').bind(r.k));
+      if (keep.length) stmts.push(D.prepare('INSERT OR REPLACE INTO admin_state (k, v) VALUES (?, ?)').bind(`pend:${String(Math.min(...keep.map((x) => x[2]))).padStart(15, '0')}:${String(r.k).split(':')[2]}`, JSON.stringify(keep)));
+    }
+    if (stmts.length) await D.batch(stmts);
+    return json({ ok: true });
+  }
+  // ---- announcements to delete ("⏳ N hours" is up, or 🗑): the copies are read straight from broadcast_done (no extra rows)
+  if (url.pathname === '/internal/bcdel/due') {
+    const now = Number(url.searchParams.get('now') || Date.now());
+    const b = await D.prepare('SELECT id FROM broadcasts WHERE del_at IS NOT NULL AND del_at <= ? AND purged_at IS NULL ORDER BY del_at LIMIT 1').bind(now).first();
+    if (!b) return json({ bid: null, rows: [] });
+    const after = Number(url.searchParams.get('after') || -1e15);
+    const { results } = await D.prepare('SELECT chat_id, msg_id FROM broadcast_done WHERE bid = ? AND ok = 1 AND msg_id IS NOT NULL AND chat_id > ? ORDER BY chat_id LIMIT 1000').bind(b.id, after).all();
+    return json({ bid: b.id, rows: results, next: results.length === 1000 ? results[results.length - 1].chat_id : null });
+  }
+  if (url.pathname === '/internal/bcdel/done' && request.method === 'POST') {
+    const body = await request.json().catch(() => null);
+    const id = Number(body?.bid);
+    if (!Number.isSafeInteger(id)) return json({ error: 'bad request' }, 400);
+    await D.prepare('UPDATE broadcasts SET purged_at = ?, deleted_at = COALESCE(deleted_at, ?) WHERE id = ?').bind(Date.now(), Date.now(), id).run();
+    return json({ ok: true });
+  }
+  // (older senders: one claim row per message; kept so a run started before an update still works)
   if (url.pathname === '/internal/lclaim' && request.method === 'POST') {
     // one atomic claim per (tag, chat): "L:<day>:<start>" = the reminder of one class, "E:<day>" = the end-of-day message
     const body = await request.json().catch(() => null);
@@ -943,7 +1037,10 @@ async function onInternal(request, url, env) {
   if (url.pathname === '/internal/broadcast/next') {
     // hand out one job under a 10-minute lease: a crashed run's job is picked up again, two runs never work on one at once
     const now = Date.now();
-    const row = await D.prepare("UPDATE broadcasts SET status = 'sending', lease_until = ? WHERE id = (SELECT id FROM broadcasts WHERE status = 'queued' OR (status = 'sending' AND lease_until < ?) ORDER BY id LIMIT 1) RETURNING id, payload, filter").bind(now + 10 * 60e3, now).first();
+    const row = await D.prepare("UPDATE broadcasts SET status = 'sending', lease_until = ? WHERE id = (SELECT id FROM broadcasts WHERE status = 'queued' OR (status = 'sending' AND lease_until < ?) ORDER BY id LIMIT 1) RETURNING id, payload, filter, del_at").bind(now + 10 * 60e3, now).first();
+    // "⏳ N hours": counted from when the sending starts (set once; a resumed job keeps its time)
+    const ttl = row ? Number(JSON.parse(row.payload).ttl) || 0 : 0;
+    if (row && ttl && !row.del_at) await D.prepare('UPDATE broadcasts SET del_at = ? WHERE id = ?').bind(now + ttl * 3600e3, row.id).run();
     return json({ job: row ? { id: row.id, payload: JSON.parse(row.payload), filter: JSON.parse(row.filter) } : null });
   }
   if (url.pathname === '/internal/broadcast/chats') {
@@ -966,7 +1063,7 @@ async function onInternal(request, url, env) {
     const gone = (await D.prepare('SELECT deleted_at FROM broadcasts WHERE id = ?').bind(id).first())?.deleted_at; // 🗑 pressed while sending
     const stmts = [
       ...ids(body.done).map((c) => D.prepare('INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok, msg_id) VALUES (?, ?, 1, ?)').bind(id, c, msg.get(c) ?? null)),
-      ...(gone ? ids(body.done).filter((c) => msg.has(c)).map((c) => D.prepare('INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) VALUES (?, ?, ?)').bind(c, msg.get(c), Date.now())) : []),
+      ...(gone && msg.size ? [D.prepare('UPDATE broadcasts SET purged_at = NULL WHERE id = ?').bind(id)] : []), // these copies need deleting too
       ...ids(body.failed).map((c) => D.prepare('INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok) VALUES (?, ?, 0)').bind(id, c)),
       D.prepare("UPDATE broadcasts SET sent = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 1), failed = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 0), lease_until = ?2 WHERE id = ?1").bind(id, Date.now() + 10 * 60e3),
     ];
@@ -1360,18 +1457,17 @@ async function onDraftButton(env, cb) {
   return edit(p.text, p.markup);
 }
 
-/** True when this update id was seen before (Telegram resends updates it thinks were not answered in time). Never throws. */
+/**
+ * True when this update id was seen before (Telegram resends an update it thinks was not answered in time). Kept in memory:
+ * a resend comes within seconds, to the same place, and the bot always answers fast — so no database write for every message.
+ */
+const seenUpdates = new Set();
 async function alreadyHandled(env, id) {
   if (!Number.isSafeInteger(id)) return false;
-  try {
-    const D = await db(env);
-    const r = await D.prepare('INSERT OR IGNORE INTO updates (update_id, at) VALUES (?, ?)').bind(id, Date.now()).run();
-    if (Math.random() < 0.02) await D.prepare('DELETE FROM updates WHERE at < ?').bind(Date.now() - 2 * 86400000).run();
-    return r.meta?.changes === 0;
-  } catch (e) {
-    console.warn('dedupe', e?.message);
-    return false;
-  }
+  if (seenUpdates.has(id)) return true;
+  seenUpdates.add(id);
+  if (seenUpdates.size > 3000) for (const x of [...seenUpdates].slice(0, 1000)) seenUpdates.delete(x);
+  return false;
 }
 
 /** Activity for the admin's /stats: when each chat last used the bot + a per-day count of every action. Never throws. */
@@ -1391,12 +1487,33 @@ async function track(env, update) {
     if (!k) return; // ordinary group chatter (the bot is an admin there and sees every message) is not counted
     const now = Date.now();
     const D = await db(env);
-    await D.batch([
-      D.prepare('UPDATE chats SET last_seen = ? WHERE chat_id = ? AND (last_seen IS NULL OR last_seen < ?)').bind(now, chat.id, now - 600000),
-      D.prepare('INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1').bind(ymd(tashkentNow(now)), k),
-    ]);
+    // "active today" needs one mark a day at most: refresh last_seen only when it is from before today (Tashkent) or 3+ hours old
+    const tn = tashkentNow(now), today0 = Date.UTC(tn.getUTCFullYear(), tn.getUTCMonth(), tn.getUTCDate()) - (tn.getTime() - now);
+    if (!seenChats.has(chat.id) || seenChats.get(chat.id) < Math.max(today0, now - 3 * 3600e3)) {
+      await D.prepare('UPDATE chats SET last_seen = ? WHERE chat_id = ? AND (last_seen IS NULL OR last_seen < ?)').bind(now, chat.id, Math.max(today0, now - 3 * 3600e3)).run();
+      seenChats.set(chat.id, now);
+      if (seenChats.size > 20000) seenChats.clear();
+    }
+    // usage counters are added up in memory and written together (one row per counter, at most about once a minute)
+    const key = `${ymd(tn)}|${k}`;
+    usageBuf.set(key, (usageBuf.get(key) || 0) + 1);
+    if (now - usageFlushedAt > 60e3 || usageBuf.size > 20) await flushUsage(env);
   } catch (e) {
     console.warn('track', e?.message);
+  }
+}
+const seenChats = new Map(); // chat → when this Worker instance last marked it as seen
+const usageBuf = new Map(); // 'YYYY-MM-DD|key' → count not yet written
+let usageFlushedAt = Date.now();
+async function flushUsage(env) {
+  if (!usageBuf.size) return;
+  const items = [...usageBuf]; usageBuf.clear(); usageFlushedAt = Date.now();
+  try {
+    const D = await db(env);
+    await D.batch(items.map(([dk, n]) => { const [day, k] = dk.split('|'); return D.prepare('INSERT INTO usage (day, k, n) VALUES (?, ?, ?) ON CONFLICT(day, k) DO UPDATE SET n = n + excluded.n').bind(day, k, n); }));
+  } catch (e) {
+    for (const [dk, n] of items) usageBuf.set(dk, (usageBuf.get(dk) || 0) + n); // try again next time
+    console.warn('usage flush', e?.message);
   }
 }
 
@@ -1410,6 +1527,7 @@ const USAGE_NAMES = {
 
 /** The admin's statistics message (only ever sent to ADMIN_CHAT_ID). editId = refresh an earlier one in place. */
 async function sendStats(env, chatId, editId, viaAdminBot = false) {
+  await flushUsage(env); // this instance's latest counts
   const D = await db(env);
   const now = Date.now();
   const tn = tashkentNow(now);

@@ -186,7 +186,8 @@ st = (await api(me, { op: 'status' })).list[0];
 check('status after the resumed run: done, 3 in total', st.id === job3 && st.status === 'done' && st.sent === 3, st);
 
 // ---- 🗑 deleting a sent announcement: every copy that was noted goes to the deleter now; the one sent before (no id) is skipped
-const dueNow = async () => (await internal(`/internal/eph/due?now=${Date.now() + 60e3}`)).rows;
+const dueAt = async (ms) => { const j = await internal(`/internal/bcdel/due?now=${ms}`); return j.bid ? j.rows.map((x) => ({ ...x, bid: j.bid })) : []; };
+const dueNow = () => dueAt(Date.now() + 60e3);
 check('the sender noted the copies it delivered (status: deletable, 2 known copies)', st.deletable === true && st.ids === 2, st);
 r = await api(me, { op: 'delete', id: job3 });
 let rows = await dueNow();
@@ -195,12 +196,12 @@ st = (await api(me, { op: 'status' })).list[0];
 check('…the list shows it as deleted, no 🗑 any more', st.deleted_at && !st.deletable, st);
 r = await api(me, { op: 'delete', id: job3 });
 check('…deleting twice is refused', !r.ok && r.error === 'already', r);
-await internal('/internal/eph/done', { items: rows.map((x) => [x.chat_id, x.msg_id]) });
+await internal('/internal/bcdel/done', { bid: rows[0]?.bid });
 // ⏳ chosen in the Mini App: each copy is set to go after that many hours
 await api(me, { op: 'test', payload: { texts: { uz: 'Vaqtinchalik' }, ttl: 6 }, filter });
 r = await api(me, { op: 'send', payload: { texts: { uz: 'Vaqtinchalik' }, ttl: 6 }, filter, confirm: 3 });
 await send();
-const at = async (h) => (await internal(`/internal/eph/due?now=${Date.now() + h * 3600e3}`)).rows.length;
+const at = async (h) => (await dueAt(Date.now() + h * 3600e3)).length;
 check('⏳ 6 hours (Mini App): the copies go after 6 hours, not before', (await at(5.9)) === 0 && (await at(6.1)) === 3, { early: await at(5.9), late: await at(6.1) });
 st = (await api(me, { op: 'status' })).list[0];
 check('…and the list says so', st.ttl === 6, st);

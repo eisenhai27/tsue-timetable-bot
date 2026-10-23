@@ -1113,9 +1113,17 @@ async function timetableTick(env, at) {
   const last = Number((await D.prepare("SELECT v FROM admin_state WHERE k = 'tt_tick'").first())?.v || 0);
   if (at - last < 9 * 6e4) return;
   const h = tashkentNow(at).getUTCHours();
-  if ((h >= 22 || h < 5) && at - last < 60 * 6e4 && !await reminderDueSince(D, last, at) && !await D.prepare("SELECT 1 FROM eph WHERE del_at <= ? LIMIT 1").bind(at + 6e4).first()) return;
+  if ((h >= 22 || h < 5) && at - last < 60 * 6e4 && !await reminderDueSince(D, last, at) && !await somethingToDelete(D, at + 6e4)) return;
   await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(at)).run();
   if (!await dispatchWorkflow(env)) await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tt_tick', ?)").bind(String(last)).run();
+}
+async function somethingToDelete(D, now) {
+  const [a, b, c] = await D.batch([
+    D.prepare("SELECT 1 x FROM admin_state WHERE k >= 'pend:' AND k <= ? LIMIT 1").bind(`pend:${String(Math.floor(now)).padStart(15, "0")}:~`),
+    D.prepare("SELECT 1 x FROM broadcasts WHERE del_at IS NOT NULL AND del_at <= ? AND purged_at IS NULL LIMIT 1").bind(now),
+    D.prepare("SELECT 1 x FROM eph WHERE del_at <= ? LIMIT 1").bind(now)
+  ]);
+  return [a, b, c].some((r) => r.results?.length);
 }
 async function reminderDueSince(D, fromMs, toMs) {
   const m = (ms) => {
@@ -1321,7 +1329,14 @@ async function getEntity(env, row) {
   return t ? { ...t, kind: "t" } : null;
 }
 var schemaReady = false;
+var SCHEMA_VERSION = "2026-10-24a";
 async function db(env) {
+  if (!schemaReady) {
+    try {
+      if ((await env.DB.prepare("SELECT v FROM admin_state WHERE k = 'schema'").first())?.v === SCHEMA_VERSION) schemaReady = true;
+    } catch {
+    }
+  }
   if (!schemaReady) {
     await env.DB.batch([
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS chats (
@@ -1423,6 +1438,8 @@ async function db(env) {
       if (!bcols.some((c) => c.name === "msg_id")) await addColumn("ALTER TABLE broadcast_done ADD COLUMN msg_id INTEGER");
       const bbcols = (await env.DB.prepare("PRAGMA table_info(broadcasts)").all()).results || [];
       if (!bbcols.some((c) => c.name === "deleted_at")) await addColumn("ALTER TABLE broadcasts ADD COLUMN deleted_at INTEGER");
+      if (!bbcols.some((c) => c.name === "del_at")) await addColumn("ALTER TABLE broadcasts ADD COLUMN del_at INTEGER");
+      if (!bbcols.some((c) => c.name === "purged_at")) await addColumn("ALTER TABLE broadcasts ADD COLUMN purged_at INTEGER");
     }
     {
       const fcols = (await env.DB.prepare("PRAGMA table_info(feedback)").all()).results || [];
@@ -1431,6 +1448,8 @@ async function db(env) {
     if (!cols.some((c) => c.name === "lr")) await addColumn("ALTER TABLE chats ADD COLUMN lr INTEGER NOT NULL DEFAULT 1", "UPDATE chats SET lr = 0 WHERE alerts = 0");
     if (!cols.some((c) => c.name === "de")) await addColumn("ALTER TABLE chats ADD COLUMN de INTEGER NOT NULL DEFAULT 1", "UPDATE chats SET de = 0 WHERE alerts = 0");
     if (!cols.some((c) => c.name === "lri")) await addColumn("ALTER TABLE chats ADD COLUMN lri INTEGER NOT NULL DEFAULT 0");
+    if (!cols.some((c) => c.name === "lr_tag")) await addColumn("ALTER TABLE chats ADD COLUMN lr_tag TEXT");
+    if (!cols.some((c) => c.name === "de_day")) await addColumn("ALTER TABLE chats ADD COLUMN de_day TEXT");
     if (!cols.some((c) => c.name === "kbv")) {
       await addColumn("ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0");
     }
@@ -1442,6 +1461,7 @@ async function db(env) {
     }
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_chats_remind ON chats(remind_at)").run();
     await env.DB.prepare("DELETE FROM usage WHERE length(k) > 30").run();
+    await env.DB.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('schema', ?)").bind(SCHEMA_VERSION).run();
     schemaReady = true;
   }
   return env.DB;
@@ -1709,10 +1729,9 @@ async function bcDeleteNow(env, D, id) {
   const now = Date.now();
   if (now - b.created_at > BC_DELETE_WINDOW) return { ok: false, error: "too old" };
   await D.prepare("UPDATE broadcasts SET status = 'cancelled', finished_at = ? WHERE id = ? AND status IN ('queued','sending')").bind(now, id).run();
-  const ins = await D.prepare("INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) SELECT chat_id, msg_id, ? FROM broadcast_done WHERE bid = ? AND ok = 1 AND msg_id IS NOT NULL").bind(now, id).run();
-  const n = ins.meta?.changes || 0;
+  const n = (await D.prepare("SELECT COUNT(*) n FROM broadcast_done WHERE bid = ? AND ok = 1 AND msg_id IS NOT NULL").bind(id).first())?.n || 0;
   if (!n && b.status === "done") return { ok: false, error: "no ids" };
-  await D.prepare("UPDATE broadcasts SET deleted_at = ? WHERE id = ?").bind(now, id).run();
+  await D.prepare("UPDATE broadcasts SET deleted_at = ?, del_at = ?, purged_at = NULL WHERE id = ?").bind(now, now, id).run();
   const woke = await dispatchWorkflow(env, "lessons.yml", { at: "" });
   return { ok: true, n, woke };
 }
@@ -1869,6 +1888,66 @@ async function onInternal(request, url, env) {
     });
     return new Response(res.body, { status: res.status, headers: { "content-type": res.headers.get("content-type") || "application/json" } });
   }
+  if (url.pathname === "/internal/lclaim2" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const kind = body?.kind, tag = String(body?.tag || "");
+    const okTag = kind === "lr" ? /^\d{4}-\d\d-\d\d:\d{1,4}$/.test(tag) : kind === "de" ? /^\d{4}-\d\d-\d\d$/.test(tag) : false;
+    const ids = (Array.isArray(body?.ids) ? body.ids : []).filter(Number.isSafeInteger).slice(0, 5e3);
+    if (!okTag || !ids.length) return json({ claimed: [] });
+    const col = kind === "lr" ? "lr_tag" : "de_day";
+    const set = kind === "lr" ? "lr_tag = ?, lri = 1" : "de_day = ?";
+    const stmts = [];
+    for (let i = 0; i < ids.length; i += 90) {
+      const part = ids.slice(i, i + 90);
+      stmts.push(D.prepare(`UPDATE chats SET ${set} WHERE chat_id IN (${part.map(() => "?").join(",")}) AND (${col} IS NULL OR ${col} != ?) RETURNING chat_id`).bind(tag, ...part, tag));
+    }
+    const res = await D.batch(stmts);
+    return json({ claimed: res.flatMap((r) => (r.results || []).map((x) => x.chat_id)) });
+  }
+  if (url.pathname === "/internal/pend/add" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => Array.isArray(x) && x.length === 3 && x.every(Number.isSafeInteger)).slice(0, 2e4);
+    const stmts = [];
+    for (let i = 0; i < items.length; i += 1500) {
+      const part = items.slice(i, i + 1500);
+      const first = Math.min(...part.map((x) => x[2]));
+      stmts.push(D.prepare("INSERT INTO admin_state (k, v) VALUES (?, ?)").bind(`pend:${String(first).padStart(15, "0")}:${crypto.randomUUID().slice(0, 8)}`, JSON.stringify(part)));
+    }
+    if (stmts.length) await D.batch(stmts);
+    return json({ ok: true, lists: stmts.length });
+  }
+  if (url.pathname === "/internal/pend/due") {
+    const now = Number(url.searchParams.get("now") || Date.now());
+    const { results } = await D.prepare("SELECT k, v FROM admin_state WHERE k >= 'pend:' AND k <= ? ORDER BY k LIMIT 50").bind(`pend:${String(Math.floor(now)).padStart(15, "0")}:~`).all();
+    return json({ rows: results.map((r) => ({ k: r.k, items: JSON.parse(r.v) })) });
+  }
+  if (url.pathname === "/internal/pend/done" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const rows = (Array.isArray(body?.rows) ? body.rows : []).filter((r) => r && /^pend:\d{15}:[\w-]{1,12}$/.test(String(r.k)) && Array.isArray(r.keep)).slice(0, 50);
+    const stmts = [];
+    for (const r of rows) {
+      const keep = r.keep.filter((x) => Array.isArray(x) && x.length === 3 && x.every(Number.isSafeInteger));
+      stmts.push(D.prepare("DELETE FROM admin_state WHERE k = ?").bind(r.k));
+      if (keep.length) stmts.push(D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES (?, ?)").bind(`pend:${String(Math.min(...keep.map((x) => x[2]))).padStart(15, "0")}:${String(r.k).split(":")[2]}`, JSON.stringify(keep)));
+    }
+    if (stmts.length) await D.batch(stmts);
+    return json({ ok: true });
+  }
+  if (url.pathname === "/internal/bcdel/due") {
+    const now = Number(url.searchParams.get("now") || Date.now());
+    const b = await D.prepare("SELECT id FROM broadcasts WHERE del_at IS NOT NULL AND del_at <= ? AND purged_at IS NULL ORDER BY del_at LIMIT 1").bind(now).first();
+    if (!b) return json({ bid: null, rows: [] });
+    const after = Number(url.searchParams.get("after") || -1e15);
+    const { results } = await D.prepare("SELECT chat_id, msg_id FROM broadcast_done WHERE bid = ? AND ok = 1 AND msg_id IS NOT NULL AND chat_id > ? ORDER BY chat_id LIMIT 1000").bind(b.id, after).all();
+    return json({ bid: b.id, rows: results, next: results.length === 1e3 ? results[results.length - 1].chat_id : null });
+  }
+  if (url.pathname === "/internal/bcdel/done" && request.method === "POST") {
+    const body = await request.json().catch(() => null);
+    const id = Number(body?.bid);
+    if (!Number.isSafeInteger(id)) return json({ error: "bad request" }, 400);
+    await D.prepare("UPDATE broadcasts SET purged_at = ?, deleted_at = COALESCE(deleted_at, ?) WHERE id = ?").bind(Date.now(), Date.now(), id).run();
+    return json({ ok: true });
+  }
   if (url.pathname === "/internal/lclaim" && request.method === "POST") {
     const body = await request.json().catch(() => null);
     const items = (Array.isArray(body?.items) ? body.items : []).filter((x) => x && /^[LE]:\d{4}-\d\d-\d\d(:\d{1,4})?$/.test(String(x.tag)) && Number.isSafeInteger(x.chat_id)).slice(0, 1e3);
@@ -1903,7 +1982,9 @@ async function onInternal(request, url, env) {
   }
   if (url.pathname === "/internal/broadcast/next") {
     const now = Date.now();
-    const row = await D.prepare("UPDATE broadcasts SET status = 'sending', lease_until = ? WHERE id = (SELECT id FROM broadcasts WHERE status = 'queued' OR (status = 'sending' AND lease_until < ?) ORDER BY id LIMIT 1) RETURNING id, payload, filter").bind(now + 10 * 6e4, now).first();
+    const row = await D.prepare("UPDATE broadcasts SET status = 'sending', lease_until = ? WHERE id = (SELECT id FROM broadcasts WHERE status = 'queued' OR (status = 'sending' AND lease_until < ?) ORDER BY id LIMIT 1) RETURNING id, payload, filter, del_at").bind(now + 10 * 6e4, now).first();
+    const ttl = row ? Number(JSON.parse(row.payload).ttl) || 0 : 0;
+    if (row && ttl && !row.del_at) await D.prepare("UPDATE broadcasts SET del_at = ? WHERE id = ?").bind(now + ttl * 36e5, row.id).run();
     return json({ job: row ? { id: row.id, payload: JSON.parse(row.payload), filter: JSON.parse(row.filter) } : null });
   }
   if (url.pathname === "/internal/broadcast/chats") {
@@ -1925,7 +2006,8 @@ async function onInternal(request, url, env) {
     const gone = (await D.prepare("SELECT deleted_at FROM broadcasts WHERE id = ?").bind(id).first())?.deleted_at;
     const stmts = [
       ...ids(body.done).map((c) => D.prepare("INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok, msg_id) VALUES (?, ?, 1, ?)").bind(id, c, msg.get(c) ?? null)),
-      ...gone ? ids(body.done).filter((c) => msg.has(c)).map((c) => D.prepare("INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) VALUES (?, ?, ?)").bind(c, msg.get(c), Date.now())) : [],
+      ...gone && msg.size ? [D.prepare("UPDATE broadcasts SET purged_at = NULL WHERE id = ?").bind(id)] : [],
+      // these copies need deleting too
       ...ids(body.failed).map((c) => D.prepare("INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok) VALUES (?, ?, 0)").bind(id, c)),
       D.prepare("UPDATE broadcasts SET sent = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 1), failed = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 0), lease_until = ?2 WHERE id = ?1").bind(id, Date.now() + 10 * 6e4)
     ];
@@ -2357,17 +2439,13 @@ Taxminan 15 daqiqa ichida yuboriladi. Holatini E'lon oynasida ko'rasiz (u yerda 
   const p = await draftPanel(env, d, act === "ok");
   return edit(p.text, p.markup);
 }
+var seenUpdates = /* @__PURE__ */ new Set();
 async function alreadyHandled(env, id) {
   if (!Number.isSafeInteger(id)) return false;
-  try {
-    const D = await db(env);
-    const r = await D.prepare("INSERT OR IGNORE INTO updates (update_id, at) VALUES (?, ?)").bind(id, Date.now()).run();
-    if (Math.random() < 0.02) await D.prepare("DELETE FROM updates WHERE at < ?").bind(Date.now() - 2 * 864e5).run();
-    return r.meta?.changes === 0;
-  } catch (e) {
-    console.warn("dedupe", e?.message);
-    return false;
-  }
+  if (seenUpdates.has(id)) return true;
+  seenUpdates.add(id);
+  if (seenUpdates.size > 3e3) for (const x of [...seenUpdates].slice(0, 1e3)) seenUpdates.delete(x);
+  return false;
 }
 async function track(env, update) {
   try {
@@ -2385,12 +2463,36 @@ async function track(env, update) {
     if (!k) return;
     const now = Date.now();
     const D = await db(env);
-    await D.batch([
-      D.prepare("UPDATE chats SET last_seen = ? WHERE chat_id = ? AND (last_seen IS NULL OR last_seen < ?)").bind(now, chat.id, now - 6e5),
-      D.prepare("INSERT INTO usage (day, k, n) VALUES (?, ?, 1) ON CONFLICT(day, k) DO UPDATE SET n = n + 1").bind(ymd(tashkentNow(now)), k)
-    ]);
+    const tn = tashkentNow(now), today0 = Date.UTC(tn.getUTCFullYear(), tn.getUTCMonth(), tn.getUTCDate()) - (tn.getTime() - now);
+    if (!seenChats.has(chat.id) || seenChats.get(chat.id) < Math.max(today0, now - 3 * 36e5)) {
+      await D.prepare("UPDATE chats SET last_seen = ? WHERE chat_id = ? AND (last_seen IS NULL OR last_seen < ?)").bind(now, chat.id, Math.max(today0, now - 3 * 36e5)).run();
+      seenChats.set(chat.id, now);
+      if (seenChats.size > 2e4) seenChats.clear();
+    }
+    const key = `${ymd(tn)}|${k}`;
+    usageBuf.set(key, (usageBuf.get(key) || 0) + 1);
+    if (now - usageFlushedAt > 6e4 || usageBuf.size > 20) await flushUsage(env);
   } catch (e) {
     console.warn("track", e?.message);
+  }
+}
+var seenChats = /* @__PURE__ */ new Map();
+var usageBuf = /* @__PURE__ */ new Map();
+var usageFlushedAt = Date.now();
+async function flushUsage(env) {
+  if (!usageBuf.size) return;
+  const items = [...usageBuf];
+  usageBuf.clear();
+  usageFlushedAt = Date.now();
+  try {
+    const D = await db(env);
+    await D.batch(items.map(([dk, n]) => {
+      const [day, k] = dk.split("|");
+      return D.prepare("INSERT INTO usage (day, k, n) VALUES (?, ?, ?) ON CONFLICT(day, k) DO UPDATE SET n = n + excluded.n").bind(day, k, n);
+    }));
+  } catch (e) {
+    for (const [dk, n] of items) usageBuf.set(dk, (usageBuf.get(dk) || 0) + n);
+    console.warn("usage flush", e?.message);
   }
 }
 var COUNTED_COMMANDS = /* @__PURE__ */ new Set([
@@ -2436,6 +2538,7 @@ var USAGE_NAMES = {
   setgroup: "\u{1F517} /setgroup (guruhda)"
 };
 async function sendStats(env, chatId, editId, viaAdminBot = false) {
+  await flushUsage(env);
   const D = await db(env);
   const now = Date.now();
   const tn = tashkentNow(now);

@@ -106,6 +106,7 @@ async function send(chatId, text, replyMarkup, photo, copy, opts = {}) {
   lastMessageId = null;
   if (DRY) {
     lastMessageId = 1;
+    if (opts.out) opts.out.id = 1;
     console.log(`\n--- to ${chatId} ---\n${copy ? `[copy of message ${copy.message_id}]` : photo ? '[photo] ' + photo.photo + '\n' + photo.caption : text}`);
     sent++;
     return true;
@@ -127,7 +128,7 @@ async function send(chatId, text, replyMarkup, photo, copy, opts = {}) {
     }
     // picture couldn't be fetched → fall back to the text version once
     if (!r.ok && photo && r.error_code === 400 && /photo|file|url|image/i.test(r.description || '')) { photo = null; attempt--; continue; }
-    if (r.ok) { sent++; lastMessageId = r.result?.message_id ?? null; await sleep(40); return true; }
+    if (r.ok) { sent++; lastMessageId = r.result?.message_id ?? null; if (opts.out) opts.out.id = lastMessageId; await sleep(opts.pace ? 0 : 40); return true; }
     const code = r.error_code;
     const desc = r.description || '';
     if (code === 429) { await sleep(((r.parameters?.retry_after || 3) + 1) * 1000); continue; }
@@ -325,29 +326,21 @@ async function sendQueuedBroadcast() {
   const bot = await botName();
   console.log(`broadcast #${job.id}: sending`);
   let after = -1e15, cancelled = false, ok = 0, bad = 0;
-  // "⏳ delete after N hours": every delivered copy is noted with its own deletion time (the auto/lessons runs delete it)
-  const ttl = [1, 3, 6, 12, 24].includes(Number(job.payload.ttl)) ? Number(job.payload.ttl) : 0;
   while (!cancelled) {
-    const eph = [], msgs = [];
+    const msgs = []; // [chat, message id] of each copy: kept by the Worker, so "⏳ N hours" / 🗑 can delete them later
     const page = await worker(`/internal/broadcast/chats?id=${job.id}&after=${after}&limit=200`);
     if (!page.rows.length) break;
     const done = [], failed = [];
-    for (const chat of page.rows) {
+    await paced(page.rows, async (chat) => { // several at once, at Telegram's pace (one by one a big list took ~4× longer)
       const m = bcMessage(job.payload, chat, { site: SITE_URL, bot });
-      const before = removed.length;
-      if (await send(chat.chat_id, m.text, m.markup, job.payload.copy ? null : m.photo, job.payload.copy)) {
+      const out = {};
+      if (await send(chat.chat_id, m.text, m.markup, job.payload.copy ? null : m.photo, job.payload.copy, { out, pace: true })) {
         done.push(chat.chat_id);
-        if (removed.length === before) {
-          ok++;
-          if (lastMessageId) msgs.push([chat.chat_id, lastMessageId]); // kept, so the admin can 🗑 delete the announcement later
-          if (ttl && lastMessageId) eph.push([chat.chat_id, lastMessageId, Date.now() + ttl * 3600e3]);
-        } else bad++;
-      }
-      else { failed.push(chat.chat_id); bad++; }
-    }
+        if (!removed.includes(chat.chat_id)) { ok++; if (out.id) msgs.push([chat.chat_id, out.id]); } else bad++;
+      } else { failed.push(chat.chat_id); bad++; }
+    });
     // chats that blocked the bot count as "not delivered" (failed) but are settled — they are also removed from the bot's list at the end
     const dead = new Set(removed);
-    if (eph.length && !DRY) await worker('/internal/eph/add', { items: eph });
     const r = await worker('/internal/broadcast/progress', { id: job.id, msgs, done: done.filter((c) => !dead.has(c)), failed: [...failed, ...done.filter((c) => dead.has(c))] });
     if (r.status === 'cancelled') { cancelled = true; console.log(`broadcast #${job.id}: cancelled by the admin`); }
     if (page.next == null) break;
@@ -366,87 +359,153 @@ async function sendQueuedBroadcast() {
  *     "E:<day>"), so overlapping or repeated runs never send one twice.
  * A class that simply continues the previous one (same subject, teacher and room, right after it) gets no second reminder.
  */
-/** Deletes the bot's messages whose time is up (lesson reminders, end-of-day messages, announcements sent with "⏳ N hours"). */
+/**
+ * Deletes the bot's messages whose time is up: lesson reminders and end-of-day messages (lists kept by the lessons runs),
+ * announcements whose "⏳ N hours" are up or that the admin deleted with 🗑, and any old-style row (eph) still left.
+ * Deleting is paced like sending (Telegram limits both), several at once.
+ */
 async function deleteDue(realNow = Date.now()) {
   let deleted = 0;
+  const del = async (list) => {
+    if (DRY) { deleted += list.length; return; }
+    await paced(list, async ([chat_id, message_id]) => { try { await tg('deleteMessage', { chat_id, message_id }); } catch {} deleted++; });
+  };
+  // 1. lesson messages
+  for (let round = 0; round < 20; round++) {
+    const { rows } = await worker(`/internal/pend/due?now=${realNow + 60e3}`);
+    if (!rows.length) break;
+    const due = [], back = [];
+    for (const r of rows) {
+      const keep = r.items.filter((x) => x[2] > realNow + 60e3);
+      due.push(...r.items.filter((x) => x[2] <= realNow + 60e3));
+      back.push({ k: r.k, keep });
+    }
+    await del(due);
+    await worker('/internal/pend/done', { rows: back });
+    if (rows.length < 50) break;
+  }
+  // 2. announcements
+  for (let round = 0; round < 10; round++) {
+    let { bid, rows, next } = await worker(`/internal/bcdel/due?now=${realNow}`);
+    if (!bid) break;
+    for (;;) {
+      await del(rows.map((r) => [r.chat_id, r.msg_id]));
+      if (next == null) break;
+      ({ rows, next } = await worker(`/internal/bcdel/due?now=${realNow}&after=${next}`));
+    }
+    await worker('/internal/bcdel/done', { bid });
+  }
+  // 3. rows written by an older version of this script
   for (let round = 0; round < 20; round++) {
     const { rows } = await worker(`/internal/eph/due?now=${realNow + 60e3}`);
     if (!rows.length) break;
-    const done = [];
-    for (const r of rows) {
-      if (!DRY) { try { await tg('deleteMessage', { chat_id: r.chat_id, message_id: r.msg_id }); } catch {} await sleep(35); }
-      done.push([r.chat_id, r.msg_id]); deleted++;
-    }
-    await worker('/internal/eph/done', { items: done });
+    await del(rows.map((r) => [r.chat_id, r.msg_id]));
+    await worker('/internal/eph/done', { items: rows.map((r) => [r.chat_id, r.msg_id]) });
     if (rows.length < 500) break;
   }
   return deleted;
 }
 
+/**
+ * Runs `fn` over `list` at Telegram's pace for messages to many chats (~25 a second, under its 30/s limit), several requests
+ * in flight at once — one after another, each request waits for the network, so a big batch would take minutes longer.
+ */
+const RATE = 25;
+async function paced(list, fn) {
+  let i = 0, nextAt = Date.now();
+  const lane = async () => {
+    while (i < list.length) {
+      const item = list[i++];
+      const wait = nextAt - Date.now();
+      nextAt = Math.max(nextAt, Date.now()) + 1000 / RATE;
+      if (wait > 0) await sleep(wait);
+      await fn(item);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(8, list.length) }, lane));
+}
+
 async function sendLessons(index) {
-  // LESSON_AT = the planned minute (HH:MM, Tashkent) the Worker woke this run for: wait for it (the run is started a few minutes early)
+  // LESSON_AT = the planned minute (HH:MM, Tashkent) the Worker woke this run for. The run starts a few minutes early: it works
+  // out everything to send by then, and starts sending just early enough that the middle of the batch goes exactly on time.
   const at0 = /^(\d\d):(\d\d)$/.exec(process.env.LESSON_AT || '');
-  if (at0 && !process.env.FAKE_NOW) {
-    const t = nowTk();
-    const wait = ((Number(at0[1]) * 60 + Number(at0[2])) * 60 - (t.getUTCHours() * 3600 + t.getUTCMinutes() * 60 + t.getUTCSeconds())) * 1000;
-    if (wait > 0 && wait < 40 * 60e3) { console.log(`lessons: waiting ${Math.round(wait / 1000)} s for ${process.env.LESSON_AT}`); await sleep(wait + 3000); }
-  }
-  const realNow = process.env.FAKE_NOW ? Number(process.env.FAKE_NOW) : Date.now();
-  // 1. deletions
-  const deleted = await deleteDue(realNow);
-  // 2. sends
-  const now = nowTk(realNow);
+  const fake = process.env.FAKE_NOW ? Number(process.env.FAKE_NOW) : null;
+  const t0 = fake ?? Date.now();
+  const tn0 = nowTk(t0);
+  const midnight = Date.UTC(tn0.getUTCFullYear(), tn0.getUTCMonth(), tn0.getUTCDate()) - (tn0.getTime() - t0); // Tashkent midnight, real ms
+  const at = (min) => midnight + min * 60e3;
+  const nowMin0 = tn0.getUTCHours() * 60 + tn0.getUTCMinutes();
+  const planMin = at0 && !fake ? Number(at0[1]) * 60 + Number(at0[2]) : nowMin0;
+  const planMs = at0 && !fake ? Math.max(t0, at(planMin)) : t0;
+  const now = nowTk(planMs);
   const wd = weekday(now);
-  if (wd === 6) { console.log(`lessons: Sunday — deleted ${deleted}`); return; }
   const day = ymd(now);
   const dayNum = Math.floor(now.getTime() / 864e5);
-  const nowMin = now.getUTCHours() * 60 + now.getUTCMinutes();
-  const midnight = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()) - (now.getTime() - realNow); // Tashkent midnight, as a real time
-  const at = (min) => midnight + min * 60e3;
-  let reminders = 0, ends = 0;
-  for await (const page of subscriberPages('lessons')) {
-    const todo = [];
-    for (const sub of page) {
-      if (sub.kind !== 'private' || !sub.group_id) continue;
-      const g = await loadGroup(sub);
-      if (!g || noTimetable(g)) continue;
-      const slots = daySlots(g, index, now);
-      if (!slots.length) continue;
-      const teacher = sub.role === 'teacher';
-      slots.forEach((slot, i) => {
-        const prev = slots[i - 1];
-        // never early: from exactly LR_BEFORE minutes before the class (a late run still sends until 2 minutes before it)
-        if (!sub.lr || nowMin < slot.start - LR_BEFORE || nowMin > slot.start - 2 || continuesPrevious(prev, slot)) return;
-        const stay = staysInRoom(prev, slot);
-        const type = parseSubject(slot.lessons[0].s).type;
-        const joke = pickReminderJoke({ teacher, type, first: i === 0, last: i === slots.length - 1, start: slot.start, wd, stay, lecture: type === 'lecture', subject: slot.lessons[0].s, seed: sub.chat_id, day: dayNum });
-        todo.push({ sub, tag: `L:${day}:${slot.start}`, kind: 'lr', slot, stay, joke, delAt: at(slot.start + LR_DELETE_AFTER_START) });
-      });
-      const last = slots[slots.length - 1];
-      if (sub.de && nowMin >= last.end - 1 && nowMin <= last.end + 45) { // (from a minute before the bell: that run is the next class's reminder)
-        todo.push({ sub, tag: `E:${day}`, kind: 'de', joke: pickDayEndJoke({ teacher, wd, seed: sub.chat_id, day: dayNum }), delAt: at(last.end + DE_DELETE_AFTER) });
+  const nowMin = planMin; // who is due is decided by the planned minute
+  const todo = [];
+  if (wd !== 6) {
+    for await (const page of subscriberPages('lessons')) {
+      for (const sub of page) {
+        if (sub.kind !== 'private' || !sub.group_id) continue;
+        const g = await loadGroup(sub);
+        if (!g || noTimetable(g)) continue;
+        const slots = daySlots(g, index, now);
+        if (!slots.length) continue;
+        const teacher = sub.role === 'teacher';
+        slots.forEach((slot, i) => {
+          const prev = slots[i - 1];
+          // never early: from exactly LR_BEFORE minutes before the class (a late run still sends until 2 minutes before it)
+          if (!sub.lr || nowMin < slot.start - LR_BEFORE || nowMin > slot.start - 2 || continuesPrevious(prev, slot)) return;
+          const stay = staysInRoom(prev, slot);
+          const type = parseSubject(slot.lessons[0].s).type;
+          const joke = pickReminderJoke({ teacher, type, first: i === 0, last: i === slots.length - 1, start: slot.start, wd, stay, lecture: type === 'lecture', subject: slot.lessons[0].s, seed: sub.chat_id, day: dayNum });
+          todo.push({ sub, kind: 'lr', tag: `${day}:${slot.start}`, slot, stay, joke, intro: !sub.lri, delAt: at(slot.start + LR_DELETE_AFTER_START) });
+        });
+        const last = slots[slots.length - 1];
+        if (sub.de && nowMin >= last.end - 1 && nowMin <= last.end + 45) { // (from a minute before the bell: that run is the next class's reminder)
+          todo.push({ sub, kind: 'de', tag: day, joke: pickDayEndJoke({ teacher, wd, seed: sub.chat_id, day: dayNum }), delAt: at(last.end + DE_DELETE_AFTER) });
+        }
       }
     }
-    if (!todo.length) continue;
-    const claimed = DRY ? null : new Set((await worker('/internal/lclaim', { items: todo.map((x) => ({ tag: x.tag, chat_id: x.sub.chat_id })) })).claimed.map((c) => `${c.tag}|${c.chat_id}`));
-    const eph = [], intro = [];
-    for (const x of todo) {
-      if (claimed && !claimed.has(`${x.tag}|${x.sub.chat_id}`)) continue; // another run already sent this one
+  }
+  // reminders first (they are the time-critical ones); start early by half the time the batch takes, at most 3 minutes
+  todo.sort((a, b) => (a.kind === b.kind ? 0 : a.kind === 'lr' ? -1 : 1));
+  const nLr = todo.filter((x) => x.kind === 'lr').length;
+  if (at0 && !fake) {
+    const lead = Math.min(180e3, (nLr / RATE / 2) * 1000);
+    const wait = planMs - lead - Date.now();
+    if (wait > 0 && wait < 40 * 60e3) { console.log(`lessons: ${todo.length} to send, waiting ${Math.round(wait / 1000)} s (for ${process.env.LESSON_AT}, ${Math.round(lead / 1000)} s early)`); await sleep(wait + 1000); }
+  }
+  let reminders = 0, ends = 0;
+  const pend = [];
+  for (let i = 0; i < todo.length; i += 500) {
+    const part = todo.slice(i, i + 500);
+    // claim each in the chat's own row first (one write each): a second run at the same minute sends nothing again
+    let claimed = null;
+    if (!DRY) {
+      claimed = new Set();
+      const groups = new Map();
+      for (const x of part) { const key = `${x.kind}|${x.tag}`; if (!groups.has(key)) groups.set(key, []); groups.get(key).push(x.sub.chat_id); }
+      for (const [key, ids] of groups) {
+        const [kind, tag] = key.split('|');
+        for (const c of (await worker('/internal/lclaim2', { kind, tag, ids })).claimed) claimed.add(`${kind}|${tag}|${c}`);
+      }
+    }
+    await paced(part, async (x) => {
+      if (claimed && !claimed.has(`${x.kind}|${x.tag}|${x.sub.chat_id}`)) return; // another run already sent this one
       const lang = x.sub.lang, teacher = x.sub.role === 'teacher';
       const jt = x.joke ? jokeText(x.joke.entry, lang) : '';
-      let text;
-      if (x.kind === 'lr') {
-        const first = !x.sub.lri && !intro.includes(x.sub.chat_id);
-        text = fmtLessonReminder(x.slot, lang, { teacher, stay: x.stay, minutes: Math.max(1, x.slot.start - nowMin), joke: jt, intro: first });
-        if (first) intro.push(x.sub.chat_id);
-      } else {
-        text = fmtDayEnd(lang, teacher, jt);
-      }
-      const ok = await send(x.sub.chat_id, text, ephemeralKeyboard(lang, x.kind, x.joke?.key || 's_any'), null, null, { silent: x.kind === 'de' });
-      if (ok && lastMessageId) { eph.push([x.sub.chat_id, lastMessageId, x.delAt]); if (x.kind === 'lr') reminders++; else ends++; }
-    }
-    if (!DRY && (eph.length || intro.length)) await worker('/internal/eph/add', { items: eph, intro });
+      const sendMs = fake ?? Date.now();
+      const text = x.kind === 'lr'
+        ? fmtLessonReminder(x.slot, lang, { teacher, stay: x.stay, minutes: Math.max(1, Math.round((at(x.slot.start) - sendMs) / 60e3)), joke: jt, intro: x.intro })
+        : fmtDayEnd(lang, teacher, jt);
+      const out = {};
+      const ok = await send(x.sub.chat_id, text, ephemeralKeyboard(lang, x.kind, x.joke?.key || 's_any'), null, null, { silent: x.kind === 'de', out, pace: true });
+      if (ok && out.id) { pend.push([x.sub.chat_id, out.id, x.delAt]); if (x.kind === 'lr') reminders++; else ends++; }
+    });
   }
+  if (!DRY && pend.length) await worker('/internal/pend/add', { items: pend }); // deleted later by a run (a few rows, not one each)
+  const deleted = await deleteDue(fake ?? Date.now());
   console.log(`lessons: ${reminders} reminders, ${ends} end-of-day messages, ${deleted} deleted`);
 }
 

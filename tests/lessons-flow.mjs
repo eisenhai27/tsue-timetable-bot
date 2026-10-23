@@ -78,6 +78,10 @@ check('a second run a minute later sends nothing new (claimed)', to(await log(),
 
 // ---- the buttons
 const sent = m0[0];
+{
+  const p = await (await fetch(`${W}/internal/pend/due?now=${Date.now() + 864e5 * 400}`, { headers: { 'X-Admin-Key': 'secretkey' } })).json();
+  check('what to delete later is kept as ONE list row for the whole run (not a row per message)', p.rows.length === 1 && p.rows[0].items.some((x) => x[0] === 8801 && x[1] === sent?.result?.message_id), p);
+}
 await reset();
 const tgSent = asTelegram(sent.data.text);
 await post(cb(kb0.find((b) => /^jk:/.test(b.callback_data)).callback_data, S, SU, { message_id: sent.result.message_id, ...tgSent, reply_markup: sent.data.reply_markup }));
