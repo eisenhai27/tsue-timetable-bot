@@ -1419,6 +1419,12 @@ async function db(env) {
       await addColumn("ALTER TABLE chats ADD COLUMN last_seen INTEGER");
     }
     {
+      const bcols = (await env.DB.prepare("PRAGMA table_info(broadcast_done)").all()).results || [];
+      if (!bcols.some((c) => c.name === "msg_id")) await addColumn("ALTER TABLE broadcast_done ADD COLUMN msg_id INTEGER");
+      const bbcols = (await env.DB.prepare("PRAGMA table_info(broadcasts)").all()).results || [];
+      if (!bbcols.some((c) => c.name === "deleted_at")) await addColumn("ALTER TABLE broadcasts ADD COLUMN deleted_at INTEGER");
+    }
+    {
       const fcols = (await env.DB.prepare("PRAGMA table_info(feedback)").all()).results || [];
       if (!fcols.some((c) => c.name === "via")) await addColumn("ALTER TABLE feedback ADD COLUMN via TEXT");
     }
@@ -1685,7 +1691,30 @@ function bcPayload(raw) {
     if (!Object.keys(bt).length) return { error: "button text" };
     btn = { text: bt, url: u.href };
   }
-  return { p: { texts, photo, btn, app: raw.app !== false, invite: raw.invite !== false } };
+  const ttl = BC_TTL.some((x) => x[0] === Number(raw.ttl)) ? Number(raw.ttl) : 0;
+  return { p: { texts, photo, btn, app: raw.app !== false, invite: raw.invite !== false, ttl } };
+}
+var BC_DELETE_WINDOW = 47 * 36e5;
+async function bcRecent(D, limit) {
+  const { results } = await D.prepare(`SELECT b.id, b.created_at, b.total, b.sent, b.failed, b.status, b.finished_at, b.deleted_at,
+      json_extract(b.payload, '$.ttl') ttl, (SELECT COUNT(*) FROM broadcast_done d WHERE d.bid = b.id AND d.msg_id IS NOT NULL) ids
+    FROM broadcasts b ORDER BY b.id DESC LIMIT ?`).bind(limit).all();
+  const now = Date.now();
+  return results.map((b) => ({ ...b, ttl: Number(b.ttl) || 0, deletable: !b.deleted_at && b.ids > 0 && now - b.created_at < BC_DELETE_WINDOW }));
+}
+async function bcDeleteNow(env, D, id) {
+  const b = await D.prepare("SELECT id, created_at, status, deleted_at FROM broadcasts WHERE id = ?").bind(id).first();
+  if (!b) return { ok: false, error: "not found" };
+  if (b.deleted_at) return { ok: false, error: "already" };
+  const now = Date.now();
+  if (now - b.created_at > BC_DELETE_WINDOW) return { ok: false, error: "too old" };
+  await D.prepare("UPDATE broadcasts SET status = 'cancelled', finished_at = ? WHERE id = ? AND status IN ('queued','sending')").bind(now, id).run();
+  const ins = await D.prepare("INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) SELECT chat_id, msg_id, ? FROM broadcast_done WHERE bid = ? AND ok = 1 AND msg_id IS NOT NULL").bind(now, id).run();
+  const n = ins.meta?.changes || 0;
+  if (!n && b.status === "done") return { ok: false, error: "no ids" };
+  await D.prepare("UPDATE broadcasts SET deleted_at = ? WHERE id = ?").bind(now, id).run();
+  const woke = await dispatchWorkflow(env, "lessons.yml", { at: "" });
+  return { ok: true, n, woke };
 }
 async function bcPick(env) {
   const me = await tg(env, "getMe", {});
@@ -1758,8 +1787,13 @@ async function onAdminApi(request, env) {
     return jsonCors(env, { ok: true, id: ins.id, total: n, woke });
   }
   if (body.op === "status") {
-    const { results } = await D.prepare("SELECT id, created_at, total, sent, failed, status, finished_at FROM broadcasts ORDER BY id DESC LIMIT 5").all();
-    return jsonCors(env, { ok: true, list: results });
+    return jsonCors(env, { ok: true, list: await bcRecent(D, 5) });
+  }
+  if (body.op === "delete") {
+    const id = Number(body.id);
+    if (!Number.isSafeInteger(id)) return jsonCors(env, { ok: false, error: "bad request" }, 400);
+    const r = await bcDeleteNow(env, D, id);
+    return jsonCors(env, r, r.ok ? 200 : 409);
   }
   if (body.op === "cancel") {
     const id = Number(body.id);
@@ -1887,8 +1921,11 @@ async function onInternal(request, url, env) {
     const id = Number(body?.id);
     if (!Number.isSafeInteger(id)) return json({ error: "bad request" }, 400);
     const ids = (a) => Array.isArray(a) ? a.filter(Number.isSafeInteger).slice(0, 500) : [];
+    const msg = new Map((Array.isArray(body.msgs) ? body.msgs : []).filter((x) => Array.isArray(x) && x.length === 2 && x.every(Number.isSafeInteger)).slice(0, 500));
+    const gone = (await D.prepare("SELECT deleted_at FROM broadcasts WHERE id = ?").bind(id).first())?.deleted_at;
     const stmts = [
-      ...ids(body.done).map((c) => D.prepare("INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok) VALUES (?, ?, 1)").bind(id, c)),
+      ...ids(body.done).map((c) => D.prepare("INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok, msg_id) VALUES (?, ?, 1, ?)").bind(id, c, msg.get(c) ?? null)),
+      ...gone ? ids(body.done).filter((c) => msg.has(c)).map((c) => D.prepare("INSERT OR REPLACE INTO eph (chat_id, msg_id, del_at) VALUES (?, ?, ?)").bind(c, msg.get(c), Date.now())) : [],
       ...ids(body.failed).map((c) => D.prepare("INSERT OR IGNORE INTO broadcast_done (bid, chat_id, ok) VALUES (?, ?, 0)").bind(id, c)),
       D.prepare("UPDATE broadcasts SET sent = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 1), failed = (SELECT COUNT(*) FROM broadcast_done WHERE bid = ?1 AND ok = 0), lease_until = ?2 WHERE id = ?1").bind(id, Date.now() + 10 * 6e4)
     ];
@@ -2026,6 +2063,7 @@ async function onAdminWebhook(request, env) {
     if (cb.data === "adm:stats") await sendStats(env, chatId, cb.message.message_id, true);
     else if (String(cb.data || "").startsWith("bc:")) await onDraftButton(env, cb);
     else if (String(cb.data || "").startsWith("fb:")) await onFeedbackButton(env, cb);
+    else if (String(cb.data || "").startsWith("bd:")) await onBcListButton(env, cb);
     return new Response("ok");
   }
   if (!msg) return new Response("ok");
@@ -2056,6 +2094,7 @@ async function onAdminWebhook(request, env) {
   }
   if (cmd === "elon") {
     if (siteUrl(env)) await atg(env, "sendMessage", { chat_id: chatId, text: "\u{1F4E3} E'lon yuborish oynasi:", reply_markup: adminElonButton(env) });
+    await sendBcList(env, chatId);
     return new Response("ok");
   }
   if (cmd === "fikrlar") {
@@ -2096,6 +2135,44 @@ async function onAdminWebhook(request, env) {
   }
   await startDraft(env, msg);
   return new Response("ok");
+}
+var BC_STATUS = { queued: "\u23F3 navbatda", sending: "\u{1F4E4} yuborilmoqda", done: "\u2705 yuborildi", cancelled: "\u{1F6AB} bekor qilindi" };
+async function sendBcList(env, chatId, editId = null, note = "") {
+  const list = await bcRecent(await db(env), 5);
+  const when = (ms) => {
+    const tn = tashkentNow(ms || 0);
+    return `${ymd(tn).slice(8, 10)}.${ymd(tn).slice(5, 7)} ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())}`;
+  };
+  const text = list.length ? [
+    note || null,
+    "\u{1F4CB} <b>So'nggi e'lonlar</b>",
+    ...list.map((b) => `
+<b>#${b.id}</b> \xB7 ${when(b.created_at)} \xB7 ${b.deleted_at ? "\u{1F5D1} o'chirildi" : BC_STATUS[b.status] || esc(b.status)}
+${b.sent}/${b.total} ga yetdi${b.ttl && !b.deleted_at ? ` \xB7 \u23F3 ${b.ttl} soatda o'chadi` : ""}`),
+    "\n\u{1F5D1} \u2014 yuborilgan e'lonni hamma chatlardan o'chirish (Telegram faqat 48 soat ichida ruxsat beradi)."
+  ].filter((x) => x !== null).join("\n") : "\u{1F4CB} Hali e'lon yuborilmagan.";
+  const rows = list.filter((b) => b.deletable).map((b) => [{ text: `\u{1F5D1} #${b.id} ni o'chirish`, callback_data: `bd:${b.id}` }]);
+  rows.push([{ text: "\u{1F504} Yangilash", callback_data: "bd:l" }]);
+  const body = { chat_id: chatId, text, parse_mode: "HTML", reply_markup: { inline_keyboard: rows } };
+  return editId ? atg(env, "editMessageText", { ...body, message_id: editId }) : atg(env, "sendMessage", body);
+}
+async function onBcListButton(env, cb) {
+  const [, id, yes] = String(cb.data).split(":");
+  const chatId = cb.message.chat.id, mid = cb.message.message_id;
+  if (id === "l" || !/^\d+$/.test(id || "")) return sendBcList(env, chatId, mid);
+  const D = await db(env);
+  if (yes !== "y") {
+    const b = (await bcRecent(D, 20)).find((x) => x.id === Number(id));
+    if (!b) return sendBcList(env, chatId, mid);
+    return atg(env, "editMessageText", { chat_id: chatId, message_id: mid, parse_mode: "HTML", text: `\u{1F5D1} <b>#${b.id}</b> e'lonini o'chirasizmi?
+
+U <b>${b.ids}</b> ta chatdan o'chiriladi (bir necha daqiqada). Buni qaytarib bo'lmaydi.`, reply_markup: { inline_keyboard: [[{ text: "\u{1F5D1} Ha, o'chirish", callback_data: `bd:${b.id}:y` }], [{ text: "\u21A9\uFE0F Orqaga", callback_data: "bd:l" }]] } });
+  }
+  const r = await bcDeleteNow(env, D, Number(id));
+  const why = { "too old": "48 soatdan oshgan \u2014 Telegram endi o'chirishga ruxsat bermaydi", already: "allaqachon o'chirilgan", "no ids": "bu e'lon yangilanishdan oldin yuborilgan, nusxalari saqlanmagan", "not found": "topilmadi" };
+  return sendBcList(env, chatId, mid, r.ok ? `\u2705 #${id} o'chirilmoqda: ${r.n} ta chatdan bir necha daqiqada o'chadi.
+` : `\u274C #${id}: ${why[r.error] || r.error}.
+`);
 }
 var FB_PAGE = 3;
 async function sendFeedbackPage(env, chatId, offset = 0, editId = null) {

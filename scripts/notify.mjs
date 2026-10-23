@@ -328,7 +328,7 @@ async function sendQueuedBroadcast() {
   // "⏳ delete after N hours": every delivered copy is noted with its own deletion time (the auto/lessons runs delete it)
   const ttl = [1, 3, 6, 12, 24].includes(Number(job.payload.ttl)) ? Number(job.payload.ttl) : 0;
   while (!cancelled) {
-    const eph = [];
+    const eph = [], msgs = [];
     const page = await worker(`/internal/broadcast/chats?id=${job.id}&after=${after}&limit=200`);
     if (!page.rows.length) break;
     const done = [], failed = [];
@@ -337,14 +337,18 @@ async function sendQueuedBroadcast() {
       const before = removed.length;
       if (await send(chat.chat_id, m.text, m.markup, job.payload.copy ? null : m.photo, job.payload.copy)) {
         done.push(chat.chat_id);
-        if (removed.length === before) { ok++; if (ttl && lastMessageId) eph.push([chat.chat_id, lastMessageId, Date.now() + ttl * 3600e3]); } else bad++;
+        if (removed.length === before) {
+          ok++;
+          if (lastMessageId) msgs.push([chat.chat_id, lastMessageId]); // kept, so the admin can 🗑 delete the announcement later
+          if (ttl && lastMessageId) eph.push([chat.chat_id, lastMessageId, Date.now() + ttl * 3600e3]);
+        } else bad++;
       }
       else { failed.push(chat.chat_id); bad++; }
     }
     // chats that blocked the bot count as "not delivered" (failed) but are settled — they are also removed from the bot's list at the end
     const dead = new Set(removed);
     if (eph.length && !DRY) await worker('/internal/eph/add', { items: eph });
-    const r = await worker('/internal/broadcast/progress', { id: job.id, done: done.filter((c) => !dead.has(c)), failed: [...failed, ...done.filter((c) => dead.has(c))] });
+    const r = await worker('/internal/broadcast/progress', { id: job.id, msgs, done: done.filter((c) => !dead.has(c)), failed: [...failed, ...done.filter((c) => dead.has(c))] });
     if (r.status === 'cancelled') { cancelled = true; console.log(`broadcast #${job.id}: cancelled by the admin`); }
     if (page.next == null) break;
     after = page.next;

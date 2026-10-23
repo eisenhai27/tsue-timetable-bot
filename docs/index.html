@@ -1222,7 +1222,7 @@ function showLesson(l, v, par) {
 }
 // ---- admin: announcements ("E'lon") — visible only to the bot's owner. The server decides who that is (Telegram's signed initData);
 // hiding the tab here is just a courtesy, every call is checked again on the server.
-const BC = { texts: { uz: '', ru: '', en: '' }, photo: null, photoView: null, btnUrl: '', btnText: { uz: '', ru: '', en: '' }, app: true, invite: true,
+const BC = { texts: { uz: '', ru: '', en: '' }, photo: null, photoView: null, btnUrl: '', btnText: { uz: '', ru: '', en: '' }, app: true, invite: true, ttl: 0,
   filter: { lang: 'all', role: 'all', group: '', groupName: '', scope: 'all' }, count: null, testedKey: null, msg: '', list: [], timer: null };
 async function adminCall(body) {
   const r = await fetch(`${API_URL}/api/admin`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData, ...body }) });
@@ -1240,7 +1240,7 @@ async function checkAdmin() {
   } catch {}
 }
 const bcFilter = () => ({ lang: BC.filter.lang, role: BC.filter.role, group: BC.filter.group, scope: BC.filter.scope });
-const bcPayload = () => ({ texts: BC.texts, photo: BC.photo, btn: BC.btnUrl.trim() ? { url: BC.btnUrl.trim(), text: BC.btnText } : null, app: BC.app, invite: BC.invite });
+const bcPayload = () => ({ texts: BC.texts, photo: BC.photo, btn: BC.btnUrl.trim() ? { url: BC.btnUrl.trim(), text: BC.btnText } : null, app: BC.app, invite: BC.invite, ttl: BC.ttl });
 const bcKey = () => JSON.stringify([bcPayload(), bcFilter()]);
 function bcReady() { return Object.values(BC.texts).some(t => t.trim()); }
 function bcGroups() { // every group name → id, for the "one group" filter
@@ -1249,6 +1249,8 @@ function bcGroups() { // every group name → id, for the "one group" filter
   return out;
 }
 const bcStatusText = { queued: '⏳ navbatda', sending: '📤 yuborilmoqda', done: '✅ tugadi', cancelled: '🚫 bekor qilindi' };
+const BC_TTLS = [[0, '♾ Doim'], [1, '1 soat'], [3, '3 soat'], [6, '6 soat'], [12, '12 soat'], [24, '24 soat']];
+const bcTtlText = (h) => h ? `⏳ ${h} soatdan keyin o'chiriladi` : '♾ Doim turadi';
 function renderAdmin() {
   seq++;
   const f = BC.filter;
@@ -1275,6 +1277,8 @@ function renderAdmin() {
       <label class="bclab">Bitta guruh (ixtiyoriy)</label><input id="bcGroup" list="bcGroups" placeholder="Masalan: MO-901/26" value="${esc(f.groupName)}" autocomplete="off"><datalist id="bcGroups">${bcGroups().map(g => `<option value="${esc(g.name)}"></option>`).join('')}</datalist>
       <label class="bcchk"><input type="checkbox" id="bcPicked" ${f.scope === 'picked' ? 'checked' : ''}> Faqat guruh / o'qituvchi tanlaganlar</label>
       <div class="bccount" id="bcCount" aria-live="polite">…</div></div>
+    <div class="bccard"><h3>⏳ O'chirilishi</h3><div class="bcpills">${BC_TTLS.map(([h, t]) => `<button class="pill${BC.ttl === h ? ' on' : ''}" data-ttl="${h}">${t}</button>`).join('')}</div>
+      <div class="muted small">Tanlangan vaqtdan keyin e'lon hamma chatlardan o'zi o'chadi. Yuborilganini istalgan payt pastdagi ro'yxatdan 🗑 bilan ham o'chirish mumkin (48 soat ichida).</div></div>
     <div class="bccard"><div class="actions"><button class="act" id="bcTest">🧪 Menga sinov yuborish</button></div>
       <div class="actions" style="margin-top:8px"><button class="act bcgo" id="bcSend">🚀 Hammaga yuborish</button></div>
       <div class="muted small" id="bcMsg" aria-live="polite">${esc(BC.msg)}</div></div>
@@ -1304,6 +1308,7 @@ function renderAdmin() {
     } catch { if (my === cnt) $('#bcCount').textContent = '—'; }
   };
   app.querySelectorAll('[data-f]').forEach(b => b.onclick = () => { haptic(); BC.filter[b.dataset.f] = b.dataset.v; renderAdmin(); });
+  app.querySelectorAll('[data-ttl]').forEach(b => b.onclick = () => { haptic(); BC.ttl = Number(b.dataset.ttl); renderAdmin(); });
   $('#bcPicked').onchange = (e) => { BC.filter.scope = e.target.checked ? 'picked' : 'all'; syncBtns(); refreshCount(); };
   $('#bcGroup').oninput = (e) => {
     const name = e.target.value.trim();
@@ -1351,7 +1356,7 @@ function renderAdmin() {
     haptic('medium');
     const n = BC.count;
     if (!n) { setMsg('❌ Qabul qiluvchi yo‘q'); return; }
-    openSheet(`<h3>🚀 Yuborishni tasdiqlang</h3><div class="kv"><div class="k">👥</div><div class="v"><b>${n}</b> ta shaxsiy chatga yuboriladi</div></div><div class="kv"><div class="k">🚫</div><div class="v">Guruhlarga yuborilmaydi</div></div><div class="muted small" style="margin:8px 0">Yuborib bo'lingach to'xtatib bo'lmaydi (faqat hali yuborilmaganlarni bekor qilish mumkin).</div><div class="actions"><button class="act" id="bcNo">Bekor</button><button class="act bcgo" id="bcYes">Ha, yuborish</button></div>`);
+    openSheet(`<h3>🚀 Yuborishni tasdiqlang</h3><div class="kv"><div class="k">👥</div><div class="v"><b>${n}</b> ta shaxsiy chatga yuboriladi</div></div><div class="kv"><div class="k">🚫</div><div class="v">Guruhlarga yuborilmaydi</div></div><div class="kv"><div class="k">${BC.ttl ? '⏳' : '♾'}</div><div class="v">${bcTtlText(BC.ttl)}</div></div><div class="muted small" style="margin:8px 0">Yuborib bo'lingach to'xtatib bo'lmaydi (faqat hali yuborilmaganlarni bekor qilish mumkin).</div><div class="actions"><button class="act" id="bcNo">Bekor</button><button class="act bcgo" id="bcYes">Ha, yuborish</button></div>`);
     $('#bcNo').onclick = closeSheet;
     $('#bcYes').onclick = async () => {
       $('#bcYes').disabled = true;
@@ -1373,9 +1378,24 @@ function renderAdmin() {
       BC.list = j.list;
       box.innerHTML = j.list.length ? j.list.map(b => {
         const active = b.status === 'queued' || b.status === 'sending';
-        return `<div class="bcrow"><div><b>#${b.id}</b> · ${bcStatusText[b.status] || esc(b.status)}<br><span class="muted">${b.sent}/${b.total} yetdi${b.failed ? ` · ${b.failed} yetmadi` : ''} · ${esc(new Date(b.created_at).toLocaleString())}</span></div>${active ? `<button class="pill" data-cancel="${b.id}">Bekor</button>` : ''}</div>`;
+        return `<div class="bcrow"><div><b>#${b.id}</b> · ${b.deleted_at ? "🗑 o'chirildi" : bcStatusText[b.status] || esc(b.status)}<br><span class="muted">${b.sent}/${b.total} yetdi${b.failed ? ` · ${b.failed} yetmadi` : ''}${b.ttl && !b.deleted_at ? ` · ⏳ ${b.ttl} soatda o'chadi` : ''} · ${esc(new Date(b.created_at).toLocaleString())}</span></div>${active && !b.deleted_at ? `<button class="pill" data-cancel="${b.id}">Bekor</button>` : ''}${b.deletable ? `<button class="pill" data-del="${b.id}" data-n="${b.ids}">🗑 O'chirish</button>` : ''}</div>`;
       }).join('') : "Hali e'lon yuborilmagan";
       box.querySelectorAll('[data-cancel]').forEach(b => b.onclick = async () => { b.disabled = true; try { await adminCall({ op: 'cancel', id: Number(b.dataset.cancel) }); } catch {} loadList(); });
+      box.querySelectorAll('[data-del]').forEach(b => b.onclick = () => {
+        haptic('medium');
+        const id = Number(b.dataset.del);
+        openSheet(`<h3>🗑 #${id} e'lonini o'chirish</h3><div class="kv"><div class="k">👥</div><div class="v"><b>${esc(b.dataset.n)}</b> ta chatdan o'chiriladi (bir necha daqiqada)</div></div><div class="muted small" style="margin:8px 0">Buni qaytarib bo'lmaydi.</div><div class="actions"><button class="act" id="bdNo">Bekor</button><button class="act bcgo" id="bdYes">Ha, o'chirish</button></div>`);
+        $('#bdNo').onclick = closeSheet;
+        $('#bdYes').onclick = async () => {
+          $('#bdYes').disabled = true;
+          try {
+            const j = await adminCall({ op: 'delete', id });
+            closeSheet();
+            setMsg(j.ok ? `🗑 #${id} o'chirilmoqda: ${j.n} ta chatdan bir necha daqiqada o'chadi.` : j.error === 'too old' ? "❌ 48 soatdan oshgan — Telegram endi o'chirishga ruxsat bermaydi" : j.error === 'no ids' ? "❌ Bu e'lon yangilanishdan oldin yuborilgan — nusxalari saqlanmagan" : '❌ ' + (j.error || j.status));
+          } catch { closeSheet(); setMsg('❌ Internet xatosi'); }
+          loadList();
+        };
+      });
       if (j.list.some(b => b.status === 'queued' || b.status === 'sending')) BC.timer = setTimeout(loadList, 8000);
     } catch { box.textContent = '—'; }
   };

@@ -196,5 +196,18 @@ await reset(); await adminBot({ message: { message_id: 63, date: 0, chat: other,
 l = await log();
 check('a stranger\'s video is NOT a draft (they are asked to write text)', !l.some((c) => c.method === 'getFile') && viaAdmin(l).some((c) => c.data.chat_id === 515151));
 
+// ---- 📣 E'lon in the admin bot: the last announcements, each with 🗑 (asks once more)
+await reset(); await adminBot(msg("📣 E'lon", me, meU));
+l = await log();
+const bl = viaAdmin(l).find((c) => /So'nggi e'lonlar/.test(c.data.text || ''));
+const del = bl?.data.reply_markup?.inline_keyboard?.flat().find((b) => /^bd:\d+$/.test(b.callback_data));
+check("📣 E'lon → the last announcements, the sent one with a 🗑 button", bl && del, viaAdmin(l).map((c) => (c.data.text || '').slice(0, 60)));
+await reset(); await adminBot({ callback_query: { id: 'qd1', from: meU, data: del?.callback_data, message: { message_id: 880, chat: me } } });
+const ask = viaAdmin(await log()).find((c) => c.method === 'editMessageText');
+check('🗑 → asks once more, with how many chats', ask && /o'chirasizmi/.test(ask.data.text) && /:y"/.test(JSON.stringify(ask.data.reply_markup)), ask?.data);
+await reset(); await adminBot({ callback_query: { id: 'qd2', from: meU, data: del?.callback_data + ':y', message: { message_id: 880, chat: me } } });
+const done = viaAdmin(await log()).find((c) => c.method === 'editMessageText');
+check("…yes → \"o'chirilmoqda\", and it is marked deleted", done && /o'chirilmoqda/.test(done.data.text) && /o'chirildi/.test(done.data.text), done?.data.text);
+
 console.log(fails ? `\n${fails} admin-bot check(s) failed` : '\nAll admin-bot checks passed ✅');
 process.exit(fails ? 1 : 0);

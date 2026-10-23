@@ -59,7 +59,7 @@ let r = await api(me, { op: 'me' });
 check('the owner is recognised', r.ok && r.admin === true, r);
 r = await api(stranger, { op: 'me' });
 check('anyone else is told "not admin"', r.ok && r.admin === false, r);
-for (const op of ['count', 'photo', 'test', 'send', 'status', 'cancel']) {
+for (const op of ['count', 'photo', 'test', 'send', 'status', 'cancel', 'delete']) {
   r = await api(stranger, { op, payload, filter, id: 1, confirm: 1, image: 'data:image/jpeg;base64,/9j/4AAQSkZJRg==' });
   check(`stranger: op "${op}" → 403`, r.status === 403, r);
 }
@@ -184,6 +184,26 @@ check('already-served chats are skipped on a re-run', got(6001).length === 0 && 
 check('plain-text announcement without a photo goes as a message with the open-app/invite buttons', got(6002)[0].method === 'sendMessage' && /Третье/.test(got(6002)[0].data.text) && got(6002)[0].data.reply_markup.inline_keyboard.flat().length === 2, got(6002)[0]);
 st = (await api(me, { op: 'status' })).list[0];
 check('status after the resumed run: done, 3 in total', st.id === job3 && st.status === 'done' && st.sent === 3, st);
+
+// ---- 🗑 deleting a sent announcement: every copy that was noted goes to the deleter now; the one sent before (no id) is skipped
+const dueNow = async () => (await internal(`/internal/eph/due?now=${Date.now() + 60e3}`)).rows;
+check('the sender noted the copies it delivered (status: deletable, 2 known copies)', st.deletable === true && st.ids === 2, st);
+r = await api(me, { op: 'delete', id: job3 });
+let rows = await dueNow();
+check('🗑 delete → both known copies are due for deletion right away', r.ok && r.n === 2 && rows.filter((x) => [6002, 6003].includes(x.chat_id)).length === 2, { r, rows });
+st = (await api(me, { op: 'status' })).list[0];
+check('…the list shows it as deleted, no 🗑 any more', st.deleted_at && !st.deletable, st);
+r = await api(me, { op: 'delete', id: job3 });
+check('…deleting twice is refused', !r.ok && r.error === 'already', r);
+await internal('/internal/eph/done', { items: rows.map((x) => [x.chat_id, x.msg_id]) });
+// ⏳ chosen in the Mini App: each copy is set to go after that many hours
+await api(me, { op: 'test', payload: { texts: { uz: 'Vaqtinchalik' }, ttl: 6 }, filter });
+r = await api(me, { op: 'send', payload: { texts: { uz: 'Vaqtinchalik' }, ttl: 6 }, filter, confirm: 3 });
+await send();
+const at = async (h) => (await internal(`/internal/eph/due?now=${Date.now() + h * 3600e3}`)).rows.length;
+check('⏳ 6 hours (Mini App): the copies go after 6 hours, not before', (await at(5.9)) === 0 && (await at(6.1)) === 3, { early: await at(5.9), late: await at(6.1) });
+st = (await api(me, { op: 'status' })).list[0];
+check('…and the list says so', st.ttl === 6, st);
 
 console.log(fails ? `\n${fails} broadcast check(s) failed` : '\nAll broadcast checks passed ✅');
 process.exit(fails ? 1 : 0);

@@ -495,7 +495,8 @@ try {
         if (b.op === 'count') return out({ ok: true, n: b.filter.lang === 'ru' ? 7 : 42 });
         if (b.op === 'photo') return out({ ok: true, photo: 'FILEID_1234567890' });
         if (b.op === 'test') return out({ ok: true, sent: 1, n: 42 });
-        if (b.op === 'send') { list = [{ id: 9, created_at: Date.now(), total: b.confirm, sent: 0, failed: 0, status: 'queued' }]; return out({ ok: true, id: 9, total: b.confirm }); }
+        if (b.op === 'send') { list = [{ id: 9, created_at: Date.now(), total: b.confirm, sent: 0, failed: 0, status: 'queued', ttl: b.payload.ttl }, { id: 8, created_at: Date.now() - 3600e3, total: 40, sent: 40, failed: 0, status: 'done', ids: 40, deletable: true, ttl: 0 }]; return out({ ok: true, id: 9, total: b.confirm }); }
+        if (b.op === 'delete') { const x = list.find((y) => y.id === b.id); x.deleted_at = Date.now(); x.deletable = false; return out({ ok: true, n: 40 }); }
         if (b.op === 'status') return out({ ok: true, list });
         if (b.op === 'cancel') { list[0].status = 'cancelled'; return out({ ok: true, cancelled: true }); }
         return out({ ok: false }, 400);
@@ -536,16 +537,24 @@ try {
     ok(await s2.page.locator('#bcSend').isEnabled(), 'announcement: send unlocks after the test');
     await s2.page.fill('textarea[data-text="uz"]', 'Salom <b>hammaga</b>!');
     ok(await s2.page.locator('#bcSend').isDisabled(), 'announcement: editing the text after the test locks send again');
+    await s2.page.click('[data-ttl="3"]'); await settle(s2.page, 300);
+    ok(await s2.page.locator('[data-ttl="3"].on').count() === 1 && (await s2.page.inputValue('textarea[data-text="uz"]')) === 'Salom <b>hammaga</b>!', 'announcement: ⏳ 3 hours picked (the text stays)');
     await s2.page.click('#bcTest'); await settle(s2.page, 500);
     await s2.page.click('#bcSend'); await settle(s2.page, 300);
+    ok(/3 soatdan keyin/.test(await txt(s2.page, '#sheet')), 'announcement: the confirmation says when it will be deleted');
     ok(/7/.test(await txt(s2.page, '#sheet .kv')) && await s2.page.locator('#bcYes').count() === 1, 'announcement: the confirmation shows the number of recipients');
     await shot(s2.page, '12-announce-confirm');
     await s2.page.click('#bcYes'); await settle(s2.page, 700);
     const sd = seen.filter((b) => b.op === 'send').pop();
-    ok(sd && sd.confirm === 7, 'announcement: the confirmed count goes with the send: ' + JSON.stringify(sd && sd.confirm));
+    ok(sd && sd.confirm === 7 && sd.payload.ttl === 3, 'announcement: the confirmed count and ⏳ go with the send: ' + JSON.stringify(sd && [sd.confirm, sd.payload.ttl]));
     ok(/navbatga/i.test(await txt(s2.page, '#bcMsg')) && /#9/.test(await txt(s2.page, '#bcList')), 'announcement: queued message and the status list: ' + await txt(s2.page, '#bcList'));
     await s2.page.click('[data-cancel="9"]'); await settle(s2.page, 600);
     ok(/bekor qilindi/.test(await txt(s2.page, '#bcList')), 'announcement: cancel works');
+    await s2.page.click('[data-del="8"]'); await settle(s2.page, 300);
+    ok(/40/.test(await txt(s2.page, '#sheet')) && await s2.page.locator('#bdYes').count() === 1, 'announcement: 🗑 on a sent one asks first, with the number of chats');
+    await shot(s2.page, '13-announce-delete');
+    await s2.page.click('#bdYes'); await settle(s2.page, 700);
+    ok(seen.some((b) => b.op === 'delete' && b.id === 8) && /o'chirildi/.test(await txt(s2.page, '#bcList')) && /o'chirilmoqda/.test(await txt(s2.page, '#bcMsg')), 'announcement: 🗑 deletes it and the list says so: ' + await txt(s2.page, '#bcList'));
     ok(s2.errs.length === 0, 'announcement: no console errors: ' + s2.errs.join(';'));
     await s2.ctx.close();
     // opened from the bot's /elon button (#tab=admin): goes straight to the screen
