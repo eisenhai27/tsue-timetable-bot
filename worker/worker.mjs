@@ -23,13 +23,14 @@ import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
   fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX,
 } from '../src/shared.mjs';
+import { ft, fmtFriends, FRIENDS_MAX } from '../src/friends.mjs';
 import { lw as lessonWords, nextJoke, jokeList, jokePool, jokeText, jokeHtml, isTeacherKey, paragraphs, lessonRunPlan, clock } from '../src/lessons.mjs';
 
 const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
 const TPAGE = 16; // teachers per page in the picker
 // Version of the reply keyboard (the buttons under the message box). Chats that have an older one get the new keyboard
 // once, together with a short "what's new" note, the next time they write to the bot.
-const KB_VERSION = 2;
+const KB_VERSION = 3; // 3: the 👥 Do'stlar button
 const CALENDAR_ENABLED = false; // the /calendar command + button are hidden for now; flip to true to bring them back
 
 // Headers added to EVERY response: nothing here is meant to be framed, sniffed, cached or leak a referrer.
@@ -337,7 +338,7 @@ async function getEntity(env, row) {
 let schemaReady = false;
 // Bump when the tables/columns below change. A fresh Worker instance (~900 a day) then only reads this one row instead of
 // re-checking every table — that check used to be more than half of all the database reads.
-const SCHEMA_VERSION = '2026-10-24a';
+const SCHEMA_VERSION = '2026-10-25a';
 async function db(env) {
   if (!schemaReady) {
     try {
@@ -413,6 +414,12 @@ async function db(env) {
         del_at INTEGER NOT NULL,
         PRIMARY KEY (chat_id, msg_id))`),
       env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_eph_del ON eph(del_at)'),
+      // 👥 friendships, both directions (a sees b, b sees a); WITHOUT ROWID = one written row each, no extra index
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS friends (
+        a INTEGER NOT NULL,
+        b INTEGER NOT NULL,
+        at INTEGER,
+        PRIMARY KEY (a, b)) WITHOUT ROWID`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
         k TEXT PRIMARY KEY,
         v TEXT)`),
@@ -469,6 +476,8 @@ async function db(env) {
     // claimed right in the chat's own row (one write per message, nothing to clean up later)
     if (!cols.some((c) => c.name === 'lr_tag')) await addColumn('ALTER TABLE chats ADD COLUMN lr_tag TEXT');
     if (!cols.some((c) => c.name === 'de_day')) await addColumn('ALTER TABLE chats ADD COLUMN de_day TEXT');
+    // fname = the first name friends see (taken from Telegram when the person uses 👥 Do'stlar)
+    if (!cols.some((c) => c.name === 'fname')) await addColumn('ALTER TABLE chats ADD COLUMN fname TEXT');
     if (!cols.some((c) => c.name === 'kbv')) {
       // kbv = which reply keyboard this chat has been given (see KB_VERSION)
       await addColumn('ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0');
@@ -585,9 +594,9 @@ async function onSetup(request, url, env) {
     drop_pending_updates: true,
   });
   const cmds = {
-    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['group', 'Guruhni tanlash (talaba)'], ['teacher', "O'qituvchi sifatida kirish"], ['settings', 'Sozlamalar'], ['time', 'Ertangi dars eslatmasi vaqti'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
-    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['where', 'Где преподаватель? (/where Karimov)'], ['group', 'Выбрать группу (студент)'], ['teacher', 'Войти как преподаватель'], ['settings', 'Настройки'], ['time', 'Время напоминания о парах'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
-    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['where', 'Find a teacher (/where Karimov)'], ['group', 'Choose group (student)'], ['teacher', 'Sign in as a teacher'], ['settings', 'Settings'], ['time', 'Reminder time'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['friends', "Do'stlar — kim qayerda, qachon bo'sh"], ['group', 'Guruhni tanlash (talaba)'], ['teacher', "O'qituvchi sifatida kirish"], ['settings', 'Sozlamalar'], ['time', 'Ertangi dars eslatmasi vaqti'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['where', 'Где преподаватель? (/where Karimov)'], ['friends', 'Друзья — кто где, когда свободны'], ['group', 'Выбрать группу (студент)'], ['teacher', 'Войти как преподаватель'], ['settings', 'Настройки'], ['time', 'Время напоминания о парах'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['where', 'Find a teacher (/where Karimov)'], ['friends', "Friends — who's where, when free"], ['group', 'Choose group (student)'], ['teacher', 'Sign in as a teacher'], ['settings', 'Settings'], ['time', 'Reminder time'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
   };
   const groupCmds = {
     uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['setgroup', 'Chatni guruhga ulash (admin)'], ['unset', 'Uzish (admin)'], ['time', 'Eslatma vaqti (admin)']],
@@ -1518,11 +1527,11 @@ async function flushUsage(env) {
 }
 
 const COUNTED_COMMANDS = new Set(['today', 'tomorrow', 'week', 'settings', 'start', 'help', 'app', 'group', 'setgroup', 'unset', 'teacher', 'where', 'ustoz', 'find',
-  'feedback', 'time', 'remind', 'lang', 'language', 'calendar', 'stats', 'reply']);
+  'feedback', 'time', 'remind', 'lang', 'language', 'calendar', 'stats', 'reply', 'friends', 'dostlar']);
 const USAGE_NAMES = {
   today: '📅 Bugungi darslar', tomorrow: '➡️ Ertangi darslar', week: '🗓 Haftalik jadval', settings: '⚙️ Sozlamalar',
   start: '▶️ /start', help: '❓ Yordam', app: '📱 /app', group: '👥 Guruh tanlash', teacher: "👨‍🏫 O'qituvchi bo'limi",
-  where: '🔎 Ustoz qayerda?', ustoz: '🔎 Ustoz qayerda?', text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
+  friends: "👥 Do'stlar", dostlar: "👥 Do'stlar", where: '🔎 Ustoz qayerda?', ustoz: '🔎 Ustoz qayerda?', text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
 };
 
 /** The admin's statistics message (only ever sent to ADMIN_CHAT_ID). editId = refresh an earlier one in place. */
@@ -1614,10 +1623,10 @@ function mainKeyboard(env, lang, groupId, role) {
   const L = tr(lang);
   const rows = [[{ text: L.btnToday }, { text: L.btnTomorrow }, { text: L.btnWeek }]];
   if (siteUrl(env)) rows.push(
-    [{ text: L.btnWhere }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&l=${lang}` } }],
+    [{ text: L.btnWhere }, { text: ft(lang).btn }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&${groupId ? `${role === 'teacher' ? 't' : 'g'}=${groupId}&` : ''}l=${lang}` } }],
     [{ text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } }, { text: L.btnSettings }],
   );
-  else rows.push([{ text: L.btnWhere }, { text: L.btnSettings }]);
+  else rows.push([{ text: L.btnWhere }, { text: ft(lang).btn }, { text: L.btnSettings }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 
@@ -1633,6 +1642,7 @@ for (const l of LANGS) {
   BUTTONS[TEXTS[l].btnWeek] = 'week';
   BUTTONS[TEXTS[l].btnSettings] = 'settings';
   BUTTONS[TEXTS[l].btnWhere] = 'where';
+  BUTTONS[ft(l).btn] = 'friends';
 }
 // the "type a surname" prompt of the Ustoz-qayerda button — a reply to it is a teacher search
 const WHERE_PROMPTS = new Set(LANGS.map((l) => TEXTS[l].whereAsk.replace(/<[^>]+>/g, '').trim()));
@@ -1731,18 +1741,152 @@ async function onPrivate(env, msg, command) {
   if (flags.upgrade && !flags.kbSent) await upgradeKeyboard(env, msg.chat.id);
 }
 
+// ---------------------------------------------------------------- 👥 friends
+// Invite links carry the inviter's id and a signature (HMAC with ADMIN_KEY), so nobody can make a link for someone else:
+// t.me/<bot>?start=f<id in base 36>_<10 chars>. Opening it shows "X wants to be your friend" — only the "yes" makes the friendship,
+// and the inviter is told. Friends see each other's place and free time from the timetables (never any location).
+const b36 = (n) => n.toString(36);
+async function frSig(env, id) {
+  const mac = await hmacSha256(String(env.ADMIN_KEY || env.BOT_TOKEN || ''), `friend:${id}`);
+  return btoa(String.fromCharCode(...mac.slice(0, 8))).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '').slice(0, 10);
+}
+async function frCode(env, id) { return `${b36(id)}_${await frSig(env, id)}`; }
+async function frParse(env, code) {
+  const m = /^([0-9a-z]{1,14})_([A-Za-z0-9_-]{10})$/.exec(String(code || ''));
+  if (!m) return null;
+  const id = parseInt(m[1], 36);
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  return (await safeEqual(m[2], await frSig(env, id))) ? id : null;
+}
+async function frLink(env, id) { return `https://t.me/${(await getBotName(env)) || 'tdiujadval_bot'}?start=f${await frCode(env, id)}`; }
+const frShareUrl = (link, lang) => `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(ft(lang).shareText)}`;
+const personName = (from) => String([from?.first_name, from?.last_name ? from.last_name.slice(0, 1) + '.' : ''].filter(Boolean).join(' ') || from?.username || '').slice(0, 40);
+async function noteName(env, row, from) { // the name friends see; written only when it changed
+  const n = personName(from);
+  if (n && row && row.fname !== n) { await (await db(env)).prepare('UPDATE chats SET fname = ? WHERE chat_id = ?').bind(n, row.chat_id).run(); row.fname = n; }
+}
+async function friendRows(env, id) {
+  const { results } = await (await db(env)).prepare('SELECT c.chat_id id, c.fname name, c.group_id gid, c.group_name gname, c.role role FROM friends f JOIN chats c ON c.chat_id = f.b WHERE f.a = ? ORDER BY f.at').bind(id).all();
+  return results;
+}
+const entityOf = async (env, r) => {
+  const id = r?.group_id || r?.gid;
+  if (!id) return null;
+  if (r.role !== 'teacher') return getGroup(env, id);
+  const t = await getTeacher(env, id);
+  return t ? { ...t, kind: 't' } : null;
+};
+
+// callback: fr:l:<page>:<f> (f = 1: only the ones free now); fr:n = the same list as a new message (from a notice)
+async function friendsView(env, row, page = 0, onlyFree = false) {
+  const F = ft(row.lang);
+  const list = await friendRows(env, row.chat_id);
+  const [index, me, ...ents] = await Promise.all([getIndex(env), entityOf(env, row).catch(() => null), ...list.map((f) => entityOf(env, f).catch(() => null))]);
+  const now = tashkentNow();
+  const friends = list.map((f, i) => ({ name: f.name || '🙂', gname: f.gname, ent: ents[i] }));
+  const v = fmtFriends(friends, me, index, now, row.lang, { page, onlyFree });
+  const link = await frLink(env, row.chat_id);
+  const fl = onlyFree ? 1 : 0;
+  const kb = [];
+  if (v.pages > 1) kb.push([
+    { text: v.page > 0 ? '◀️' : '·', callback_data: v.page > 0 ? `fr:l:${v.page - 1}:${fl}` : 'fr:l:0:' + fl },
+    { text: `${v.page + 1}/${v.pages}`, callback_data: `fr:l:${v.page}:${fl}` },
+    { text: v.page < v.pages - 1 ? '▶️' : '·', callback_data: v.page < v.pages - 1 ? `fr:l:${v.page + 1}:${fl}` : `fr:l:${v.page}:${fl}` },
+  ]);
+  if (list.length > 5) kb.push([{ text: onlyFree ? F.all : F.onlyFree, callback_data: `fr:l:0:${onlyFree ? 0 : 1}` }]);
+  kb.push([{ text: F.add, url: frShareUrl(link, row.lang) }]);
+  if (list.length) kb.push([{ text: F.refresh, callback_data: `fr:l:${v.page}:${fl}` }, { text: F.manage, callback_data: 'fr:m:0' }]);
+  return { text: v.text, reply_markup: { inline_keyboard: kb } };
+}
+async function showFriends(env, chatId, row, from) {
+  await noteName(env, row, from);
+  const v = await friendsView(env, row);
+  return send(env, chatId, v.text, { reply_markup: v.reply_markup });
+}
+
+async function friendInvite(env, chatId, row, code, from) {
+  const F = ft(row.lang);
+  await noteName(env, row, from);
+  const inviter = await frParse(env, code);
+  if (!inviter) return send(env, chatId, F.bad);
+  if (inviter === chatId) return send(env, chatId, F.self, { reply_markup: { inline_keyboard: [[{ text: F.add, url: frShareUrl(await frLink(env, chatId), row.lang) }]] } });
+  const other = await getChat(env, inviter);
+  if (!other || other.kind !== 'private') return send(env, chatId, F.bad);
+  const name = esc(other.fname || '🙂');
+  const D = await db(env);
+  if (await D.prepare('SELECT 1 x FROM friends WHERE a = ? AND b = ?').bind(chatId, inviter).first()) return send(env, chatId, F.already(name));
+  return send(env, chatId, F.invite(name), { reply_markup: { inline_keyboard: [[{ text: F.yes, callback_data: `fr:a:${code}` }, { text: F.no, callback_data: 'fr:x' }]] } });
+}
+
+async function onFriendButton(env, cb, row, parts) {
+  const F = ft(row.lang);
+  const chatId = cb.message.chat.id, mid = cb.message.message_id;
+  const edit = (text, reply_markup = { inline_keyboard: [] }) => tg(env, 'editMessageText', { chat_id: chatId, message_id: mid, text, parse_mode: 'HTML', disable_web_page_preview: true, reply_markup });
+  const D = await db(env);
+  const act = parts[1];
+  if (act === 'x') return edit(F.declined);
+  if (act === 'a') {
+    await noteName(env, row, cb.from);
+    const inviter = await frParse(env, parts.slice(2).join(':'));
+    if (!inviter || inviter === chatId) return edit(F.bad);
+    const other = await getChat(env, inviter);
+    if (!other || other.kind !== 'private') return edit(F.bad);
+    const name = esc(other.fname || '🙂');
+    const [mine, theirs] = await D.batch([
+      D.prepare('SELECT COUNT(*) n FROM friends WHERE a = ?').bind(chatId),
+      D.prepare('SELECT COUNT(*) n FROM friends WHERE a = ?').bind(inviter),
+    ]);
+    if ((mine.results[0]?.n || 0) >= FRIENDS_MAX || (theirs.results[0]?.n || 0) >= FRIENDS_MAX) return edit(F.full);
+    const now = Date.now();
+    const [ins] = await D.batch([
+      D.prepare('INSERT OR IGNORE INTO friends (a, b, at) VALUES (?, ?, ?)').bind(chatId, inviter, now),
+      D.prepare('INSERT OR IGNORE INTO friends (a, b, at) VALUES (?, ?, ?)').bind(inviter, chatId, now),
+    ]);
+    await edit(F.done(name), { inline_keyboard: [[{ text: F.btn, callback_data: 'fr:n' }]] });
+    if (ins.meta?.changes) { // tell the inviter (in their language) — once
+      const O = ft(other.lang);
+      try { await send(env, inviter, O.accepted(esc(row.fname || '🙂')), { reply_markup: { inline_keyboard: [[{ text: O.btn, callback_data: 'fr:n' }]] } }); } catch {}
+    }
+    if (!row.group_id) { await send(env, chatId, F.pickGroup); return askRole(env, chatId, cb.from.id, row.lang, null, row.role); }
+    return;
+  }
+  if (act === 'n') { const v = await friendsView(env, row); return send(env, chatId, v.text, { reply_markup: v.reply_markup }); }
+  if (act === 'l') { // the list, refreshed in place (a page; only the free ones)
+    const v = await friendsView(env, row, Number(parts[2]) || 0, parts[3] === '1');
+    return edit(v.text, v.reply_markup).catch(() => {}); // ("message is not modified" when nothing changed)
+  }
+  if (act === 'm' || act === 'd') {
+    let note = '', page = act === 'm' ? Number(parts[2]) || 0 : Number(parts[3]) || 0;
+    if (act === 'd' && /^\d+$/.test(parts[2] || '')) {
+      const id = Number(parts[2]);
+      const gone = (await getChat(env, id))?.fname || '🙂';
+      await D.batch([D.prepare('DELETE FROM friends WHERE a = ? AND b = ?').bind(chatId, id), D.prepare('DELETE FROM friends WHERE a = ? AND b = ?').bind(id, chatId)]);
+      note = F.removed(esc(gone)) + '\n\n';
+    }
+    const list = (await friendRows(env, chatId)).sort((a, b) => String(a.name || '').localeCompare(String(b.name || '')));
+    const per = 12, pages = Math.max(1, Math.ceil(list.length / per));
+    page = Math.min(Math.max(0, page), pages - 1);
+    const kb = list.slice(page * per, page * per + per).map((f) => [{ text: `✖️ ${f.name || '🙂'}${f.gname ? ` (${f.gname})` : ''}`.slice(0, 60), callback_data: `fr:d:${f.id}:${page}` }]);
+    if (pages > 1) kb.push([{ text: page > 0 ? '◀️' : '·', callback_data: `fr:m:${Math.max(0, page - 1)}` }, { text: `${page + 1}/${pages}`, callback_data: `fr:m:${page}` }, { text: page < pages - 1 ? '▶️' : '·', callback_data: `fr:m:${Math.min(pages - 1, page + 1)}` }]);
+    kb.push([{ text: F.back, callback_data: 'fr:l:0:0' }]);
+    return edit(note + F.manageT, { inline_keyboard: kb }).catch(() => {});
+  }
+}
+
+
 /** Chats with an older reply keyboard get the new one once, with a short "what's new" note. */
 async function upgradeKeyboard(env, chatId) {
   const row = await getChat(env, chatId);
   if (!row || (row.kbv | 0) >= KB_VERSION) return;
   await (await db(env)).prepare('UPDATE chats SET kbv = ? WHERE chat_id = ?').bind(KB_VERSION, chatId).run();
-  await send(env, chatId, tr(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
+  await send(env, chatId, ft(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
 }
 
 async function privateMain(env, msg, command, flags) {
   if (isAdminChat(env, msg.chat.id) && (await onAdminReply(env, msg, command))) return;
   const { row, isNew } = await ensureChat(env, msg.chat, msg.from?.language_code);
   if (!isNew && (row.kbv | 0) < KB_VERSION) flags.upgrade = true;
+  if (isNew && command?.cmd === 'start' && /^f/.test(command.arg || '')) flags.kbSent = true;
   const lang = row.lang;
   const L = tr(lang);
   const uid = msg.from.id;
@@ -1759,6 +1903,11 @@ async function privateMain(env, msg, command, flags) {
     if (mt) { flags.kbSent = true; return chooseTeacher(env, msg.chat, uid, mt[1], null, lang); }
     const mw = /^w_([a-z0-9]+)$/.exec(command.arg); // "where is this teacher" link: /start w_<teacherId>
     if (mw) return showWhere(env, msg.chat.id, lang, 'private', mw[1]);
+    const mf = /^f([0-9a-z]{1,14}_[A-Za-z0-9_-]{10})$/.exec(command.arg); // a friend's invite link: /start f<code>
+    if (mf) {
+      if (isNew) await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
+      return friendInvite(env, msg.chat.id, row, mf[1], msg.from);
+    }
     if (siteUrl(env)) await syncMenu(env, msg.chat.id);
     flags.kbSent = true;
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
@@ -1771,6 +1920,7 @@ async function privateMain(env, msg, command, flags) {
     return send(env, msg.chat.id, L.whereAsk, { reply_markup: { force_reply: true, input_field_placeholder: L.whereAskPh, selective: true } });
   }
   if (action === 'help') return send(env, msg.chat.id, L.help, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
+  if (action === 'friends' || action === 'dostlar' || action === 'druzya') return showFriends(env, msg.chat.id, row, msg.from);
   if (action === 'group' || action === 'setgroup') {
     await setRole(env, msg.chat.id, row, 'student');
     return showFaculties(env, msg.chat.id, uid, lang, null);
@@ -2430,6 +2580,7 @@ async function onCallback(env, cb) {
   // the same "choose" button tapped twice within a few seconds: the first tap already did everything (and sent the follow-up messages)
   if ((kind === 'g' || kind === 'tp') && repeatedTap(chatId, msg.message_id, cb.data)) return;
   if (kind === 'lr' || kind === 'de' || kind === 'jk') return onEphemeralButton(env, cb, row, parts);
+  if (kind === 'fr' && !isGroupChat) return onFriendButton(env, cb, row, parts);
   if (kind === 'adm') {
     if (isAdminChat(env, chatId)) await sendStats(env, chatId, msg.message_id); // refresh — admin's own chat only
     return;

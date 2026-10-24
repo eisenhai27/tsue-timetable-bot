@@ -739,6 +739,199 @@ function bcMessage(p, chat, ctx = {}) {
 }
 var validBcId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id));
 
+// src/friends.mjs
+var FT = {
+  uz: {
+    btn: "\u{1F465} Do'stlar",
+    title: "\u{1F465} <b>Do'stlaringiz</b>",
+    empty: "Hali do'stingiz yo'q.\n\nDo'st qo'shsangiz, ikkalangiz bir-biringizning <b>hozir qaysi xonada ekaningizni</b> va <b>bugun qachon ikkalangiz bo'sh ekaningizni</b> ko'rasiz \u2014 tanaffusda uchrashish, birga tushlik qilish uchun.\n\n\u2795 Pastdagi tugma bilan havolangizni do'stingizga yuboring. U rozi bo'lsa \u2014 do'st bo'lasiz.\n\n<i>Faqat dars jadvali asosida \u2014 joylashuvingiz (GPS) hech kimga ko'rinmaydi.</i>",
+    noGroup: "\u2139\uFE0F Do'stlaringiz sizni ko'rishi uchun avval guruhingizni tanlang: /group",
+    now: (room, t) => `\u{1F4D8} Darsda: ${room} \xB7 ${t} gacha`,
+    free: (t, room) => `\u{1F7E2} Hozir bo'sh \xB7 keyingi dars ${t}${room ? `, ${room}` : ""}`,
+    after: "\u2705 Bugungi darslari tugadi",
+    off: "\u{1F3E0} Bugun darsi yo'q",
+    unknown: "\u2754 Guruh tanlamagan",
+    both: (list) => `\u{1F91D} Ikkalangiz bo'sh: ${list}`,
+    afterT: (t) => `${t} dan keyin`,
+    noCommon: "\u{1F91D} Bugun umumiy bo'sh vaqt yo'q",
+    bothNow: "\u{1F91D} Hozir ikkalangiz ham bo'shsiz",
+    sum: (n, f, c) => `${n} ta do'st \xB7 \u{1F7E2} ${f} bo'sh \xB7 \u{1F4D8} ${c} darsda`,
+    onlyFree: "\u{1F7E2} Faqat bo'shlar",
+    all: "\u{1F465} Hammasi",
+    noneFree: "Hozir bo'sh do'stingiz yo'q.",
+    add: "\u2795 Do'st qo'shish",
+    refresh: "\u{1F504} Yangilash",
+    manage: "\u2699\uFE0F Do'stlarni boshqarish",
+    manageT: "\u2699\uFE0F Ro'yxatdan olib tashlash uchun ismni bosing.\nU sizni ham, siz uni ham ko'rmay qolasiz.",
+    back: "\u25C0\uFE0F Orqaga",
+    removed: (n) => `\u2716\uFE0F ${n} ro'yxatdan olib tashlandi.`,
+    shareText: "Keling, TDIU Jadval'da do'st bo'laylik \u2014 qaysi xonada ekanimizni va umumiy bo'sh vaqtimizni ko'rib turamiz \u{1F447}",
+    invite: (n) => `\u{1F44B} <b>${n}</b> sizni TDIU Jadval'da do'st qilib qo'shmoqchi.
+
+Do'st bo'lsangiz, ikkalangiz bir-biringizning <b>hozir qaysi xonada ekaningizni</b> va <b>umumiy bo'sh vaqtingizni</b> ko'rasiz.
+
+<i>Faqat dars jadvali asosida \u2014 joylashuv (GPS) emas. Istalgan payt olib tashlash mumkin.</i>`,
+    yes: "\u2705 Qabul qilaman",
+    no: "\u274C Yo'q",
+    declined: "Mayli, do'st qo'shilmadi.",
+    done: (n) => `\u{1F389} Endi siz va <b>${n}</b> do'stsiz!`,
+    accepted: (n) => `\u{1F389} <b>${n}</b> do'stlik taklifingizni qabul qildi \u2014 endi bir-biringizni ko'rasiz.`,
+    self: "Bu sizning o'z havolangiz \u{1F642} Uni do'stingizga yuboring.",
+    already: (n) => `Siz va <b>${n}</b> allaqachon do'stsiz.`,
+    bad: "Bu havola eskirgan yoki noto'g'ri.",
+    full: "Do'stlar soni chegarasiga yetildi (100 ta).",
+    pickGroup: "Do'stingiz sizni ko'rishi uchun endi guruhingizni tanlang \u{1F447}",
+    whatsNew: "\u{1F195} <b>Yangilik: \u{1F465} Do'stlar!</b>\n\nDo'stlaringiz <b>hozir qaysi xonada</b> ekanini va <b>bugun qachon ikkalangiz bo'sh</b> ekaningizni ko'ring \u2014 tanaffusda uchrashish, birga tushlik qilish uchun.\n\nPastdagi <b>\u{1F465} Do'stlar</b> tugmasini bosing va havolangizni do'stingizga yuboring \u{1F447}\n\n<i>Faqat dars jadvali asosida \u2014 joylashuvingiz hech kimga ko'rinmaydi.</i>"
+  },
+  ru: {
+    btn: "\u{1F465} \u0414\u0440\u0443\u0437\u044C\u044F",
+    title: "\u{1F465} <b>\u0412\u0430\u0448\u0438 \u0434\u0440\u0443\u0437\u044C\u044F</b>",
+    empty: "\u041F\u043E\u043A\u0430 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0435\u0442.\n\n\u0414\u043E\u0431\u0430\u0432\u044C\u0442\u0435 \u0434\u0440\u0443\u0433\u0430 \u2014 \u0438 \u0432\u044B \u043E\u0431\u0430 \u0431\u0443\u0434\u0435\u0442\u0435 \u0432\u0438\u0434\u0435\u0442\u044C, <b>\u0432 \u043A\u0430\u043A\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438 \u0434\u0440\u0443\u0433\u043E\u0439 \u0441\u0435\u0439\u0447\u0430\u0441</b> \u0438 <b>\u043A\u043E\u0433\u0434\u0430 \u0432\u044B \u043E\u0431\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B \u0441\u0435\u0433\u043E\u0434\u043D\u044F</b> \u2014 \u0447\u0442\u043E\u0431\u044B \u0432\u0441\u0442\u0440\u0435\u0442\u0438\u0442\u044C\u0441\u044F \u043D\u0430 \u043F\u0435\u0440\u0435\u043C\u0435\u043D\u0435 \u0438\u043B\u0438 \u043F\u043E\u043E\u0431\u0435\u0434\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435.\n\n\u2795 \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0434\u0440\u0443\u0433\u0443 \u0441\u0432\u043E\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u043A\u043D\u043E\u043F\u043A\u043E\u0439 \u043D\u0438\u0436\u0435. \u0415\u0441\u043B\u0438 \u043E\u043D \u0441\u043E\u0433\u043B\u0430\u0441\u0438\u0442\u0441\u044F \u2014 \u0432\u044B \u0434\u0440\u0443\u0437\u044C\u044F.\n\n<i>\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044E \u2014 \u0432\u0430\u0448\u0435 \u043C\u0435\u0441\u0442\u043E\u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 (GPS) \u043D\u0438\u043A\u043E\u043C\u0443 \u043D\u0435 \u0432\u0438\u0434\u043D\u043E.</i>",
+    noGroup: "\u2139\uFE0F \u0427\u0442\u043E\u0431\u044B \u0434\u0440\u0443\u0437\u044C\u044F \u0432\u0438\u0434\u0435\u043B\u0438 \u0432\u0430\u0441, \u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u0443: /group",
+    now: (room, t) => `\u{1F4D8} \u041D\u0430 \u043F\u0430\u0440\u0435: ${room} \xB7 \u0434\u043E ${t}`,
+    free: (t, room) => `\u{1F7E2} \u0421\u0435\u0439\u0447\u0430\u0441 \u0441\u0432\u043E\u0431\u043E\u0434\u0435\u043D \xB7 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F \u043F\u0430\u0440\u0430 ${t}${room ? `, ${room}` : ""}`,
+    after: "\u2705 \u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u0437\u0430\u043A\u043E\u043D\u0447\u0438\u043B\u0438\u0441\u044C",
+    off: "\u{1F3E0} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043F\u0430\u0440 \u043D\u0435\u0442",
+    unknown: "\u2754 \u0413\u0440\u0443\u043F\u043F\u0430 \u043D\u0435 \u0432\u044B\u0431\u0440\u0430\u043D\u0430",
+    both: (list) => `\u{1F91D} \u0412\u044B \u043E\u0431\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B: ${list}`,
+    afterT: (t) => `\u043F\u043E\u0441\u043B\u0435 ${t}`,
+    noCommon: "\u{1F91D} \u0421\u0435\u0433\u043E\u0434\u043D\u044F \u043E\u0431\u0449\u0435\u0433\u043E \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0433\u043E \u0432\u0440\u0435\u043C\u0435\u043D\u0438 \u043D\u0435\u0442",
+    bothNow: "\u{1F91D} \u0421\u0435\u0439\u0447\u0430\u0441 \u0432\u044B \u043E\u0431\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B",
+    sum: (n, f, c) => `${n} \u0434\u0440\u0443\u0437\u0435\u0439 \xB7 \u{1F7E2} ${f} \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B \xB7 \u{1F4D8} ${c} \u043D\u0430 \u043F\u0430\u0440\u0435`,
+    onlyFree: "\u{1F7E2} \u0422\u043E\u043B\u044C\u043A\u043E \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435",
+    all: "\u{1F465} \u0412\u0441\u0435",
+    noneFree: "\u0421\u0435\u0439\u0447\u0430\u0441 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0445 \u0434\u0440\u0443\u0437\u0435\u0439 \u043D\u0435\u0442.",
+    add: "\u2795 \u0414\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0434\u0440\u0443\u0433\u0430",
+    refresh: "\u{1F504} \u041E\u0431\u043D\u043E\u0432\u0438\u0442\u044C",
+    manage: "\u2699\uFE0F \u0423\u043F\u0440\u0430\u0432\u043B\u044F\u0442\u044C \u0434\u0440\u0443\u0437\u044C\u044F\u043C\u0438",
+    manageT: "\u2699\uFE0F \u041D\u0430\u0436\u043C\u0438\u0442\u0435 \u043D\u0430 \u0438\u043C\u044F, \u0447\u0442\u043E\u0431\u044B \u0443\u0431\u0440\u0430\u0442\u044C \u0438\u0437 \u0441\u043F\u0438\u0441\u043A\u0430.\n\u0412\u044B \u043F\u0435\u0440\u0435\u0441\u0442\u0430\u043D\u0435\u0442\u0435 \u0432\u0438\u0434\u0435\u0442\u044C \u0434\u0440\u0443\u0433 \u0434\u0440\u0443\u0433\u0430.",
+    back: "\u25C0\uFE0F \u041D\u0430\u0437\u0430\u0434",
+    removed: (n) => `\u2716\uFE0F ${n} \u2014 \u0443\u0431\u0440\u0430\u043D(\u0430) \u0438\u0437 \u0441\u043F\u0438\u0441\u043A\u0430.`,
+    shareText: "\u0414\u0430\u0432\u0430\u0439 \u0434\u0440\u0443\u0436\u0438\u0442\u044C \u0432 TDIU Jadval \u2014 \u0431\u0443\u0434\u0435\u043C \u0432\u0438\u0434\u0435\u0442\u044C, \u043A\u0442\u043E \u0432 \u043A\u0430\u043A\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438 \u0438 \u043A\u043E\u0433\u0434\u0430 \u043C\u044B \u043E\u0431\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B \u{1F447}",
+    invite: (n) => `\u{1F44B} <b>${n}</b> \u0445\u043E\u0447\u0435\u0442 \u0434\u043E\u0431\u0430\u0432\u0438\u0442\u044C \u0432\u0430\u0441 \u0432 \u0434\u0440\u0443\u0437\u044C\u044F \u0432 TDIU Jadval.
+
+\u0412\u044B \u043E\u0431\u0430 \u0431\u0443\u0434\u0435\u0442\u0435 \u0432\u0438\u0434\u0435\u0442\u044C, <b>\u0432 \u043A\u0430\u043A\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438 \u0434\u0440\u0443\u0433\u043E\u0439 \u0441\u0435\u0439\u0447\u0430\u0441</b> \u0438 <b>\u0432\u0430\u0448\u0435 \u043E\u0431\u0449\u0435\u0435 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u043E\u0435 \u0432\u0440\u0435\u043C\u044F</b>.
+
+<i>\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044E \u2014 \u043D\u0435 \u043F\u043E GPS. \u0423\u0431\u0440\u0430\u0442\u044C \u043C\u043E\u0436\u043D\u043E \u0432 \u043B\u044E\u0431\u043E\u0439 \u043C\u043E\u043C\u0435\u043D\u0442.</i>`,
+    yes: "\u2705 \u041F\u0440\u0438\u043D\u044F\u0442\u044C",
+    no: "\u274C \u041D\u0435\u0442",
+    declined: "\u0425\u043E\u0440\u043E\u0448\u043E, \u043D\u0435 \u0434\u043E\u0431\u0430\u0432\u043B\u044F\u0435\u043C.",
+    done: (n) => `\u{1F389} \u0422\u0435\u043F\u0435\u0440\u044C \u0432\u044B \u0441 <b>${n}</b> \u0434\u0440\u0443\u0437\u044C\u044F!`,
+    accepted: (n) => `\u{1F389} <b>${n}</b> \u043F\u0440\u0438\u043D\u044F\u043B(\u0430) \u0432\u0430\u0448\u0435 \u043F\u0440\u0438\u0433\u043B\u0430\u0448\u0435\u043D\u0438\u0435 \u2014 \u0442\u0435\u043F\u0435\u0440\u044C \u0432\u044B \u0432\u0438\u0434\u0438\u0442\u0435 \u0434\u0440\u0443\u0433 \u0434\u0440\u0443\u0433\u0430.`,
+    self: "\u042D\u0442\u043E \u0432\u0430\u0448\u0430 \u0441\u043E\u0431\u0441\u0442\u0432\u0435\u043D\u043D\u0430\u044F \u0441\u0441\u044B\u043B\u043A\u0430 \u{1F642} \u041E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0435\u0451 \u0434\u0440\u0443\u0433\u0443.",
+    already: (n) => `\u0412\u044B \u0441 <b>${n}</b> \u0443\u0436\u0435 \u0434\u0440\u0443\u0437\u044C\u044F.`,
+    bad: "\u0421\u0441\u044B\u043B\u043A\u0430 \u0443\u0441\u0442\u0430\u0440\u0435\u043B\u0430 \u0438\u043B\u0438 \u043D\u0435\u0432\u0435\u0440\u043D\u0430.",
+    full: "\u0414\u043E\u0441\u0442\u0438\u0433\u043D\u0443\u0442 \u043F\u0440\u0435\u0434\u0435\u043B \u0434\u0440\u0443\u0437\u0435\u0439 (100).",
+    pickGroup: "\u0427\u0442\u043E\u0431\u044B \u0434\u0440\u0443\u0433 \u0432\u0438\u0434\u0435\u043B \u0432\u0430\u0441, \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0441\u0432\u043E\u044E \u0433\u0440\u0443\u043F\u043F\u0443 \u{1F447}",
+    whatsNew: "\u{1F195} <b>\u041D\u043E\u0432\u0438\u043D\u043A\u0430: \u{1F465} \u0414\u0440\u0443\u0437\u044C\u044F!</b>\n\n\u0421\u043C\u043E\u0442\u0440\u0438\u0442\u0435, <b>\u0432 \u043A\u0430\u043A\u043E\u0439 \u0430\u0443\u0434\u0438\u0442\u043E\u0440\u0438\u0438</b> \u0441\u0435\u0439\u0447\u0430\u0441 \u0432\u0430\u0448\u0438 \u0434\u0440\u0443\u0437\u044C\u044F \u0438 <b>\u043A\u043E\u0433\u0434\u0430 \u0432\u044B \u043E\u0431\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B</b> \u0441\u0435\u0433\u043E\u0434\u043D\u044F \u2014 \u0447\u0442\u043E\u0431\u044B \u0432\u0441\u0442\u0440\u0435\u0442\u0438\u0442\u044C\u0441\u044F \u043D\u0430 \u043F\u0435\u0440\u0435\u043C\u0435\u043D\u0435 \u0438\u043B\u0438 \u043F\u043E\u043E\u0431\u0435\u0434\u0430\u0442\u044C \u0432\u043C\u0435\u0441\u0442\u0435.\n\n\u041D\u0430\u0436\u043C\u0438\u0442\u0435 <b>\u{1F465} \u0414\u0440\u0443\u0437\u044C\u044F</b> \u0432\u043D\u0438\u0437\u0443 \u0438 \u043E\u0442\u043F\u0440\u0430\u0432\u044C\u0442\u0435 \u0434\u0440\u0443\u0433\u0443 \u0441\u0432\u043E\u044E \u0441\u0441\u044B\u043B\u043A\u0443 \u{1F447}\n\n<i>\u0422\u043E\u043B\u044C\u043A\u043E \u043F\u043E \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u044E \u2014 \u0432\u0430\u0448\u0435 \u043C\u0435\u0441\u0442\u043E\u043F\u043E\u043B\u043E\u0436\u0435\u043D\u0438\u0435 \u043D\u0438\u043A\u043E\u043C\u0443 \u043D\u0435 \u0432\u0438\u0434\u043D\u043E.</i>"
+  },
+  en: {
+    btn: "\u{1F465} Friends",
+    title: "\u{1F465} <b>Your friends</b>",
+    empty: "No friends yet.\n\nAdd a friend and you will both see <b>which room the other one is in right now</b> and <b>when you are both free today</b> \u2014 to meet in a break or have lunch together.\n\n\u2795 Send your link to a friend with the button below. Once they accept, you're friends.\n\n<i>Timetable only \u2014 your location (GPS) is never shown to anyone.</i>",
+    noGroup: "\u2139\uFE0F So your friends can see you, pick your group first: /group",
+    now: (room, t) => `\u{1F4D8} In class: ${room} \xB7 until ${t}`,
+    free: (t, room) => `\u{1F7E2} Free now \xB7 next class ${t}${room ? `, ${room}` : ""}`,
+    after: "\u2705 Done for today",
+    off: "\u{1F3E0} No classes today",
+    unknown: "\u2754 No group picked",
+    both: (list) => `\u{1F91D} Both free: ${list}`,
+    afterT: (t) => `after ${t}`,
+    noCommon: "\u{1F91D} No common free time today",
+    bothNow: "\u{1F91D} You're both free now",
+    sum: (n, f, c) => `${n} friends \xB7 \u{1F7E2} ${f} free \xB7 \u{1F4D8} ${c} in class`,
+    onlyFree: "\u{1F7E2} Free only",
+    all: "\u{1F465} All",
+    noneFree: "None of your friends is free right now.",
+    add: "\u2795 Add a friend",
+    refresh: "\u{1F504} Refresh",
+    manage: "\u2699\uFE0F Manage friends",
+    manageT: "\u2699\uFE0F Tap a name to remove them.\nYou will stop seeing each other.",
+    back: "\u25C0\uFE0F Back",
+    removed: (n) => `\u2716\uFE0F ${n} removed.`,
+    shareText: "Let's be friends on TDIU Jadval \u2014 we'll see which room we're in and when we're both free \u{1F447}",
+    invite: (n) => `\u{1F44B} <b>${n}</b> wants to add you as a friend on TDIU Jadval.
+
+You will both see <b>which room the other one is in right now</b> and <b>your common free time</b>.
+
+<i>Timetable only \u2014 not GPS. You can remove each other any time.</i>`,
+    yes: "\u2705 Accept",
+    no: "\u274C No",
+    declined: "OK, not added.",
+    done: (n) => `\u{1F389} You and <b>${n}</b> are friends now!`,
+    accepted: (n) => `\u{1F389} <b>${n}</b> accepted your invite \u2014 you can see each other now.`,
+    self: "That's your own link \u{1F642} Send it to a friend.",
+    already: (n) => `You and <b>${n}</b> are already friends.`,
+    bad: "This link is outdated or wrong.",
+    full: "Friend limit reached (100).",
+    pickGroup: "So your friend can see you, pick your group now \u{1F447}",
+    whatsNew: "\u{1F195} <b>New: \u{1F465} Friends!</b>\n\nSee <b>which room</b> your friends are in right now and <b>when you're both free</b> today \u2014 to meet in a break or have lunch together.\n\nTap <b>\u{1F465} Friends</b> below and send your link to a friend \u{1F447}\n\n<i>Timetable only \u2014 your location is never shown.</i>"
+  }
+};
+var ft = (lang) => FT[lang] || FT.uz;
+var FRIENDS_MAX = 100;
+var roomOf = (x, lang) => x?.l?.r ? roomLabel(x.l.r, lang) : "\u2014";
+function friendState(entity, index, now) {
+  if (!entity) return "none";
+  const st = whereIs(entity, index, now).state;
+  return st === "now" ? "class" : st === "before" || st === "between" ? "free" : "done";
+}
+function friendStatus(entity, index, now, lang) {
+  const F = ft(lang);
+  if (!entity) return F.unknown;
+  const st = whereIs(entity, index, now);
+  if (st.state === "now") return F.now(esc(roomOf(st.cur[0], lang)), hhmm(st.until));
+  if (st.state === "before" || st.state === "between") return F.free(hhmm(st.next.items[0].from), esc(roomOf(st.next.items[0], lang)));
+  return st.state === "after" ? F.after : F.off;
+}
+function commonFree(a, b, index, now) {
+  if (!a || !b) return null;
+  const A = dayItems(a, index, now), B = dayItems(b, index, now);
+  if (!A.length || !B.length) return null;
+  const nowM = now.getUTCHours() * 60 + now.getUTCMinutes();
+  const busy = [...A, ...B].map((x) => [x.from, x.to]).sort((x, y) => x[0] - y[0]);
+  const start = Math.max(nowM, Math.min(A[0].from, B[0].from));
+  const end = Math.max(...busy.map((x) => x[1]));
+  const gaps = [];
+  let t = start;
+  for (const [f, e] of busy) {
+    if (f > t && f - t >= 15) gaps.push({ from: t, to: f });
+    t = Math.max(t, e);
+  }
+  return { gaps: gaps.filter((g) => g.to > nowM).slice(0, 3), after: end, done: end <= nowM };
+}
+function fmtCommon(c, lang) {
+  const F = ft(lang);
+  if (!c) return null;
+  if (c.done) return F.bothNow;
+  const parts = c.gaps.map((g) => `${hhmm(g.from)}\u2013${hhmm(g.to)}`);
+  if (c.after < 22 * 60) parts.push(F.afterT(hhmm(c.after)));
+  return parts.length ? F.both(parts.join(", ")) : F.noCommon;
+}
+var FR_PAGE = 8;
+function fmtFriends(friends, me, index, now, lang, { page = 0, onlyFree = false } = {}) {
+  const F = ft(lang);
+  if (!friends.length) return { text: `${F.title}
+
+${F.empty}`, pages: 1, page: 0 };
+  const order = { free: 0, class: 1, done: 2, none: 3 };
+  const all = friends.map((f) => ({ ...f, state: friendState(f.ent, index, now) })).sort((a, b) => order[a.state] - order[b.state] || String(a.name).localeCompare(String(b.name)));
+  const count = (k) => all.filter((f) => f.state === k).length;
+  const list = onlyFree ? all.filter((f) => f.state === "free") : all;
+  const pages = Math.max(1, Math.ceil(list.length / FR_PAGE));
+  page = Math.min(Math.max(0, page | 0), pages - 1);
+  const out = [`${F.title} \xB7 ${hhmm(now.getUTCHours() * 60 + now.getUTCMinutes())}`];
+  if (all.length > 3) out.push(`<i>${F.sum(all.length, count("free"), count("class"))}</i>`);
+  if (!list.length) out.push("", F.noneFree);
+  for (const f of list.slice(page * FR_PAGE, page * FR_PAGE + FR_PAGE)) {
+    out.push("", `<b>${esc(f.name)}</b>${f.gname ? ` <i>(${esc(f.gname)})</i>` : ""}`, "   " + friendStatus(f.ent, index, now, lang));
+    const c = me ? fmtCommon(commonFree(me, f.ent, index, now), lang) : null;
+    if (c) out.push("   " + c);
+  }
+  if (!me) out.push("", F.noGroup);
+  return { text: out.join("\n"), pages, page };
+}
+
 // src/jokes.mjs
 var j = (uz, ru, en, extra = {}) => ({ uz, ru, en, ...extra });
 var JOKES = {
@@ -1074,7 +1267,7 @@ function lessonRunPlan(periods) {
 // worker/worker.mjs
 var PAGE = 36;
 var TPAGE = 16;
-var KB_VERSION = 2;
+var KB_VERSION = 3;
 var CALENDAR_ENABLED = false;
 var SECURITY_HEADERS = {
   "x-content-type-options": "nosniff",
@@ -1329,7 +1522,7 @@ async function getEntity(env, row) {
   return t ? { ...t, kind: "t" } : null;
 }
 var schemaReady = false;
-var SCHEMA_VERSION = "2026-10-24a";
+var SCHEMA_VERSION = "2026-10-25a";
 async function db(env) {
   if (!schemaReady) {
     try {
@@ -1406,6 +1599,12 @@ async function db(env) {
         del_at INTEGER NOT NULL,
         PRIMARY KEY (chat_id, msg_id))`),
       env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_eph_del ON eph(del_at)"),
+      // 👥 friendships, both directions (a sees b, b sees a); WITHOUT ROWID = one written row each, no extra index
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS friends (
+        a INTEGER NOT NULL,
+        b INTEGER NOT NULL,
+        at INTEGER,
+        PRIMARY KEY (a, b)) WITHOUT ROWID`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
         k TEXT PRIMARY KEY,
         v TEXT)`),
@@ -1450,6 +1649,7 @@ async function db(env) {
     if (!cols.some((c) => c.name === "lri")) await addColumn("ALTER TABLE chats ADD COLUMN lri INTEGER NOT NULL DEFAULT 0");
     if (!cols.some((c) => c.name === "lr_tag")) await addColumn("ALTER TABLE chats ADD COLUMN lr_tag TEXT");
     if (!cols.some((c) => c.name === "de_day")) await addColumn("ALTER TABLE chats ADD COLUMN de_day TEXT");
+    if (!cols.some((c) => c.name === "fname")) await addColumn("ALTER TABLE chats ADD COLUMN fname TEXT");
     if (!cols.some((c) => c.name === "kbv")) {
       await addColumn("ALTER TABLE chats ADD COLUMN kbv INTEGER NOT NULL DEFAULT 0");
     }
@@ -1550,9 +1750,9 @@ async function onSetup(request, url, env) {
     drop_pending_updates: true
   });
   const cmds = {
-    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["group", "Guruhni tanlash (talaba)"], ["teacher", "O'qituvchi sifatida kirish"], ["settings", "Sozlamalar"], ["time", "Ertangi dars eslatmasi vaqti"], ["app", "Ilovani ochish"], ["calendar", "Kalendarga obuna bo'lish"], ["feedback", "Taklif yoki xato yuborish"], ["help", "Yordam"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
-    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["where", "\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? (/where Karimov)"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)"], ["teacher", "\u0412\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["calendar", "\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"], ["feedback", "\u041E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u0448\u0438\u0431\u043A\u0430"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
-    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["where", "Find a teacher (/where Karimov)"], ["group", "Choose group (student)"], ["teacher", "Sign in as a teacher"], ["settings", "Settings"], ["time", "Reminder time"], ["app", "Open the app"], ["calendar", "Subscribe to calendar"], ["feedback", "Send feedback"], ["help", "Help"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar")
+    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["friends", "Do'stlar \u2014 kim qayerda, qachon bo'sh"], ["group", "Guruhni tanlash (talaba)"], ["teacher", "O'qituvchi sifatida kirish"], ["settings", "Sozlamalar"], ["time", "Ertangi dars eslatmasi vaqti"], ["app", "Ilovani ochish"], ["calendar", "Kalendarga obuna bo'lish"], ["feedback", "Taklif yoki xato yuborish"], ["help", "Yordam"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
+    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["where", "\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? (/where Karimov)"], ["friends", "\u0414\u0440\u0443\u0437\u044C\u044F \u2014 \u043A\u0442\u043E \u0433\u0434\u0435, \u043A\u043E\u0433\u0434\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)"], ["teacher", "\u0412\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["calendar", "\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"], ["feedback", "\u041E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u0448\u0438\u0431\u043A\u0430"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
+    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["where", "Find a teacher (/where Karimov)"], ["friends", "Friends \u2014 who's where, when free"], ["group", "Choose group (student)"], ["teacher", "Sign in as a teacher"], ["settings", "Settings"], ["time", "Reminder time"], ["app", "Open the app"], ["calendar", "Subscribe to calendar"], ["feedback", "Send feedback"], ["help", "Help"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar")
   };
   const groupCmds = {
     uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["setgroup", "Chatni guruhga ulash (admin)"], ["unset", "Uzish (admin)"], ["time", "Eslatma vaqti (admin)"]],
@@ -2517,7 +2717,9 @@ var COUNTED_COMMANDS = /* @__PURE__ */ new Set([
   "language",
   "calendar",
   "stats",
-  "reply"
+  "reply",
+  "friends",
+  "dostlar"
 ]);
 var USAGE_NAMES = {
   today: "\u{1F4C5} Bugungi darslar",
@@ -2529,6 +2731,8 @@ var USAGE_NAMES = {
   app: "\u{1F4F1} /app",
   group: "\u{1F465} Guruh tanlash",
   teacher: "\u{1F468}\u200D\u{1F3EB} O'qituvchi bo'limi",
+  friends: "\u{1F465} Do'stlar",
+  dostlar: "\u{1F465} Do'stlar",
   where: "\u{1F50E} Ustoz qayerda?",
   ustoz: "\u{1F50E} Ustoz qayerda?",
   text: "\u{1F50E} Nom yozib qidirish",
@@ -2626,10 +2830,10 @@ function mainKeyboard(env, lang, groupId, role) {
   const L = tr(lang);
   const rows = [[{ text: L.btnToday }, { text: L.btnTomorrow }, { text: L.btnWeek }]];
   if (siteUrl(env)) rows.push(
-    [{ text: L.btnWhere }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&l=${lang}` } }],
+    [{ text: L.btnWhere }, { text: ft(lang).btn }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&${groupId ? `${role === "teacher" ? "t" : "g"}=${groupId}&` : ""}l=${lang}` } }],
     [{ text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } }, { text: L.btnSettings }]
   );
-  else rows.push([{ text: L.btnWhere }, { text: L.btnSettings }]);
+  else rows.push([{ text: L.btnWhere }, { text: ft(lang).btn }, { text: L.btnSettings }]);
   return { keyboard: rows, resize_keyboard: true, is_persistent: true };
 }
 function appUrl(env, groupId, lang, role) {
@@ -2642,6 +2846,7 @@ for (const l of LANGS) {
   BUTTONS[T[l].btnWeek] = "week";
   BUTTONS[T[l].btnSettings] = "settings";
   BUTTONS[T[l].btnWhere] = "where";
+  BUTTONS[ft(l).btn] = "friends";
 }
 var WHERE_PROMPTS = new Set(LANGS.map((l) => T[l].whereAsk.replace(/<[^>]+>/g, "").trim()));
 var isWherePrompt = (m) => !!(m?.from?.is_bot && WHERE_PROMPTS.has(String(m.text || "").trim()));
@@ -2724,16 +2929,158 @@ async function onPrivate(env, msg, command) {
   await privateMain(env, msg, command, flags);
   if (flags.upgrade && !flags.kbSent) await upgradeKeyboard(env, msg.chat.id);
 }
+var b36 = (n) => n.toString(36);
+async function frSig(env, id) {
+  const mac = await hmacSha256(String(env.ADMIN_KEY || env.BOT_TOKEN || ""), `friend:${id}`);
+  return btoa(String.fromCharCode(...mac.slice(0, 8))).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "").slice(0, 10);
+}
+async function frCode(env, id) {
+  return `${b36(id)}_${await frSig(env, id)}`;
+}
+async function frParse(env, code) {
+  const m = /^([0-9a-z]{1,14})_([A-Za-z0-9_-]{10})$/.exec(String(code || ""));
+  if (!m) return null;
+  const id = parseInt(m[1], 36);
+  if (!Number.isSafeInteger(id) || id <= 0) return null;
+  return await safeEqual(m[2], await frSig(env, id)) ? id : null;
+}
+async function frLink(env, id) {
+  return `https://t.me/${await getBotName(env) || "tdiujadval_bot"}?start=f${await frCode(env, id)}`;
+}
+var frShareUrl = (link, lang) => `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(ft(lang).shareText)}`;
+var personName = (from) => String([from?.first_name, from?.last_name ? from.last_name.slice(0, 1) + "." : ""].filter(Boolean).join(" ") || from?.username || "").slice(0, 40);
+async function noteName(env, row, from) {
+  const n = personName(from);
+  if (n && row && row.fname !== n) {
+    await (await db(env)).prepare("UPDATE chats SET fname = ? WHERE chat_id = ?").bind(n, row.chat_id).run();
+    row.fname = n;
+  }
+}
+async function friendRows(env, id) {
+  const { results } = await (await db(env)).prepare("SELECT c.chat_id id, c.fname name, c.group_id gid, c.group_name gname, c.role role FROM friends f JOIN chats c ON c.chat_id = f.b WHERE f.a = ? ORDER BY f.at").bind(id).all();
+  return results;
+}
+var entityOf = async (env, r) => {
+  const id = r?.group_id || r?.gid;
+  if (!id) return null;
+  if (r.role !== "teacher") return getGroup(env, id);
+  const t = await getTeacher(env, id);
+  return t ? { ...t, kind: "t" } : null;
+};
+async function friendsView(env, row, page = 0, onlyFree = false) {
+  const F = ft(row.lang);
+  const list = await friendRows(env, row.chat_id);
+  const [index, me, ...ents] = await Promise.all([getIndex(env), entityOf(env, row).catch(() => null), ...list.map((f) => entityOf(env, f).catch(() => null))]);
+  const now = tashkentNow();
+  const friends = list.map((f, i) => ({ name: f.name || "\u{1F642}", gname: f.gname, ent: ents[i] }));
+  const v = fmtFriends(friends, me, index, now, row.lang, { page, onlyFree });
+  const link = await frLink(env, row.chat_id);
+  const fl = onlyFree ? 1 : 0;
+  const kb = [];
+  if (v.pages > 1) kb.push([
+    { text: v.page > 0 ? "\u25C0\uFE0F" : "\xB7", callback_data: v.page > 0 ? `fr:l:${v.page - 1}:${fl}` : "fr:l:0:" + fl },
+    { text: `${v.page + 1}/${v.pages}`, callback_data: `fr:l:${v.page}:${fl}` },
+    { text: v.page < v.pages - 1 ? "\u25B6\uFE0F" : "\xB7", callback_data: v.page < v.pages - 1 ? `fr:l:${v.page + 1}:${fl}` : `fr:l:${v.page}:${fl}` }
+  ]);
+  if (list.length > 5) kb.push([{ text: onlyFree ? F.all : F.onlyFree, callback_data: `fr:l:0:${onlyFree ? 0 : 1}` }]);
+  kb.push([{ text: F.add, url: frShareUrl(link, row.lang) }]);
+  if (list.length) kb.push([{ text: F.refresh, callback_data: `fr:l:${v.page}:${fl}` }, { text: F.manage, callback_data: "fr:m:0" }]);
+  return { text: v.text, reply_markup: { inline_keyboard: kb } };
+}
+async function showFriends(env, chatId, row, from) {
+  await noteName(env, row, from);
+  const v = await friendsView(env, row);
+  return send(env, chatId, v.text, { reply_markup: v.reply_markup });
+}
+async function friendInvite(env, chatId, row, code, from) {
+  const F = ft(row.lang);
+  await noteName(env, row, from);
+  const inviter = await frParse(env, code);
+  if (!inviter) return send(env, chatId, F.bad);
+  if (inviter === chatId) return send(env, chatId, F.self, { reply_markup: { inline_keyboard: [[{ text: F.add, url: frShareUrl(await frLink(env, chatId), row.lang) }]] } });
+  const other = await getChat(env, inviter);
+  if (!other || other.kind !== "private") return send(env, chatId, F.bad);
+  const name = esc(other.fname || "\u{1F642}");
+  const D = await db(env);
+  if (await D.prepare("SELECT 1 x FROM friends WHERE a = ? AND b = ?").bind(chatId, inviter).first()) return send(env, chatId, F.already(name));
+  return send(env, chatId, F.invite(name), { reply_markup: { inline_keyboard: [[{ text: F.yes, callback_data: `fr:a:${code}` }, { text: F.no, callback_data: "fr:x" }]] } });
+}
+async function onFriendButton(env, cb, row, parts) {
+  const F = ft(row.lang);
+  const chatId = cb.message.chat.id, mid = cb.message.message_id;
+  const edit = (text, reply_markup = { inline_keyboard: [] }) => tg(env, "editMessageText", { chat_id: chatId, message_id: mid, text, parse_mode: "HTML", disable_web_page_preview: true, reply_markup });
+  const D = await db(env);
+  const act = parts[1];
+  if (act === "x") return edit(F.declined);
+  if (act === "a") {
+    await noteName(env, row, cb.from);
+    const inviter = await frParse(env, parts.slice(2).join(":"));
+    if (!inviter || inviter === chatId) return edit(F.bad);
+    const other = await getChat(env, inviter);
+    if (!other || other.kind !== "private") return edit(F.bad);
+    const name = esc(other.fname || "\u{1F642}");
+    const [mine, theirs] = await D.batch([
+      D.prepare("SELECT COUNT(*) n FROM friends WHERE a = ?").bind(chatId),
+      D.prepare("SELECT COUNT(*) n FROM friends WHERE a = ?").bind(inviter)
+    ]);
+    if ((mine.results[0]?.n || 0) >= FRIENDS_MAX || (theirs.results[0]?.n || 0) >= FRIENDS_MAX) return edit(F.full);
+    const now = Date.now();
+    const [ins] = await D.batch([
+      D.prepare("INSERT OR IGNORE INTO friends (a, b, at) VALUES (?, ?, ?)").bind(chatId, inviter, now),
+      D.prepare("INSERT OR IGNORE INTO friends (a, b, at) VALUES (?, ?, ?)").bind(inviter, chatId, now)
+    ]);
+    await edit(F.done(name), { inline_keyboard: [[{ text: F.btn, callback_data: "fr:n" }]] });
+    if (ins.meta?.changes) {
+      const O = ft(other.lang);
+      try {
+        await send(env, inviter, O.accepted(esc(row.fname || "\u{1F642}")), { reply_markup: { inline_keyboard: [[{ text: O.btn, callback_data: "fr:n" }]] } });
+      } catch {
+      }
+    }
+    if (!row.group_id) {
+      await send(env, chatId, F.pickGroup);
+      return askRole(env, chatId, cb.from.id, row.lang, null, row.role);
+    }
+    return;
+  }
+  if (act === "n") {
+    const v = await friendsView(env, row);
+    return send(env, chatId, v.text, { reply_markup: v.reply_markup });
+  }
+  if (act === "l") {
+    const v = await friendsView(env, row, Number(parts[2]) || 0, parts[3] === "1");
+    return edit(v.text, v.reply_markup).catch(() => {
+    });
+  }
+  if (act === "m" || act === "d") {
+    let note = "", page = act === "m" ? Number(parts[2]) || 0 : Number(parts[3]) || 0;
+    if (act === "d" && /^\d+$/.test(parts[2] || "")) {
+      const id = Number(parts[2]);
+      const gone = (await getChat(env, id))?.fname || "\u{1F642}";
+      await D.batch([D.prepare("DELETE FROM friends WHERE a = ? AND b = ?").bind(chatId, id), D.prepare("DELETE FROM friends WHERE a = ? AND b = ?").bind(id, chatId)]);
+      note = F.removed(esc(gone)) + "\n\n";
+    }
+    const list = (await friendRows(env, chatId)).sort((a, b) => String(a.name || "").localeCompare(String(b.name || "")));
+    const per = 12, pages = Math.max(1, Math.ceil(list.length / per));
+    page = Math.min(Math.max(0, page), pages - 1);
+    const kb = list.slice(page * per, page * per + per).map((f) => [{ text: `\u2716\uFE0F ${f.name || "\u{1F642}"}${f.gname ? ` (${f.gname})` : ""}`.slice(0, 60), callback_data: `fr:d:${f.id}:${page}` }]);
+    if (pages > 1) kb.push([{ text: page > 0 ? "\u25C0\uFE0F" : "\xB7", callback_data: `fr:m:${Math.max(0, page - 1)}` }, { text: `${page + 1}/${pages}`, callback_data: `fr:m:${page}` }, { text: page < pages - 1 ? "\u25B6\uFE0F" : "\xB7", callback_data: `fr:m:${Math.min(pages - 1, page + 1)}` }]);
+    kb.push([{ text: F.back, callback_data: "fr:l:0:0" }]);
+    return edit(note + F.manageT, { inline_keyboard: kb }).catch(() => {
+    });
+  }
+}
 async function upgradeKeyboard(env, chatId) {
   const row = await getChat(env, chatId);
   if (!row || (row.kbv | 0) >= KB_VERSION) return;
   await (await db(env)).prepare("UPDATE chats SET kbv = ? WHERE chat_id = ?").bind(KB_VERSION, chatId).run();
-  await send(env, chatId, tr(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
+  await send(env, chatId, ft(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
 }
 async function privateMain(env, msg, command, flags) {
   if (isAdminChat(env, msg.chat.id) && await onAdminReply(env, msg, command)) return;
   const { row, isNew } = await ensureChat(env, msg.chat, msg.from?.language_code);
   if (!isNew && (row.kbv | 0) < KB_VERSION) flags.upgrade = true;
+  if (isNew && command?.cmd === "start" && /^f/.test(command.arg || "")) flags.kbSent = true;
   const lang = row.lang;
   const L = tr(lang);
   const uid = msg.from.id;
@@ -2752,6 +3099,11 @@ async function privateMain(env, msg, command, flags) {
     }
     const mw = /^w_([a-z0-9]+)$/.exec(command.arg);
     if (mw) return showWhere(env, msg.chat.id, lang, "private", mw[1]);
+    const mf = /^f([0-9a-z]{1,14}_[A-Za-z0-9_-]{10})$/.exec(command.arg);
+    if (mf) {
+      if (isNew) await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
+      return friendInvite(env, msg.chat.id, row, mf[1], msg.from);
+    }
     if (siteUrl(env)) await syncMenu(env, msg.chat.id);
     flags.kbSent = true;
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
@@ -2764,6 +3116,7 @@ async function privateMain(env, msg, command, flags) {
     return send(env, msg.chat.id, L.whereAsk, { reply_markup: { force_reply: true, input_field_placeholder: L.whereAskPh, selective: true } });
   }
   if (action === "help") return send(env, msg.chat.id, L.help, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
+  if (action === "friends" || action === "dostlar" || action === "druzya") return showFriends(env, msg.chat.id, row, msg.from);
   if (action === "group" || action === "setgroup") {
     await setRole(env, msg.chat.id, row, "student");
     return showFaculties(env, msg.chat.id, uid, lang, null);
@@ -3397,6 +3750,7 @@ async function onCallback(env, cb) {
   tg(env, "answerCallbackQuery", { callback_query_id: cb.id });
   if ((kind === "g" || kind === "tp") && repeatedTap(chatId, msg.message_id, cb.data)) return;
   if (kind === "lr" || kind === "de" || kind === "jk") return onEphemeralButton(env, cb, row, parts);
+  if (kind === "fr" && !isGroupChat) return onFriendButton(env, cb, row, parts);
   if (kind === "adm") {
     if (isAdminChat(env, chatId)) await sendStats(env, chatId, msg.message_id);
     return;

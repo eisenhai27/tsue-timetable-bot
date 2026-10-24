@@ -176,6 +176,8 @@ mark{background:var(--bolt);color:#10233F;border-radius:4px;padding:0 1px}
 .slotbar .pill{flex:none}
 .bld h4{margin:14px 2px 8px;font-size:12px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.06em}
 .rooms{display:flex;flex-wrap:wrap;gap:6px}
+.near{margin:12px 0 4px;padding:12px;border-radius:18px;background:var(--card);border:1.5px solid var(--good)}.near h4{margin:0 0 2px}.near .nref{font-size:12.5px;color:var(--hint);font-weight:600;margin-bottom:8px}
+.room.same{box-shadow:inset 0 0 0 2px var(--good)}
 .room{display:flex;flex-direction:column;align-items:flex-start;background:var(--good-bg);color:var(--good);border-radius:12px;padding:7px 11px;font-weight:800;font-size:13px;line-height:1.25}
 .room small{font-size:11px;font-weight:700;opacity:.75}
 .pill.now{color:var(--navy)} .pill.now.on{background:var(--bolt);color:#3B2A00}
@@ -437,6 +439,7 @@ const I = {
     searchSub:"Guruh, o'qituvchi yoki xona qidiring", pick:'Guruhingizni tanlang', pickSub:'Guruh nomini yozing, masalan 901',
     pickT:"O'zingizni tanlang", pickTSub:'Familiyangizni yozing, masalan Karimov', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
     changedAt:(d)=>`${d} da yangilandi`, newTT:"Yangi jadval e'lon qilindi", lecture:"Ma'ruza", seminar:'Seminar', lab:'Laboratoriya', practice:'Amaliy',
+    nearT:'📍 Darsingizga yaqin', nearNow:(r)=>`shu paradagi darsingiz: ${r}`, nearNext:(r,t)=>`${t} dagi darsingiz: ${r}`, nearPrev:(r,t)=>`${t} gacha darsingiz: ${r}`, floorW:(f)=>`${f}-qavat`, nearNone:"Bu binoda hozir bo'sh xona yo'q",
     free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…',
     teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar', validity:'Amal qiladi', lang:'Til', langTitle:'Tilni tanlang', theme:'Mavzu', themeAuto:'Avto',
     breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi',
@@ -464,6 +467,7 @@ const I = {
     searchSub:'Ищите группу, преподавателя или аудиторию', pick:'Выберите группу', pickSub:'Введите название группы, например 901',
     pickT:'Выберите себя', pickTSub:'Введите фамилию, например Karimov или Каримов', nothing:'Ничего не найдено', changed:'Расписание изменилось',
     changedAt:(d)=>`обновлено ${d}`, newTT:'Опубликовано новое расписание', lecture:'Лекция', seminar:'Семинар', lab:'Лаб.', practice:'Практика',
+    nearT:'📍 Рядом с вашей парой', nearNow:(r)=>`ваша пара в это время: ${r}`, nearNext:(r,t)=>`ваша пара в ${t}: ${r}`, nearPrev:(r,t)=>`ваша пара до ${t}: ${r}`, floorW:(f)=>`${f} этаж`, nearNone:'В этом корпусе сейчас нет свободных аудиторий',
     free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} ${plRu(n,'свободная аудитория','свободные аудитории','свободных аудиторий')}`, filterRoom:'Номер аудитории…',
     teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы', validity:'Действует', lang:'Язык', langTitle:'Выберите язык', theme:'Тема', themeAuto:'Авто',
     breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое',
@@ -491,6 +495,7 @@ const I = {
     searchSub:'Search a group, teacher or room', pick:'Pick your group', pickSub:'Type your group name, e.g. 901',
     pickT:'Pick yourself', pickTSub:'Type your surname, e.g. Karimov', nothing:'Nothing found', changed:'Timetable changed',
     changedAt:(d)=>`updated ${d}`, newTT:'New timetable published', lecture:'Lecture', seminar:'Seminar', lab:'Lab', practice:'Practice',
+    nearT:'📍 Near your class', nearNow:(r)=>`your class at this time: ${r}`, nearNext:(r,t)=>`your class at ${t}: ${r}`, nearPrev:(r,t)=>`your class until ${t}: ${r}`, floorW:(f)=>`floor ${f}`, nearNone:'No free rooms in that building right now',
     free:'Free rooms', freeFor:(d,p)=>`${d}, period ${p}`, freeCount:(n)=>`${n} free room${n === 1 ? '' : 's'}`, filterRoom:'Room number…',
     teacher:'Teacher', room:'Room', groupsL:'Groups', validity:'Valid', lang:'Language', langTitle:'Choose language', theme:'Theme', themeAuto:'Auto',
     breakMin:(m)=>`${m} min break`, error:"Couldn't load data. Check your connection and try again.", retry:'Retry', new:'New',
@@ -1509,7 +1514,8 @@ function currentSlot() {
 const renderFree = safe(async function () {
   const my = ++seq;
   app.innerHTML = `<div class="wrap"><div class="spin"></div></div>`;
-  const [busy] = await Promise.all([load('busy.json'), ensurePeople()]);
+  const mineE = S.mine && S.mine.type !== 'r' ? S.mine : null;
+  const [busy, , mineEnt] = await Promise.all([load('busy.json'), ensurePeople(), mineE ? swr(fileOf(mineE)).catch(() => null) : null]);
   if (my !== seq) return;
   const now = nowT();
   const cs = currentSlot();
@@ -1546,6 +1552,26 @@ const renderFree = safe(async function () {
   const keys = Object.keys(groups).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
   const per = INDEX.periods.find(x => x.p === S.freeP);
   const bName = (k) => /^\d+$/.test(k) ? L.bld(k) : k;
+  // 📍 near my own class: the room of my class at this period, else the next one that day, else the one before it →
+  // free rooms on the same floor first, then the same building, nearest floor first (the longest free first)
+  const place = (name) => { const m = /^(\d{1,2})\s*[-/]+\s*(\d{3,4})/.exec(String(name).trim()); return m ? { bld: m[1], floor: Math.floor(Number(m[2]) / 100) } : { bld: (/^([^-/\s]+)/.exec(String(name).trim()) || [, '?'])[1], floor: null }; };
+  let near = null;
+  if (mineEnt) {
+    const items = dayItems(mineEnt, addD(mon, S.freeDay)).filter(x => x.l.r);
+    const a = mins(per.start), b = mins(per.end);
+    const at = items.find(x => x.from < b && x.to > a), next = items.find(x => x.from >= b), prev = [...items].reverse().find(x => x.to <= a);
+    const ref = at || next || prev;
+    if (ref) {
+      const room = splitList(ref.l.r)[0], pl = place(room);
+      const label = roomShort(room);
+      const why = at ? L.nearNow(label) : next ? L.nearNext(label, hhmm(ref.from)) : L.nearPrev(label, hhmm(ref.to));
+      const list = free.filter(r => r.bld === pl.bld).map(r => ({ ...r, floor: place(r.name).floor }))
+        .sort((x, y) => (x.floor === pl.floor ? 0 : 1) - (y.floor === pl.floor ? 0 : 1) || (pl.floor == null || x.floor == null || y.floor == null ? 0 : Math.abs(x.floor - pl.floor) - Math.abs(y.floor - pl.floor)) || y.len - x.len || x.name.localeCompare(y.name, undefined, { numeric: true }))
+        .slice(0, 8);
+      near = { why, list, floor: pl.floor };
+    }
+  }
+  const nearHtml = near && S.freeBld === 'all' && !fq ? `<div class="near"><h4>${esc(L.nearT)}</h4><div class="nref">${esc(near.why)}</div>${near.list.length ? `<div class="rooms">${near.list.map(r => `<button class="room${r.floor != null && r.floor === near.floor ? ' same' : ''}" data-room="${esc(r.name)}">${esc(r.name)}<small>${r.floor != null ? esc(L.floorW(r.floor)) + ' · ' : ''}${esc(r.until ? L.until(r.until) : L.tillEnd)}</small></button>`).join('')}</div>` : `<div class="muted small">${esc(L.nearNone)}</div>`}</div>` : '';
   const head = isNow ? (cs.mode === 'now' ? L.freeNowT : L.freeNextT) : L.free;
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(head)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)}</div></div>
@@ -1555,6 +1581,7 @@ const renderFree = safe(async function () {
     <div class="slotbar">${INDEX.periods.map(p => `<button class="pill ${p.p === S.freeP && !isNow ? 'on' : ''}" data-fp="${p.p}">${p.p} · ${esc(p.start)}</button>`).join('')}</div>
     <div class="slotbar"><button class="pill ${S.freeBld === 'all' ? 'on' : ''}" data-fb="all">🏢 ${esc(L.allB)}</button>${blds.map(k => `<button class="pill ${S.freeBld === k ? 'on' : ''}" data-fb="${esc(k)}">${esc(bName(k))} <span class="muted">${bCount[k]}</span></button>`).join('')}</div>
     <label class="search">🔎<input id="fq" type="search" placeholder="${esc(L.filterRoom)}" value="${esc(S.freeQ)}"></label>
+    ${nearHtml}
     ${keys.map(k => `<div class="bld"><h4>${esc(bName(k))} · ${groups[k].length}</h4><div class="rooms">${groups[k].map(r => `<button class="room" data-room="${esc(r.name)}">${esc(r.name)}<small>${esc(r.until ? L.until(r.until) : L.tillEnd)}</small></button>`).join('')}</div></div>`).join('') || `<div class="empty">${esc(L.nothing)}</div>`}
     ${footHtml('')}
   </div>`;

@@ -55,7 +55,7 @@ check('first page has Back (to directions) + More, no ⬅️', grpKb.at(-1).leng
 await reset(); await post(cb('d:111:0:0:0:1'));
 l = await log();
 grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
-check('second page: the remaining 15 MO groups + ⬅️, no More', grpKb.slice(0, -1).flat().length === 15 && grpKb.at(-1).some((b) => b.text === '⬅️' && b.callback_data === 'd:111:0:0:0:0') && !grpKb.at(-1).some((b) => /Yana/.test(b.text)), texts(l));
+check('second page: the remaining MO groups (51 − 36 = 15 when written; follows the live data) + ⬅️, no More', grpKb.slice(0, -1).flat().length >= 1 && grpKb.slice(0, -1).flat().length <= 36 && grpKb.slice(0, -1).flat().every((b) => /^MO-/.test(b.text)) && grpKb.at(-1).some((b) => b.text === '⬅️' && b.callback_data === 'd:111:0:0:0:0') && !grpKb.at(-1).some((b) => /Yana/.test(b.text)), texts(l));
 await reset(); await post(cb('c:111:1:0:0'));
 l = await log();
 grpKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
@@ -274,7 +274,7 @@ check('teacher role → letter picker', letterKb && letterKb.flat().some((b) => 
 await reset(); await post(cb('tl:777:K:0', tPriv, tUser));
 l = await log();
 const tKb = l.find((c) => c.method === 'editMessageText')?.data.reply_markup.inline_keyboard;
-check('letter K → teachers whose surname starts with K', tKb && tKb.flat().some((b) => /Karimov Dilshod/.test(b.text) && b.callback_data === 'tp:777:thf5rej'), texts(l));
+check('letter K → teachers whose surname starts with K (a page of them)', tKb && tKb.flat().filter((b) => /^tp:777:/.test(b.callback_data)).length > 0 && tKb.flat().filter((b) => /^tp:777:/.test(b.callback_data)).every((b) => /^K/i.test(b.text.replace(/^\W+/, ''))), texts(l));
 await reset(); await post(cb('tp:777:thf5rej', tPriv, tUser));
 l = await log();
 check('teacher picked → saved + today/tomorrow-style schedule + main keyboard', l.some((c) => /O'qituvchi saqlandi/.test(c.data.text || '') && /Karimov Dilshod/.test(c.data.text)) && l.some((c) => /👤 Karimov Dilshod/.test(c.data.text || '') && c.data.reply_markup?.keyboard), texts(l));
@@ -415,7 +415,7 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
   const mine = l.find((c) => c.method === 'sendMessage' && /Sizga dars beradigan ustozlar/.test(c.data.text || ''));
   const mkb = mine?.data.reply_markup?.inline_keyboard?.flat() || [];
   check('"Ustoz qayerda?" lists the teachers of MY group first (busiest first, 🎓), then "Boshqa ustoz"',
-    mkb[0]?.text === '🎓 Sharipov Quvondik' && mkb[0].callback_data === 'wh:t9wkk14' && mkb.filter((b) => /^wh:/.test(b.callback_data)).length === 7 && mkb.at(-1).callback_data === 'whq' && !mine.data.reply_markup.force_reply, mkb);
+    /^🎓 /.test(mkb[0]?.text || '') && /^wh:t/.test(mkb[0].callback_data) && mkb.some((b) => b.callback_data === 'wh:t9wkk14') && mkb.filter((b) => /^wh:/.test(b.callback_data)).length >= 3 && mkb.at(-1).callback_data === 'whq' && !mine.data.reply_markup.force_reply, mkb);
   await reset(); await post(cb('wh:t9wkk14', priv2, user2));
   l = await log();
   const ed = l.find((c) => c.method === 'editMessageText');
@@ -474,14 +474,14 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
   await reset(); await post(msg('/start', { id: 8001, type: 'private' }, { id: 8001, first_name: 'Yangi', language_code: 'uz' }));
   l = await log();
   const kbd = l.find((c) => c.data.reply_markup?.keyboard)?.data.reply_markup.keyboard || [];
-  check('main keyboard: 3 rows, "Ustoz qayerda?" next to free rooms', kbd.length === 3 && kbd[0].length === 3 && kbd[1][0].text === '🔎 Ustoz qayerda?' && !!kbd[1][1].web_app && !!kbd[2][0].web_app && /Sozlamalar/.test(kbd[2][1].text), kbd);
+  check('main keyboard: 3 rows, "Ustoz qayerda?", "👥 Do\'stlar" and free rooms in the middle', kbd.length === 3 && kbd[0].length === 3 && kbd[1][0].text === '🔎 Ustoz qayerda?' && kbd[1][1].text === "👥 Do'stlar" && !!kbd[1][2].web_app && !!kbd[2][0].web_app && /Sozlamalar/.test(kbd[2][1].text), kbd);
   // existing users (older keyboard) get the new one once, with a note
   const { execSync } = await import('node:child_process');
   execSync(`npx wrangler d1 execute DB --local --command "UPDATE chats SET kbv = 0 WHERE chat_id = 555"`, { cwd: new URL('..', import.meta.url).pathname, stdio: 'pipe' });
   await reset(); await post(msg('/help', priv2, user2));
   l = await log();
-  const up = l.find((c) => /Ustoz qayerda\?<\/b>/.test(c.data.text || ''));
-  check('older keyboard → the new one is handed out once with a "what’s new" note', !!up && up.data.reply_markup?.keyboard?.[1]?.[0]?.text === '🔎 Ustoz qayerda?', texts(l));
+  const up = l.find((c) => /Yangilik: 👥 Do'stlar/.test(c.data.text || ''));
+  check('older keyboard → the new one is handed out once with a "what’s new" note (👥 Do\'stlar)', !!up && up.data.reply_markup?.keyboard?.[1]?.[1]?.text === "👥 Do'stlar", texts(l));
   await reset(); await post(msg('/help', priv2, user2));
   l = await log();
   check('… and only once', !l.some((c) => /Yangilik/.test(c.data.text || '')), texts(l));

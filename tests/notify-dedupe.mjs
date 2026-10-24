@@ -85,7 +85,8 @@ check('both runs exit cleanly', ra.code === 0 && rb.code === 0, [ra.out, rb.out]
 await reset();
 const [s1, s2] = await Promise.all([run(sundayFake), run(sundayFake)]);
 l = await log();
-check('Sunday, two overlapping runs: the group chat gets ONE message (the weekly post), not weekly + tomorrow, not twice', to(l, -100777).length === 1 && to(l, -100777)[0].method === 'sendPhoto', to(l, -100777).map((c) => c.method));
+// (the picture is used only for the week it was drawn for — on another week the text version goes out)
+check('Sunday, two overlapping runs: the group chat gets ONE message (the weekly post: picture or text), not weekly + tomorrow, not twice', to(l, -100777).length === 1 && ['sendPhoto', 'sendMessage'].includes(to(l, -100777)[0].method), to(l, -100777).map((c) => c.method));
 check('Sunday: a student with the weekly post on gets one message too', to(l, 4003).length === 1, to(l, 4003).map((c) => c.method));
 check('Sunday: students without the weekly post get at most their short reminder, once', to(l, 4001).length <= 1 && to(l, 4002).length <= 1);
 await reset();
