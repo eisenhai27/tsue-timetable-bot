@@ -474,7 +474,7 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
   await reset(); await post(msg('/start', { id: 8001, type: 'private' }, { id: 8001, first_name: 'Yangi', language_code: 'uz' }));
   l = await log();
   const kbd = l.find((c) => c.data.reply_markup?.keyboard)?.data.reply_markup.keyboard || [];
-  check('main keyboard: 3 rows, "Ustoz qayerda?", "👥 Do\'stlar" and free rooms in the middle', kbd.length === 3 && kbd[0].length === 3 && kbd[1][0].text === '🔎 Ustoz qayerda?' && kbd[1][1].text === "👥 Do'stlar" && !!kbd[1][2].web_app && !!kbd[2][0].web_app && /Sozlamalar/.test(kbd[2][1].text), kbd);
+  check('main keyboard: 3 rows — [📅 Jadval, 🗓 Hafta], then "Ustoz qayerda?", "👥 Do\'stlar" and free rooms', kbd.length === 3 && kbd[0].length === 2 && kbd[0][0].text === '📅 Jadval' && kbd[0][1].text === '🗓 Hafta' && kbd[1][0].text === '🔎 Ustoz qayerda?' && kbd[1][1].text === "👥 Do'stlar" && !!kbd[1][2].web_app && !!kbd[2][0].web_app && /Sozlamalar/.test(kbd[2][1].text), kbd);
   // existing users (older keyboard) get the new one once, with a note
   const { execSync } = await import('node:child_process');
   execSync(`npx wrangler d1 execute DB --local --command "UPDATE chats SET kbv = 0 WHERE chat_id = 555"`, { cwd: new URL('..', import.meta.url).pathname, stdio: 'pipe' });
@@ -485,6 +485,23 @@ await post(cb('s:alerts', priv2, user2)); // turn it back on, tidy
   await reset(); await post(msg('/help', priv2, user2));
   l = await log();
   check('… and only once', !l.some((c) => /Yangilik/.test(c.data.text || '')), texts(l));
+  // a chat that already has the friends keyboard (v3) gets only the short note about the new «Jadval» button
+  execSync(`npx wrangler d1 execute DB --local --command "UPDATE chats SET kbv = 3 WHERE chat_id = 555"`, { cwd: new URL('..', import.meta.url).pathname, stdio: 'pipe' });
+  await reset(); await post(msg('/help', priv2, user2));
+  l = await log();
+  const up4 = l.find((c) => /Yangi «Jadval» tugmasi/.test(c.data.text || ''));
+  check('keyboard v3 → v4: only the «Jadval» note (not the friends one again) + the new keyboard', !!up4 && !l.some((c) => /Yangilik: 👥/.test(c.data.text || '')) && up4.data.reply_markup?.keyboard?.[0]?.[0]?.text === '📅 Jadval', texts(l));
+  // 📅 Jadval → a day message (today while classes are on, else the next day with classes); the old buttons keep working
+  for (const [btn, re] of [['📅 Jadval', /📅 <b>((Bugun|Сегодня|Ertaga|Завтра) · )?\S+, \d/], ['📅 Bugun', /📅 <b>(Bugun|Сегодня) · /], ['➡️ Ertaga', /📅 <b>(Ertaga|Завтра) · /]]) { // (this chat reads Russian by now)
+    await reset(); await post(msg(btn));
+    l = await log();
+    const d = l.find((c) => c.method === 'sendMessage' && /📅 <b>/.test(c.data.text || ''));
+    check(`"${btn}" → a day message with the day tabs (${re})`, !!d && re.test(d.data.text) && d.data.reply_markup.inline_keyboard[0].length === 6, texts(l));
+  }
+  // EduPage's backtick apostrophe never reaches a message
+  await reset(); await post(msg('📅 Jadval'));
+  l = await log();
+  check('no backtick between letters in what the bot sends', !l.some((c) => /\p{L}`\p{L}/u.test(JSON.stringify([c.data.text, c.data.caption, c.data.reply_markup?.inline_keyboard?.flat().map((b) => b.text)]))), texts(l));
 }
 
 // Mini App → "send me the weekly picture" (signed Telegram initData, picture in the Mini App's language, to the asker's own chat)

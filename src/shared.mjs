@@ -29,6 +29,8 @@ export const T = {
     btnToday: '📅 Bugun',
     btnTomorrow: '➡️ Ertaga',
     btnWeek: '🗓 Hafta',
+    btnSmart: '📅 Jadval',
+    kbNew: "📅 <b>Yangi «Jadval» tugmasi</b>\nBir bosishda kerakli kun: darslar davom etsa — bugungi, tugagan bo'lsa — keyingi o'qish kuni. Boshqa kunlar xabar ostidagi tugmalarda.",
     btnSettings: '⚙️ Sozlamalar',
     btnApp: '📱 Ilovani ochish',
     btnFree: "🟢 Bo'sh xonalar",
@@ -124,6 +126,8 @@ export const T = {
     btnToday: '📅 Сегодня',
     btnTomorrow: '➡️ Завтра',
     btnWeek: '🗓 Неделя',
+    btnSmart: '📅 Расписание',
+    kbNew: '📅 <b>Новая кнопка «Расписание»</b>\nОдно нажатие — нужный день: пока идут пары — сегодня, после пар — следующий учебный день. Другие дни — кнопками под сообщением.',
     btnSettings: '⚙️ Настройки',
     btnApp: '📱 Открыть приложение',
     btnFree: '🟢 Свободные',
@@ -219,6 +223,8 @@ export const T = {
     btnToday: '📅 Today',
     btnTomorrow: '➡️ Tomorrow',
     btnWeek: '🗓 Week',
+    btnSmart: '📅 Timetable',
+    kbNew: '📅 <b>New «Timetable» button</b>\nOne tap shows the right day: today while classes are on, the next school day once they are over. Other days are under the message.',
     btnSettings: '⚙️ Settings',
     btnApp: '📱 Open app',
     btnFree: '🟢 Free rooms',
@@ -360,7 +366,7 @@ const dm = (d) => `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCM
 // Extra words used by the message formatters
 const W = {
   uz: { lecture: "Ma'ruza", seminar: 'Seminar', lab: 'Laboratoriya', practice: 'Amaliy', bld: (b) => `${b}-bino`, room: (r) => `${r}-xona`,
-    count: (n) => `${n} ta dars`, pair: (n) => `${n}-para`, now: '🟢 Hozir', next: '⏭ Keyingi', brk: (m) => `☕ ${m} daqiqa tanaffus`,
+    count: (n) => `${n} ta dars`, pair: (n) => `${n}-para`, now: '🟢 Hozir', next: '⏭ Keyingi', left: (d) => `${d} qoldi`, soon: (d) => `${d}dan so'ng`, rel: ['Bugun', 'Ertaga'], brk: (m) => `☕ ${m} daqiqa tanaffus`,
     finish: (t) => `🏁 Darslar ${t} da tugaydi`, moved: '🔁 Vaqti o‘zgardi', roomCh: '🚪 Xona o‘zgardi', teachCh: '👤 O‘qituvchi o‘zgardi', groupCh: '👥 Guruhlar o‘zgardi',
     removed: '❌ Bekor qilindi', added: '➕ Yangi dars', wkCap: (g, r, n) => `🗓 <b>${g}</b> — haftalik jadval\n${r} · ${n} ta dars`,
     lessonsWeek: 'Haftalik jadval', freeWeek: "Bu hafta dars yo'q 🎉", seeApp: '📱 Batafsil — ilovada',
@@ -370,7 +376,7 @@ const W = {
       noRoom: "xona ko'rsatilmagan", note: "ℹ️ Rasmiy dars jadvali asosida — kutilmagan o'zgarishlar bo'lishi mumkin." } },
   ru: { lecture: 'Лекция', seminar: 'Семинар', lab: 'Лабораторная', practice: 'Практика', bld: (b) => `корпус ${b}`, room: (r) => `ауд. ${r}`,
     count: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'пара' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'пары' : 'пар'}`, pair: (n) => `${n} пара`,
-    now: '🟢 Сейчас', next: '⏭ Следующая', brk: (m) => `☕ перерыв ${m} мин`, finish: (t) => `🏁 Пары закончатся в ${t}`,
+    now: '🟢 Сейчас', next: '⏭ Следующая', left: (d) => `осталось ${d}`, soon: (d) => `через ${d}`, rel: ['Сегодня', 'Завтра'], brk: (m) => `☕ перерыв ${m} мин`, finish: (t) => `🏁 Пары закончатся в ${t}`,
     moved: '🔁 Изменилось время', roomCh: '🚪 Изменилась аудитория', teachCh: '👤 Изменился преподаватель', groupCh: '👥 Изменились группы', removed: '❌ Отменено', added: '➕ Новая пара',
     wkCap: (g, r, n) => `🗓 <b>${g}</b> — расписание на неделю\n${r} · ${n} пар`, lessonsWeek: 'Расписание на неделю', freeWeek: 'На этой неделе пар нет 🎉', seeApp: '📱 Подробнее — в приложении',
     h: (m) => (m >= 60 ? `${Math.floor(m / 60)} ч${m % 60 ? ' ' + (m % 60) + ' мин' : ''}` : `${m} мин`),
@@ -378,7 +384,7 @@ const W = {
       until: (t, left) => `⏱ до ${t} — осталось ${left}`, next: '⏭ <b>Следующая пара</b>', inM: (d) => `через ${d}`, tomorrow: 'Завтра', today: (c) => `🗓 <b>План на сегодня</b> · ${c}`,
       noRoom: 'аудитория не указана', note: 'ℹ️ По официальному расписанию — возможны неожиданные изменения.' } },
   en: { lecture: 'Lecture', seminar: 'Seminar', lab: 'Lab', practice: 'Practice', bld: (b) => `Building ${b}`, room: (r) => `Room ${r}`,
-    count: (n) => `${n} class${n === 1 ? '' : 'es'}`, pair: (n) => `Period ${n}`, now: '🟢 Now', next: '⏭ Next', brk: (m) => `☕ ${m} min break`,
+    count: (n) => `${n} class${n === 1 ? '' : 'es'}`, pair: (n) => `Period ${n}`, now: '🟢 Now', next: '⏭ Next', left: (d) => `${d} left`, soon: (d) => `in ${d}`, rel: ['Today', 'Tomorrow'], brk: (m) => `☕ ${m} min break`,
     finish: (t) => `🏁 Classes end at ${t}`, moved: '🔁 Time changed', roomCh: '🚪 Room changed', teachCh: '👤 Teacher changed', groupCh: '👥 Groups changed', removed: '❌ Cancelled',
     added: '➕ New class', wkCap: (g, r, n) => `🗓 <b>${g}</b> — weekly timetable\n${r} · ${n} classes`, lessonsWeek: 'Weekly timetable', freeWeek: 'No classes this week 🎉', seeApp: '📱 More in the app',
     h: (m) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ' ' + (m % 60) + ' min' : ''}` : `${m} min`),
@@ -505,7 +511,9 @@ export function fmtDay(group, index, date, lang, nowDate) {
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
   const endM = ls.length ? Math.max(...ls.map((l) => mins(times(index.periods, l).b))) : 0;
   const span = ls.length ? ` · ${times(index.periods, ls[0]).a}–${hhmm(endM)}` : '';
-  const head = [`📅 <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''),
+  // "Bugun · …" / "Ertaga · …" in front of the date, so an evening message can't be mistaken for today's
+  const rel = nowDate ? (ymd(nowDate) === ymd(date) ? w.rel[0] : ymd(addDays(nowDate, 1)) === ymd(date) ? w.rel[1] : '') : '';
+  const head = [`📅 <b>${rel ? rel + ' · ' : ''}${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''),
     `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}${span}` : ''}`].join('\n');
   if (!ls.length) return `${head}\n\n${noTimetable(group) ? L.noTT : L.noLessons}`;
   const sameDay = nowDate && ymd(nowDate) === ymd(date);
@@ -522,8 +530,8 @@ export function fmtDay(group, index, date, lang, nowDate) {
     prevEnd = Math.max(prevEnd ?? 0, mins(t.b));
     let state = '';
     if (sameDay) {
-      if (nowM >= mins(t.a) && nowM < mins(t.b)) state = w.now;
-      else if (nowM < mins(t.a) && !nextMarked) { state = w.next; nextMarked = true; }
+      if (nowM >= mins(t.a) && nowM < mins(t.b)) state = `${w.now} · ${w.left(w.h(mins(t.b) - nowM))}`;
+      else if (nowM < mins(t.a) && !nextMarked) { state = `${w.next} · ${w.soon(w.h(mins(t.a) - nowM))}`; nextMarked = true; }
     }
     blocks.push(fmtLesson(l, index.periods, lang, parity, state));
   }
@@ -742,3 +750,10 @@ export function bcMessage(p, chat, ctx = {}) {
   return { text, photo: p.photo ? { photo: p.photo, caption: text } : null, markup: rows.length ? { inline_keyboard: rows } : undefined };
 }
 const validBcId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id));
+
+/**
+ * EduPage writes the Uzbek ‘ with a backtick ("O`zbekiston", "Go`zal"). Shown as text it looks broken, so messages get the
+ * real letter: after o / g it is ‘ (oʻ, gʻ), anywhere else ’ (the tutuq belgisi). Only a backtick between two letters changes —
+ * the data itself is never touched (it is compared and searched as EduPage gives it).
+ */
+export const prettyText = (s) => (typeof s === 'string' && s.includes('`') ? s.replace(/(\p{L})`(?=\p{L})/gu, (m, a) => a + (/[oOgGоОгГ]/.test(a) ? '‘' : '’')) : s);

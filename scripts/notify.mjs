@@ -16,6 +16,7 @@
 
 import fs from 'node:fs/promises';
 import path from 'node:path';
+import { prettyBody } from '../src/pretty.mjs';
 import { daySlots, continuesPrevious, staysInRoom, pickReminderJoke, pickDayEndJoke, fmtLessonReminder, fmtDayEnd, ephemeralKeyboard, jokeText, LR_BEFORE, LR_DELETE_AFTER_START, DE_DELETE_AFTER } from '../src/lessons.mjs';
 import { fmtChanges, fmtWeek, fmtWeekCaption, fmtTomorrow, fmtTomorrowFull, setSubjects, tr, tashkentNow, addDays, mondayOf, weekday, ymd, weekImgPath, noTimetable, bcMessage, parseSubject } from '../src/shared.mjs';
 
@@ -45,7 +46,7 @@ async function tg(method, body) {
   const res = await fetch(`${TG}/bot${BOT_TOKEN}/${method}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(prettyBody(body)),
   });
   return res.json();
 }

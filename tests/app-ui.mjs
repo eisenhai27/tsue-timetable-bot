@@ -136,7 +136,7 @@ try {
   // ---------------- 5) teacher: subtitle, group chips, drill-down, back, "mine"
   s = await open({ mode: 'tg', hash: `#t=${tid}&l=en` });
   ok((await txt(s.page, '.htitle .t1')).includes(tname), 'teacher hero name');
-  ok(/👨‍🏫 \d+ groups? · \d+ classes?/.test(await txt(s.page, '.htitle .t2')), 'teacher subtitle: ' + (await txt(s.page, '.htitle .t2')));
+  ok(/👨‍🏫 \d+\sgroups? · \d+\sclasses?/.test(await txt(s.page, '.htitle .t2')), 'teacher subtitle: ' + (await txt(s.page, '.htitle .t2')));
   // (the day view opens on today — on a day off, e.g. Saturday, step to a weekday that has lessons)
   for (let d = 0; d < 6 && !(await s.page.locator('.lesson .chip').count()); d++) { await s.page.click(`[data-d="${d}"]`); await settle(s.page, 250); }
   ok((await s.page.locator('.lesson .chip').count()) > 0, 'teacher lessons show tappable group chips');

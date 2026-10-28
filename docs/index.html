@@ -13,14 +13,14 @@
 <meta name="apple-mobile-web-app-title" content="TDIU Jadval">
 <!-- Content Security Policy: the page may load code only from itself and Telegram's own script, talk only to itself and the bot's Worker,
      and cannot be framed into forms, plugins or a different <base>. (GitHub Pages cannot send headers, so it is a <meta>.) -->
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' https://tsue-timetable-bot.shavkatxolmamatov27.workers.dev; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://telegram.org; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data:; connect-src 'self' https://tsue-timetable-bot.shavkatxolmamatov27.workers.dev; manifest-src 'self'; worker-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'">
 <meta name="referrer" content="no-referrer">
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-<noscript><link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet"></noscript>
+<link rel="preload" href="fonts/manrope.woff2" as="font" type="font/woff2" crossorigin>
 <style>
+/* Manrope (SIL Open Font License), one variable file for every weight, Latin + Cyrillic only — served from this site, so the
+   first screen doesn't wait for two more servers (fonts.googleapis.com + fonts.gstatic.com) */
+@font-face{font-family:Manrope;src:url(fonts/manrope.woff2) format("woff2");font-weight:200 800;font-style:normal;font-display:swap}
 /* TDIU Jadval — brand: navy #0B3F7A, blue #2A7BDB, lightning yellow #FFC83D (from the logo) */
 :root{
   --navy:#0B3F7A; --blue:#2A7BDB; --bolt:#FFC83D;
@@ -366,6 +366,24 @@ html.dark .bcgo{color:#fff}
 .bcrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--text);font-weight:600}
 .bcrow:last-child{border-bottom:0}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+
+/* ---- v5: tighter header (more of the day on the first screen), no stray "rings", words that don't break, relative day */
+.rings{display:none}
+.hero{padding:16px 16px 14px}
+.hero{padding-top:calc(16px + env(safe-area-inset-top))}
+.mark{width:42px;height:42px;border-radius:13px}
+.htitle .t1{font-size:21px}
+.summary{margin-top:12px}
+.nowline{margin-top:8px}
+.nw{white-space:nowrap}
+.weekbar .lbl .rel{display:inline-block;margin-right:6px;padding:2px 8px;border-radius:999px;background:var(--soft);color:var(--link);font-size:12px;font-weight:800;vertical-align:2px;text-transform:uppercase;letter-spacing:.04em}
+.weekbar .lbl .rel.tday{background:var(--bolt);color:#3B2A00}
+.htitle.wrap2 .t1{white-space:normal;font-size:19px;line-height:1.2;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2}
+.room small .seats{opacity:.8}
+.ri svg,.search svg{display:block}
+.search>svg{flex:none;color:var(--hint)}
+.row .ri{color:var(--blue)}
+html.dark .row .ri{color:#7FB3F5}
 </style>
 </head>
 <body>
@@ -433,13 +451,13 @@ const I = {
     months:['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'],
     monthsG:['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'],
     dateF:(d,m)=>`${d}-${m}`, goToday:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi',
-    tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'Yuqori hafta', weekB:'Quyi hafta',
+    tillEnd:'kun oxirigacha', pairShort:'para', done:'Darslar tugadi', doneToday:'Bugungi darslar tugadi', thisWeek:'Shu hafta', nextWeek:'Keyingi hafta', weekA:'Yuqori hafta', weekB:'Quyi hafta',
     now:'Hozir', next:'Keyingi', noLessons:"Bu kuni dars yo'q", noTT:"Bu guruh uchun jadval hali EduPage'da kiritilmagan. Jadval paydo bo'lishi bilan shu yerda ko'rinadi.", noDay:"Dars yo'q", searchPh:"Guruh, o'qituvchi, xona…", teacherPh:'Familiya…',
     all:'Hammasi', groups:'Guruhlar', teachers:"O'qituvchilar", rooms:'Xonalar', recent:"So'nggi", favs:'Sevimlilar', browse:"Fakultet bo'yicha",
     searchSub:"Guruh, o'qituvchi yoki xona qidiring", pick:'Guruhingizni tanlang', pickSub:'Guruh nomini yozing, masalan 901',
     pickT:"O'zingizni tanlang", pickTSub:'Familiyangizni yozing, masalan Karimov', nothing:'Hech narsa topilmadi', changed:"Jadval o'zgardi",
     changedAt:(d)=>`${d} da yangilandi`, newTT:"Yangi jadval e'lon qilindi", lecture:"Ma'ruza", seminar:'Seminar', lab:'Laboratoriya', practice:'Amaliy',
-    nearT:'📍 Darsingizga yaqin', nearNow:(r)=>`shu paradagi darsingiz: ${r}`, nearNext:(r,t)=>`${t} dagi darsingiz: ${r}`, nearPrev:(r,t)=>`${t} gacha darsingiz: ${r}`, floorW:(f)=>`${f}-qavat`, nearNone:"Bu binoda hozir bo'sh xona yo'q",
+    nearT:'📍 Darsingizga yaqin', nearNow:(r)=>`shu paradagi darsingiz: ${r}`, nearNext:(r,t)=>`${t} dagi darsingiz: ${r}`, nearPrev:(r,t)=>`${t} gacha darsingiz: ${r}`, floorW:(f)=>`${f}-qavat`, seats:(n)=>`${n} o'rin`, nearNone:"Bu binoda hozir bo'sh xona yo'q",
     free:"Bo'sh xonalar", freeFor:(d,p)=>`${d}, ${p}-para`, freeCount:(n)=>`${n} ta bo'sh xona`, filterRoom:'Xona raqami…',
     teacher:"O'qituvchi", room:'Xona', groupsL:'Guruhlar', validity:'Amal qiladi', lang:'Til', langTitle:'Tilni tanlang', theme:'Mavzu', themeAuto:'Avto',
     breakMin:(m)=>`tanaffus ${m} daq`, error:"Ma'lumotni yuklab bo'lmadi. Internetni tekshirib qayta urinib ko'ring.", retry:'Qayta urinish', new:'Yangi',
@@ -461,13 +479,13 @@ const I = {
     months:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
     monthsG:['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
     dateF:(d,m)=>`${d} ${m}`, goToday:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все',
-    tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Верхняя неделя', weekB:'Нижняя неделя',
+    tillEnd:'до конца дня', pairShort:'пара', done:'Пары закончились', doneToday:'Сегодняшние пары закончились', thisWeek:'Эта неделя', nextWeek:'Следующая', weekA:'Верхняя неделя', weekB:'Нижняя неделя',
     now:'Сейчас', next:'Далее', noLessons:'В этот день пар нет', noTT:'Для этой группы расписание в EduPage ещё не внесено. Как только оно появится, оно будет здесь.', noDay:'Пар нет', searchPh:'Группа, преподаватель, ауд.…', teacherPh:'Фамилия…',
     all:'Все', groups:'Группы', teachers:'Преподаватели', rooms:'Аудитории', recent:'Недавние', favs:'Избранное', browse:'По факультетам',
     searchSub:'Ищите группу, преподавателя или аудиторию', pick:'Выберите группу', pickSub:'Введите название группы, например 901',
     pickT:'Выберите себя', pickTSub:'Введите фамилию, например Karimov или Каримов', nothing:'Ничего не найдено', changed:'Расписание изменилось',
     changedAt:(d)=>`обновлено ${d}`, newTT:'Опубликовано новое расписание', lecture:'Лекция', seminar:'Семинар', lab:'Лаб.', practice:'Практика',
-    nearT:'📍 Рядом с вашей парой', nearNow:(r)=>`ваша пара в это время: ${r}`, nearNext:(r,t)=>`ваша пара в ${t}: ${r}`, nearPrev:(r,t)=>`ваша пара до ${t}: ${r}`, floorW:(f)=>`${f} этаж`, nearNone:'В этом корпусе сейчас нет свободных аудиторий',
+    nearT:'📍 Рядом с вашей парой', nearNow:(r)=>`ваша пара в это время: ${r}`, nearNext:(r,t)=>`ваша пара в ${t}: ${r}`, nearPrev:(r,t)=>`ваша пара до ${t}: ${r}`, floorW:(f)=>`${f} этаж`, seats:(n)=>`${n} ${plRu(n,'место','места','мест')}`, nearNone:'В этом корпусе сейчас нет свободных аудиторий',
     free:'Свободные аудитории', freeFor:(d,p)=>`${d}, ${p} пара`, freeCount:(n)=>`${n} ${plRu(n,'свободная аудитория','свободные аудитории','свободных аудиторий')}`, filterRoom:'Номер аудитории…',
     teacher:'Преподаватель', room:'Аудитория', groupsL:'Группы', validity:'Действует', lang:'Язык', langTitle:'Выберите язык', theme:'Тема', themeAuto:'Авто',
     breakMin:(m)=>`перерыв ${m} мин`, error:'Не удалось загрузить данные. Проверьте интернет и попробуйте ещё раз.', retry:'Повторить', new:'Новое',
@@ -489,13 +507,13 @@ const I = {
     months:['January','February','March','April','May','June','July','August','September','October','November','December'],
     monthsG:['January','February','March','April','May','June','July','August','September','October','November','December'],
     dateF:(d,m)=>`${m} ${d}`, goToday:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All',
-    tillEnd:'rest of the day', pairShort:'period', done:'Classes are over', thisWeek:'This week', nextWeek:'Next week', weekA:'Upper week', weekB:'Lower week',
+    tillEnd:'rest of the day', pairShort:'period', done:'Classes are over', doneToday:"Today's classes are over", thisWeek:'This week', nextWeek:'Next week', weekA:'Upper week', weekB:'Lower week',
     now:'Now', next:'Next', noLessons:'No classes this day', noTT:'This group\'s timetable has not been entered in EduPage yet. It will show up here as soon as it appears.', noDay:'No classes', searchPh:'Group, teacher, room…', teacherPh:'Surname…',
     all:'All', groups:'Groups', teachers:'Teachers', rooms:'Rooms', recent:'Recent', favs:'Favorites', browse:'By faculty',
     searchSub:'Search a group, teacher or room', pick:'Pick your group', pickSub:'Type your group name, e.g. 901',
     pickT:'Pick yourself', pickTSub:'Type your surname, e.g. Karimov', nothing:'Nothing found', changed:'Timetable changed',
     changedAt:(d)=>`updated ${d}`, newTT:'New timetable published', lecture:'Lecture', seminar:'Seminar', lab:'Lab', practice:'Practice',
-    nearT:'📍 Near your class', nearNow:(r)=>`your class at this time: ${r}`, nearNext:(r,t)=>`your class at ${t}: ${r}`, nearPrev:(r,t)=>`your class until ${t}: ${r}`, floorW:(f)=>`floor ${f}`, nearNone:'No free rooms in that building right now',
+    nearT:'📍 Near your class', nearNow:(r)=>`your class at this time: ${r}`, nearNext:(r,t)=>`your class at ${t}: ${r}`, nearPrev:(r,t)=>`your class until ${t}: ${r}`, floorW:(f)=>`floor ${f}`, seats:(n)=>`${n} seats`, nearNone:'No free rooms in that building right now',
     free:'Free rooms', freeFor:(d,p)=>`${d}, period ${p}`, freeCount:(n)=>`${n} free room${n === 1 ? '' : 's'}`, filterRoom:'Room number…',
     teacher:'Teacher', room:'Room', groupsL:'Groups', validity:'Valid', lang:'Language', langTitle:'Choose language', theme:'Theme', themeAuto:'Auto',
     breakMin:(m)=>`${m} min break`, error:"Couldn't load data. Check your connection and try again.", retry:'Retry', new:'New',
@@ -855,12 +873,14 @@ function validityText(tt) {
   const m = /\(([^)]*)\)\s*$/.exec(tt.label || '');
   return (m && m[1].replace(/\s+/g, ' ').trim()) || tt.label || '';
 }
+/** "1-kurs", "29-oktabr": a line may not break after the number's hyphen (display text only). */
+const nbh = (h) => String(h).replace(/(\d)-(?=[\p{L}])/gu, '$1\u2011').replace(/(\d) (?=[\p{L}])/gu, '$1\u00a0');
 function heroHtml(v, sub, extra) {
   const fav = v && S.favs.some(f => f.type === v.type && f.id === v.id);
   const pin = v && isMine(v) ? '📌 ' : '';
   return `<div class="hero"><div class="rings"><i></i><i></i></div>
     <div class="hrow"><button class="mark" id="goSearch" aria-label="search"><img src="icon-192.png" alt=""></button>
-    <button class="htitle" id="goSearch2"><div class="t1">${esc(v ? v.name : 'TDIU Jadval')}${v ? ' <small>▾</small>' : ''}</div><div class="t2">${pin}${esc(sub || 'TDIU Jadval')}</div></button>
+    <button class="htitle" id="goSearch2"><div class="t1">${esc(v ? v.name : 'TDIU Jadval')}${v ? ' <small>▾</small>' : ''}</div><div class="t2">${pin}${nbh(esc(sub || 'TDIU Jadval'))}</div></button>
     ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button>
     ${v && !isMine(v) ? `<button class="star ${fav ? 'on' : ''}" id="favBtn" aria-label="favorite">${fav ? '★' : '☆'}</button>` : ''}</div>${extra || ''}</div>`;
 }
@@ -954,18 +974,24 @@ const renderTimetable = safe(async function () {
   const now = nowT();
   const nm = now.getUTCHours() * 60 + now.getUTCMinutes();
   const baseMon = monday(wd(now) === 6 ? addD(now, 1) : now);
-  const mon = addD(baseMon, S.weekOffset * 7);
-  const par = parity(INDEX.weekA, mon);
-  const lessonsOf = (d) => (data.lessons || []).filter(l => l.d === d && (!par || !l.w || l.w === par));
+  const lessonsAt = (off, d) => { const p = parity(INDEX.weekA, addD(baseMon, off * 7)); return (data.lessons || []).filter(l => l.d === d && (!p || !l.w || l.w === p)); };
   if (S.day == null) {
-    // opens on today; once today's classes are over (or there are none) it opens on the next day that has classes
+    // opens on today; once today's classes are over (or there are none) it opens on the next day that has classes —
+    // on a Saturday evening that is next week's first day with classes
     S.day = 0;
     if (S.weekOffset === 0 && wd(now) < 6) {
       S.day = wd(now);
-      const t0 = lessonsOf(S.day);
-      if (!t0.length || Math.max(...t0.map(l => mins(timeOf(l).b))) <= nm) for (let d = S.day + 1; d < 6; d++) if (lessonsOf(d).length) { S.day = d; break; }
+      const t0 = lessonsAt(0, S.day);
+      if (!t0.length || Math.max(...t0.map(l => mins(timeOf(l).b))) <= nm) {
+        let found = false;
+        for (let d = S.day + 1; d < 6 && !found; d++) if (lessonsAt(0, d).length) { S.day = d; found = true; }
+        for (let d = 0; d < 6 && !found; d++) if (lessonsAt(1, d).length) { S.weekOffset = 1; S.day = d; found = true; }
+      }
     }
   }
+  const mon = addD(baseMon, S.weekOffset * 7);
+  const par = parity(INDEX.weekA, mon);
+  const lessonsOf = (d) => lessonsAt(S.weekOffset, d);
 
   // subtitle: a group → faculty · course; a teacher → how much he teaches this week
   let sub;
@@ -991,15 +1017,16 @@ const renderTimetable = safe(async function () {
   // "Today" summary with a progress bar through the school day — the signature strip under the title
   let summary = '';
   if (noTT) summary = `<div class="summary"><span class="bolt">⏳</span><span>${esc(L.noTT)}</span></div>`;
-  else if (wd(now) < 6) {
+  else {
     const pn = parity(INDEX.weekA, now);
-    const todays = (data.lessons || []).filter(l => l.d === wd(now) && (!pn || !l.w || l.w === pn));
-    if (todays.length) {
-      const start = mins(timeOf(todays[0]).a), end = Math.max(...todays.map(l => mins(timeOf(l).b)));
+    const todays = wd(now) < 6 ? (data.lessons || []).filter(l => l.d === wd(now) && (!pn || !l.w || l.w === pn)) : [];
+    const end = todays.length ? Math.max(...todays.map(l => mins(timeOf(l).b))) : 0;
+    if (todays.length && nm < end) {
+      const start = Math.min(...todays.map(l => mins(timeOf(l).a)));
       const endS = `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}`;
       const pct = Math.max(0, Math.min(100, Math.round((nm - start) / (end - start) * 100)));
-      summary = `<div class="summary"><span class="bolt">⚡</span><span>${esc(L.todayL)}: ${esc(L.lessonsN(todays.length))} · ${nm >= end ? esc(L.done) : esc(L.until(endS))}</span></div><div class="progress"><b style="width:${pct}%"></b></div>${nowLine(data, v, now)}`;
-    } else summary = `<div class="summary"><span class="bolt">☀️</span><span>${esc(L.dayOff)}</span></div>`;
+      summary = `<div class="summary"><span class="bolt">⚡</span><span>${esc(L.todayL)}: ${esc(L.lessonsN(todays.length))} · ${esc(L.until(endS))}</span></div><div class="progress"><b style="width:${pct}%"></b></div>${nowLine(data, v, now)}`;
+    } else summary = `<div class="summary"><span class="bolt">${todays.length ? '✅' : '☀️'}</span><span>${esc(todays.length ? L.doneToday : L.dayOff)}</span></div>${nextDayLine(data, v, now)}`;
   }
 
   let banner = '';
@@ -1070,11 +1097,12 @@ const renderTimetable = safe(async function () {
   }).join('');
 
   const calBtn = `<button class="pill calbtn ${S.calOpen ? 'on' : ''}" id="calBtn"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18"/></svg> ${esc(L.months[date.getUTCMonth()])} <span class="chev ${S.calOpen ? 'up' : ''}">▾</span></button>`;
+  const relDay = sameDay(date, now) ? L.todayL : sameDay(date, addD(now, 1)) ? L.whTomorrow : '';
   const wkLabel = S.weekOffset === 0 ? L.thisWeek : S.weekOffset === 1 ? L.nextWeek : `${dm(mon)} – ${dm(addD(mon, 5))}`;
   const bar = week
     ? `<div class="weekbar"><div class="lbl">${esc(dm(mon))} – ${esc(dm(addD(mon, 5)))}<span class="muted small">${esc(parLbl)}</span></div>
         <div style="display:flex;gap:6px"><button class="pill" id="wPrev" aria-label="prev">‹</button><span class="pill on">${esc(wkLabel)}</span><button class="pill" id="wNext" aria-label="next">›</button></div></div>`
-    : `<div class="weekbar"><div class="lbl">${esc(L.days[S.day])}, ${esc(fmtDate(date))}<span class="muted small">${esc(parLbl)}</span></div>
+    : `<div class="weekbar"><div class="lbl">${relDay ? `<span class="rel ${relDay === L.todayL ? 'tday' : ''}">${esc(relDay)}</span>` : ''}${esc(L.days[S.day])}, <span class="nw">${esc(fmtDate(date))}</span><span class="muted small">${esc(parLbl)}</span></div>
         <div style="display:flex;gap:6px">${sameDay(date, now) ? '' : `<button class="pill" id="goToday">↺ ${esc(L.goToday)}</button>`}${calBtn}</div></div>
       <div class="cal ${S.calOpen ? 'open' : ''}" id="cal"><div class="cal-in" id="calIn"></div></div>
       <div class="days">${dayBtns}</div>`;
@@ -1085,7 +1113,7 @@ const renderTimetable = safe(async function () {
   const actions = (pic || shr) ? `<div class="actions">${pic}${shr}</div>` : '';
 
   app.innerHTML = `<div class="wrap">
-    ${heroHtml(v, sub, S.weekOffset === 0 ? summary : '')}
+    ${heroHtml(v, sub, S.weekOffset === 0 || S.weekOffset === 1 ? summary : '')}
     ${mineRow}${vm}
     ${bar}
     ${banner}
@@ -1413,9 +1441,20 @@ function openSheet(htmlStr) {
 }
 function closeSheet() { const s = $('#sheet'); if (s) s.innerHTML = ''; syncBack(); }
 
+// one family of line icons (same stroke as the bottom bar) for list rows and search fields, instead of mixed emoji
+const svgI = (d, w = 19) => `<svg viewBox="0 0 24 24" width="${w}" height="${w}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const ICO = {
+  g: svgI('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>'),
+  t: svgI('<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>'),
+  r: svgI('<path d="M13 4h3a2 2 0 0 1 2 2v14"/><path d="M2 20h3"/><path d="M13 20h9"/><path d="M10 12v.01"/><path d="M13 4.56v16.16a1 1 0 0 1-1.24.97L5 20V5.56a2 2 0 0 1 1.52-1.94l4-1A2 2 0 0 1 13 4.56z"/>'),
+  fac: svgI('<path d="M3 22h18"/><path d="M6 18v-7"/><path d="M10 18v-7"/><path d="M14 18v-7"/><path d="M18 18v-7"/><path d="M12 2l9 5H3z"/>'),
+  cap: svgI('<path d="M22 10 12 5 2 10l10 5 10-5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/>'),
+  back: svgI('<path d="M15 18l-6-6 6-6"/>'),
+  search: svgI('<circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/>', 18),
+};
 // ---- search tab
 function entityRow(e, q) {
-  const icon = e.type === 'g' ? '👥' : e.type === 't' ? '👤' : '🚪';
+  const icon = ICO[e.type] || ICO.r;
   const sub = e.sub || (e.type === 'g' ? '' : e.type === 't' ? L.teacher : L.room);
   return `<button class="row" data-type="${esc(e.type)}" data-id="${esc(e.id)}"><span class="ri">${icon}</span><span class="rt"><div>${highlight(e.name, q)}</div><div class="rs">${esc(sub)}</div></span><span class="chev">›</span></button>`;
 }
@@ -1431,7 +1470,7 @@ function renderSearch() {
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(title)}</div><div class="t2">${esc(sub)}</div></div>
       ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
-      <label class="search">🔎<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(p === 't' ? L.teacherPh : L.searchPh)}" value="${esc(S.q)}"></label></div>
+      <label class="search">${ICO.search}<input id="q" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(p === 't' ? L.teacherPh : L.searchPh)}" value="${esc(S.q)}"></label></div>
       ${backRow}${seg}
     <div id="res"></div>
     <div class="foot"><span class="muted">${esc(L.lang)}:</span> ${['uz', 'ru', 'en'].map(l => `<button class="pill ${l === lang ? 'on' : ''}" data-lang="${l}">${l.toUpperCase()}</button>`).join(' ')}<br><span class="muted">${esc(L.theme)}:</span> ${['auto', 'light', 'dark'].map(t => `<button class="pill ${(t === 'auto' ? null : t) === themePref ? 'on' : ''}" data-theme="${t}">${t === 'auto' ? esc(L.themeAuto) : t === 'light' ? '☀️' : '🌙'}</button>`).join(' ')}${S.mine && !p ? `<br><button class="pill" id="roleBtn" style="margin-top:10px">🔄 ${esc(L.changeRole)}</button>` : ''}</div>${footHtml('')}</div>`;
@@ -1482,10 +1521,10 @@ function drawResults() {
   // browse by faculty
   html2 += `<div class="sec">🏛 ${esc(L.browse)}</div>`;
   if (S.browseFac == null) {
-    html2 += `<div class="rows">${INDEX.faculties.map((f, i) => `<button class="row" data-fac="${i}"><span class="ri">🏛</span><span class="rt"><div>${esc(facName(f.name))}</div><div class="rs">${esc(L.groupsN(f.courses.reduce((n, c) => n + c.groups.length, 0)))}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
+    html2 += `<div class="rows">${INDEX.faculties.map((f, i) => `<button class="row" data-fac="${i}"><span class="ri">${ICO.fac}</span><span class="rt"><div>${esc(facName(f.name))}</div><div class="rs">${esc(L.groupsN(f.courses.reduce((n, c) => n + c.groups.length, 0)))}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
   } else {
     const f = INDEX.faculties[S.browseFac];
-    html2 += `<div class="rows"><button class="row" data-fac="-1"><span class="ri">⬅️</span><span class="rt"><div>${esc(facName(f.name))}</div></span></button></div>`;
+    html2 += `<div class="rows"><button class="row" data-fac="-1"><span class="ri">${ICO.back}</span><span class="rt"><div>${esc(facName(f.name))}</div></span></button></div>`;
     for (const c of f.courses) {
       html2 += `<div class="sec">${esc(courseName(c.name))}</div><div class="grid">${c.groups.map(([id, name]) => `<button class="gbtn" data-gid="${esc(id)}">${esc(name)}</button>`).join('')}</div>`;
     }
@@ -1511,9 +1550,13 @@ function currentSlot() {
   return { day: d === 5 ? 0 : d + 1, p: P[0].p, mode: 'next' };
 }
 
+// "8-110-24" is room 8-110 with 24 seats: the number reads as the room, the seats go to the small line
+const seatsOf = (name) => { const m = /^\s*\d{1,2}\s*[-/]+\s*\d{2,4}[A-Za-zА-Яа-я]?\s*-\s*(\d{1,3})\s*$/.exec(String(name)); return m ? Number(m[1]) : null; };
+const roomTxt = (name) => esc(seatsOf(name) != null ? roomShort(name) : name);
+const seatsTxt = (name) => { const n = seatsOf(name); return n ? ` · <span class="seats">${esc(L.seats(n))}</span>` : ''; };
 const renderFree = safe(async function () {
   const my = ++seq;
-  app.innerHTML = `<div class="wrap"><div class="spin"></div></div>`;
+  if (!mem['busy.json']) app.innerHTML = `<div class="wrap"><div class="spin"></div></div>`; // re-drawing (a filter, a day) keeps the screen — no flash
   const mineE = S.mine && S.mine.type !== 'r' ? S.mine : null;
   const [busy, , mineEnt] = await Promise.all([load('busy.json'), ensurePeople(), mineE ? swr(fileOf(mineE)).catch(() => null) : null]);
   if (my !== seq) return;
@@ -1565,24 +1608,27 @@ const renderFree = safe(async function () {
       const room = splitList(ref.l.r)[0], pl = place(room);
       const label = roomShort(room);
       const why = at ? L.nearNow(label) : next ? L.nearNext(label, hhmm(ref.from)) : L.nearPrev(label, hhmm(ref.to));
+      // waiting for a later class: a room that stays free until it starts beats one I'd have to leave earlier
+      const need = !at && next ? ref.from : 0;
+      const ok = (r) => !need || r.until == null || mins(r.until) >= need ? 0 : 1;
       const list = free.filter(r => r.bld === pl.bld).map(r => ({ ...r, floor: place(r.name).floor }))
-        .sort((x, y) => (x.floor === pl.floor ? 0 : 1) - (y.floor === pl.floor ? 0 : 1) || (pl.floor == null || x.floor == null || y.floor == null ? 0 : Math.abs(x.floor - pl.floor) - Math.abs(y.floor - pl.floor)) || y.len - x.len || x.name.localeCompare(y.name, undefined, { numeric: true }))
+        .sort((x, y) => ok(x) - ok(y) || (x.floor === pl.floor ? 0 : 1) - (y.floor === pl.floor ? 0 : 1) || (pl.floor == null || x.floor == null || y.floor == null ? 0 : Math.abs(x.floor - pl.floor) - Math.abs(y.floor - pl.floor)) || y.len - x.len || x.name.localeCompare(y.name, undefined, { numeric: true }))
         .slice(0, 8);
       near = { why, list, floor: pl.floor };
     }
   }
-  const nearHtml = near && S.freeBld === 'all' && !fq ? `<div class="near"><h4>${esc(L.nearT)}</h4><div class="nref">${esc(near.why)}</div>${near.list.length ? `<div class="rooms">${near.list.map(r => `<button class="room${r.floor != null && r.floor === near.floor ? ' same' : ''}" data-room="${esc(r.name)}">${esc(r.name)}<small>${r.floor != null ? esc(L.floorW(r.floor)) + ' · ' : ''}${esc(r.until ? L.until(r.until) : L.tillEnd)}</small></button>`).join('')}</div>` : `<div class="muted small">${esc(L.nearNone)}</div>`}</div>` : '';
+  const nearHtml = near && S.freeBld === 'all' && !fq ? `<div class="near"><h4>${esc(L.nearT)}</h4><div class="nref">${esc(near.why)}</div>${near.list.length ? `<div class="rooms">${near.list.map(r => `<button class="room${r.floor != null && r.floor === near.floor ? ' same' : ''}" data-room="${esc(r.name)}">${roomTxt(r.name)}<small>${r.floor != null ? esc(L.floorW(r.floor)) + ' · ' : ''}${esc(r.until ? L.until(r.until) : L.tillEnd)}${seatsTxt(r.name)}</small></button>`).join('')}</div>` : `<div class="muted small">${esc(L.nearNone)}</div>`}</div>` : '';
   const head = isNow ? (cs.mode === 'now' ? L.freeNowT : L.freeNextT) : L.free;
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
-      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(head)}</div><div class="t2">${esc(L.freeFor(L.days[S.freeDay], S.freeP))} · ${esc(per.start)}–${esc(per.end)}</div></div>
+      <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle wrap2"><div class="t1">${esc(head)}</div><div class="t2">${nbh(esc(L.freeFor(L.days[S.freeDay], S.freeP)))} · <span class="nw">${esc(per.start)}–${esc(per.end)}</span></div></div>
       ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
       <div class="summary"><span class="bolt">🟢</span><span>${esc(L.freeCount(free.length))}</span></div></div>
     <div class="slotbar"><button class="pill now ${isNow ? 'on' : ''}" id="fNow">${isNow ? '' : '⚡ '}${esc(L.nowBtn)}</button>${[0, 1, 2, 3, 4, 5].map(d => `<button class="pill ${d === S.freeDay && !isNow ? 'on' : ''}" data-fd="${d}">${esc(L.dShort[d])}</button>`).join('')}</div>
     <div class="slotbar">${INDEX.periods.map(p => `<button class="pill ${p.p === S.freeP && !isNow ? 'on' : ''}" data-fp="${p.p}">${p.p} · ${esc(p.start)}</button>`).join('')}</div>
     <div class="slotbar"><button class="pill ${S.freeBld === 'all' ? 'on' : ''}" data-fb="all">🏢 ${esc(L.allB)}</button>${blds.map(k => `<button class="pill ${S.freeBld === k ? 'on' : ''}" data-fb="${esc(k)}">${esc(bName(k))} <span class="muted">${bCount[k]}</span></button>`).join('')}</div>
-    <label class="search">🔎<input id="fq" type="search" placeholder="${esc(L.filterRoom)}" value="${esc(S.freeQ)}"></label>
+    <label class="search">${ICO.search}<input id="fq" type="search" placeholder="${esc(L.filterRoom)}" value="${esc(S.freeQ)}"></label>
     ${nearHtml}
-    ${keys.map(k => `<div class="bld"><h4>${esc(bName(k))} · ${groups[k].length}</h4><div class="rooms">${groups[k].map(r => `<button class="room" data-room="${esc(r.name)}">${esc(r.name)}<small>${esc(r.until ? L.until(r.until) : L.tillEnd)}</small></button>`).join('')}</div></div>`).join('') || `<div class="empty">${esc(L.nothing)}</div>`}
+    ${keys.map(k => `<div class="bld"><h4>${esc(bName(k))} · ${groups[k].length}</h4><div class="rooms">${groups[k].map(r => `<button class="room" data-room="${esc(r.name)}">${roomTxt(r.name)}<small>${esc(r.until ? L.until(r.until) : L.tillEnd)}${seatsTxt(r.name)}</small></button>`).join('')}</div></div>`).join('') || `<div class="empty">${esc(L.nothing)}</div>`}
     ${footHtml('')}
   </div>`;
   $('#langBtn').onclick = langSheet;
@@ -1639,6 +1685,16 @@ function nowLine(ent, v, now) {
   return `<div class="nowline">${tag}<span>${esc(splitType(x.l.s).name)}${room ? ' · 📍 ' + esc(room) : ''} · ${esc(tail)}</span></div>`;
 }
 
+/** Under "today's classes are over" / "no classes today": when and where the next class is (tomorrow / Monday …). */
+function nextDayLine(ent, v, now) {
+  const st = whereIs(ent, now);
+  if (!st.next || st.next.today) return '';
+  const x = st.next.items[0];
+  const when = sameDay(st.next.date, addD(now, 1)) ? L.whTomorrow : L.days[wd(st.next.date)];
+  const room = v.type !== 'r' && x.l.r ? splitList(x.l.r).map(roomShort).join(' / ') : '';
+  return `<div class="nowline"><b>⏭ ${esc(when)} ${esc(hhmm(x.from))}</b><span>${esc(splitType(x.l.s).name)}${room ? ' · 📍 ' + esc(room) : ''}</span></div>`;
+}
+
 /** Short live status of a teacher for list rows: {cls, t}. */
 function statusShort(ent, now) {
   const st = whereIs(ent, now), h = L.whShort;
@@ -1661,7 +1717,7 @@ async function fillStatuses(root) {
   }));
 }
 
-const wRow = (e, q, sub) => `<button class="row wrow" data-wid="${esc(e.id)}"><span class="ri">${sub ? '🎓' : '👤'}</span><span class="rt"><div>${highlight(e.name, q)}</div>${sub ? `<div class="rs">${esc(sub)}</div>` : ''}<span class="st" data-st="${esc(e.id)}">&nbsp;</span></span><span class="chev">›</span></button>`;
+const wRow = (e, q, sub) => `<button class="row wrow" data-wid="${esc(e.id)}"><span class="ri">${sub ? ICO.cap : ICO.t}</span><span class="rt"><div>${highlight(e.name, q)}</div>${sub ? `<div class="rs">${esc(sub)}</div>` : ''}<span class="st" data-st="${esc(e.id)}">&nbsp;</span></span><span class="chev">›</span></button>`;
 const wEntity = (id) => ALL.find(x => x.type === 't' && x.id === id);
 
 /** The teachers who actually teach MY group (read from the group's own timetable), the busiest first: [{e, n, subj}]. */
@@ -1700,7 +1756,7 @@ function whereHome() {
   app.innerHTML = `<div class="wrap"><div class="hero"><div class="rings"><i></i><i></i></div>
       <div class="hrow"><span class="mark"><img src="icon-192.png" alt=""></span><div class="htitle"><div class="t1">${esc(L.whereT)}</div><div class="t2">${esc(L.whereSub)}</div></div>
       ${themeBtn()}<button class="langbtn" id="langBtn" aria-label="language">🌐 ${lang.toUpperCase()}</button></div>
-      <label class="search">🔎<input id="wq" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(L.teacherPh)}" value="${esc(S.wq)}"></label></div>
+      <label class="search">${ICO.search}<input id="wq" type="search" autocomplete="off" enterkeyhint="search" placeholder="${esc(L.teacherPh)}" value="${esc(S.wq)}"></label></div>
     <div id="wres"></div>${footHtml('')}</div>`;
   $('#langBtn').onclick = langSheet;
   const inp = $('#wq');
@@ -1739,7 +1795,7 @@ function drawWhereList() {
   if (letters.length) {
     h += `<div class="sec">${esc(L.teachers)} · ${esc(L.whAZ)}</div><div class="lets">${letters.map(c => `<button class="pill ${c === S.wLetter ? 'on' : ''}" data-wlet="${esc(c)}">${esc(c)}</button>`).join('')}</div>`;
     const rows = list.filter(([, n]) => letter(n) === S.wLetter).sort((a, b) => a[1].localeCompare(b[1]));
-    h += `<div class="rows">${rows.map(([id, name]) => `<button class="row" data-wid="${esc(id)}"><span class="ri">👤</span><span class="rt"><div>${esc(name)}</div><div class="rs">${esc(L.teacher)}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
+    h += `<div class="rows">${rows.map(([id, name]) => `<button class="row" data-wid="${esc(id)}"><span class="ri">${ICO.t}</span><span class="rt"><div>${esc(name)}</div><div class="rs">${esc(L.teacher)}</div></span><span class="chev">›</span></button>`).join('')}</div>`;
   }
   res.innerHTML = h;
   res.querySelectorAll('[data-wlet]').forEach(b => b.onclick = () => { haptic(); S.wLetter = b.dataset.wlet; drawWhereList(); });
@@ -1885,12 +1941,29 @@ document.addEventListener('click', (e) => {
   if (inTg && tg.openTelegramLink) { e.preventDefault(); haptic(); tg.openTelegramLink(a.href); }
 });
 
+// EduPage writes the Uzbek ‘ as a backtick ("O`zbekiston", "Go`zal"). Every text that reaches the screen gets the real letter
+// (after o / g → ‘, elsewhere → ’); only what is shown changes — data, links and data-* attributes keep EduPage's spelling.
+(() => {
+  const RX = /(\p{L})`(?=\p{L})/gu, fix = (t) => t.replace(RX, (m, a) => a + (/[oOgGоОгГ]/.test(a) ? '‘' : '’'));
+  const SKIP = /^(SCRIPT|STYLE|TEXTAREA|INPUT)$/;
+  const walk = (root) => {
+    if (root.nodeType === 3) { if (root.data.includes('`') && !SKIP.test(root.parentNode?.nodeName || '')) root.data = fix(root.data); return; }
+    if (root.nodeType !== 1 || SKIP.test(root.nodeName)) return;
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+    for (let n = w.nextNode(); n; n = w.nextNode()) if (n.data.includes('`') && !SKIP.test(n.parentNode.nodeName)) n.data = fix(n.data);
+  };
+  try { new MutationObserver((ms) => { for (const m of ms) m.addedNodes.forEach(walk); }).observe(document.body, { childList: true, subtree: true }); } catch {}
+})();
+
 // ---------------------------------------------------------------- start
 if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.register('sw.js'); } catch {} }
 (async () => {
   // everything a launch needs starts downloading right now, in parallel (index, and the user's own timetable if we know it)
   load('index.json').catch(() => {});
   if (S.mine) load(fileOf(S.mine)).catch(() => {});
+  // opened from the bot (#g= / #t=): that timetable is the one to show — start fetching it now, not after the index
+  const hashT = hash.get('g') ? `g/${hash.get('g')}.json` : hash.get('t') ? `t/${hash.get('t')}.json` : null;
+  if (hashT && (!S.mine || fileOf(S.mine) !== hashT)) load(hashT).catch(() => {});
 
   // Telegram CloudStorage keeps the user's own timetable, favourites and language across his devices.
   // Known user (own timetable already on this device) → never wait for it; first launch on this device → wait up to 0.8 s.
@@ -1914,7 +1987,9 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
     } catch { res(); }
     setTimeout(res, 800);
   });
-  if (!S.mine) await cloud;
+  // first launch on this device: wait (≤0.8 s) for the copy kept in Telegram — unless the bot's link already says whose timetable
+  // it is (#g= / #t=); the cloud copy still arrives and fills favourites / recent in the background
+  if (!S.mine && !hashT) await cloud;
   decideLang();
   if (hash.get('tab') === 'free') S.tab = 'free';
   else if (hash.get('tab') === 'where') S.tab = 'where';

@@ -21,16 +21,17 @@
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
-  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX,
+  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, whereIs, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX,
 } from '../src/shared.mjs';
 import { ft, fmtFriends, FRIENDS_MAX } from '../src/friends.mjs';
+import { prettyBody } from '../src/pretty.mjs';
 import { lw as lessonWords, nextJoke, jokeList, jokePool, jokeText, jokeHtml, isTeacherKey, paragraphs, lessonRunPlan, clock } from '../src/lessons.mjs';
 
 const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
 const TPAGE = 16; // teachers per page in the picker
 // Version of the reply keyboard (the buttons under the message box). Chats that have an older one get the new keyboard
 // once, together with a short "what's new" note, the next time they write to the bot.
-const KB_VERSION = 3; // 3: the 👥 Do'stlar button
+const KB_VERSION = 4; // 3: the 👥 Do'stlar button; 4: one smart «📅 Jadval» button instead of Bugun + Ertaga
 const CALENDAR_ENABLED = false; // the /calendar command + button are hidden for now; flip to true to bring them back
 
 // Headers added to EVERY response: nothing here is meant to be framed, sniffed, cached or leak a referrer.
@@ -272,7 +273,7 @@ async function tg(env, method, body, token = env.BOT_TOKEN) {
   const res = await fetch(`${tgBase(env)}/bot${token}/${method}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+    body: JSON.stringify(prettyBody(body)),
   });
   const j = await res.json().catch(() => ({ ok: false }));
   if (!j.ok && !/message is not modified/.test(j.description || '')) console.warn(method, j.description);
@@ -1526,10 +1527,10 @@ async function flushUsage(env) {
   }
 }
 
-const COUNTED_COMMANDS = new Set(['today', 'tomorrow', 'week', 'settings', 'start', 'help', 'app', 'group', 'setgroup', 'unset', 'teacher', 'where', 'ustoz', 'find',
+const COUNTED_COMMANDS = new Set(['today', 'tomorrow', 'week', 'smart', 'settings', 'start', 'help', 'app', 'group', 'setgroup', 'unset', 'teacher', 'where', 'ustoz', 'find',
   'feedback', 'time', 'remind', 'lang', 'language', 'calendar', 'stats', 'reply', 'friends', 'dostlar']);
 const USAGE_NAMES = {
-  today: '📅 Bugungi darslar', tomorrow: '➡️ Ertangi darslar', week: '🗓 Haftalik jadval', settings: '⚙️ Sozlamalar',
+  smart: '📅 Jadval (aqlli tugma)', today: '📅 Bugungi darslar', tomorrow: '➡️ Ertangi darslar', week: '🗓 Haftalik jadval', settings: '⚙️ Sozlamalar',
   start: '▶️ /start', help: '❓ Yordam', app: '📱 /app', group: '👥 Guruh tanlash', teacher: "👨‍🏫 O'qituvchi bo'limi",
   friends: "👥 Do'stlar", dostlar: "👥 Do'stlar", where: '🔎 Ustoz qayerda?', ustoz: '🔎 Ustoz qayerda?', text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
 };
@@ -1621,7 +1622,7 @@ async function adminMenu(env) {
 
 function mainKeyboard(env, lang, groupId, role) {
   const L = tr(lang);
-  const rows = [[{ text: L.btnToday }, { text: L.btnTomorrow }, { text: L.btnWeek }]];
+  const rows = [[{ text: L.btnSmart }, { text: L.btnWeek }]];
   if (siteUrl(env)) rows.push(
     [{ text: L.btnWhere }, { text: ft(lang).btn }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&${groupId ? `${role === 'teacher' ? 't' : 'g'}=${groupId}&` : ''}l=${lang}` } }],
     [{ text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } }, { text: L.btnSettings }],
@@ -1638,7 +1639,8 @@ function appUrl(env, groupId, lang, role) {
 const BUTTONS = Object.create(null);
 for (const l of LANGS) {
   BUTTONS[TEXTS[l].btnToday] = 'today';
-  BUTTONS[TEXTS[l].btnTomorrow] = 'tomorrow';
+  BUTTONS[TEXTS[l].btnTomorrow] = 'tomorrow'; // (older keyboards still have Bugun / Ertaga — they keep working)
+  BUTTONS[TEXTS[l].btnSmart] = 'smart';
   BUTTONS[TEXTS[l].btnWeek] = 'week';
   BUTTONS[TEXTS[l].btnSettings] = 'settings';
   BUTTONS[TEXTS[l].btnWhere] = 'where';
@@ -1879,7 +1881,8 @@ async function upgradeKeyboard(env, chatId) {
   const row = await getChat(env, chatId);
   if (!row || (row.kbv | 0) >= KB_VERSION) return;
   await (await db(env)).prepare('UPDATE chats SET kbv = ? WHERE chat_id = ?').bind(KB_VERSION, chatId).run();
-  await send(env, chatId, ft(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
+  // a chat that never saw the friends note gets it (the new keyboard has that button too); one that did — only what changed since
+  await send(env, chatId, (row.kbv | 0) < 3 ? ft(row.lang).whatsNew : tr(row.lang).kbNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
 }
 
 async function privateMain(env, msg, command, flags) {
@@ -1936,7 +1939,7 @@ async function privateMain(env, msg, command, flags) {
   if (action === 'app') {
     return send(env, msg.chat.id, '📱', { reply_markup: { inline_keyboard: [[{ text: L.btnApp, web_app: { url: appUrl(env, row.group_id, lang, row.role) } }]] } });
   }
-  if (action === 'today' || action === 'tomorrow' || action === 'week') {
+  if (action === 'today' || action === 'tomorrow' || action === 'week' || action === 'smart') {
     if (!row.group_id) {
       if (isTeacher(row)) {
         await send(env, msg.chat.id, L.noTeacher);
@@ -2047,7 +2050,11 @@ async function sendSchedule(env, chatId, row, what) {
     if (r.ok) return r;
     return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra); // fallback: text
   }
-  const date = what === 'tomorrow' ? addDays(now, 1) : now;
+  let date = what === 'tomorrow' ? addDays(now, 1) : now;
+  if (what === 'smart') { // today while today's classes are still on (or not started); after that — the next day with classes
+    const st = whereIs(group, index, now);
+    if (st.state === 'after' || st.state === 'off') date = st.next && !st.next.today ? st.next.date : addDays(now, 1);
+  }
   return send(env, chatId, fmtDay(group, index, date, row.lang, now), { reply_markup: dayKeyboard(row.lang, date, now, kb) });
 }
 

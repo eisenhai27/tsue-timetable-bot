@@ -31,6 +31,8 @@ var T = {
     btnToday: "\u{1F4C5} Bugun",
     btnTomorrow: "\u27A1\uFE0F Ertaga",
     btnWeek: "\u{1F5D3} Hafta",
+    btnSmart: "\u{1F4C5} Jadval",
+    kbNew: "\u{1F4C5} <b>Yangi \xABJadval\xBB tugmasi</b>\nBir bosishda kerakli kun: darslar davom etsa \u2014 bugungi, tugagan bo'lsa \u2014 keyingi o'qish kuni. Boshqa kunlar xabar ostidagi tugmalarda.",
     btnSettings: "\u2699\uFE0F Sozlamalar",
     btnApp: "\u{1F4F1} Ilovani ochish",
     btnFree: "\u{1F7E2} Bo'sh xonalar",
@@ -140,6 +142,8 @@ Quyidagi havolani telefon yoki kompyuteringizdagi kalendar ilovasiga qo'shsangiz
     btnToday: "\u{1F4C5} \u0421\u0435\u0433\u043E\u0434\u043D\u044F",
     btnTomorrow: "\u27A1\uFE0F \u0417\u0430\u0432\u0442\u0440\u0430",
     btnWeek: "\u{1F5D3} \u041D\u0435\u0434\u0435\u043B\u044F",
+    btnSmart: "\u{1F4C5} \u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435",
+    kbNew: "\u{1F4C5} <b>\u041D\u043E\u0432\u0430\u044F \u043A\u043D\u043E\u043F\u043A\u0430 \xAB\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435\xBB</b>\n\u041E\u0434\u043D\u043E \u043D\u0430\u0436\u0430\u0442\u0438\u0435 \u2014 \u043D\u0443\u0436\u043D\u044B\u0439 \u0434\u0435\u043D\u044C: \u043F\u043E\u043A\u0430 \u0438\u0434\u0443\u0442 \u043F\u0430\u0440\u044B \u2014 \u0441\u0435\u0433\u043E\u0434\u043D\u044F, \u043F\u043E\u0441\u043B\u0435 \u043F\u0430\u0440 \u2014 \u0441\u043B\u0435\u0434\u0443\u044E\u0449\u0438\u0439 \u0443\u0447\u0435\u0431\u043D\u044B\u0439 \u0434\u0435\u043D\u044C. \u0414\u0440\u0443\u0433\u0438\u0435 \u0434\u043D\u0438 \u2014 \u043A\u043D\u043E\u043F\u043A\u0430\u043C\u0438 \u043F\u043E\u0434 \u0441\u043E\u043E\u0431\u0449\u0435\u043D\u0438\u0435\u043C.",
     btnSettings: "\u2699\uFE0F \u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438",
     btnApp: "\u{1F4F1} \u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435",
     btnFree: "\u{1F7E2} \u0421\u0432\u043E\u0431\u043E\u0434\u043D\u044B\u0435",
@@ -249,6 +253,8 @@ ${t}`,
     btnToday: "\u{1F4C5} Today",
     btnTomorrow: "\u27A1\uFE0F Tomorrow",
     btnWeek: "\u{1F5D3} Week",
+    btnSmart: "\u{1F4C5} Timetable",
+    kbNew: "\u{1F4C5} <b>New \xABTimetable\xBB button</b>\nOne tap shows the right day: today while classes are on, the next school day once they are over. Other days are under the message.",
     btnSettings: "\u2699\uFE0F Settings",
     btnApp: "\u{1F4F1} Open app",
     btnFree: "\u{1F7E2} Free rooms",
@@ -390,6 +396,9 @@ var W = {
     pair: (n) => `${n}-para`,
     now: "\u{1F7E2} Hozir",
     next: "\u23ED Keyingi",
+    left: (d) => `${d} qoldi`,
+    soon: (d) => `${d}dan so'ng`,
+    rel: ["Bugun", "Ertaga"],
     brk: (m) => `\u2615 ${m} daqiqa tanaffus`,
     finish: (t) => `\u{1F3C1} Darslar ${t} da tugaydi`,
     moved: "\u{1F501} Vaqti o\u2018zgardi",
@@ -430,6 +439,9 @@ ${r} \xB7 ${n} ta dars`,
     pair: (n) => `${n} \u043F\u0430\u0440\u0430`,
     now: "\u{1F7E2} \u0421\u0435\u0439\u0447\u0430\u0441",
     next: "\u23ED \u0421\u043B\u0435\u0434\u0443\u044E\u0449\u0430\u044F",
+    left: (d) => `\u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ${d}`,
+    soon: (d) => `\u0447\u0435\u0440\u0435\u0437 ${d}`,
+    rel: ["\u0421\u0435\u0433\u043E\u0434\u043D\u044F", "\u0417\u0430\u0432\u0442\u0440\u0430"],
     brk: (m) => `\u2615 \u043F\u0435\u0440\u0435\u0440\u044B\u0432 ${m} \u043C\u0438\u043D`,
     finish: (t) => `\u{1F3C1} \u041F\u0430\u0440\u044B \u0437\u0430\u043A\u043E\u043D\u0447\u0430\u0442\u0441\u044F \u0432 ${t}`,
     moved: "\u{1F501} \u0418\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C \u0432\u0440\u0435\u043C\u044F",
@@ -470,6 +482,9 @@ ${r} \xB7 ${n} \u043F\u0430\u0440`,
     pair: (n) => `Period ${n}`,
     now: "\u{1F7E2} Now",
     next: "\u23ED Next",
+    left: (d) => `${d} left`,
+    soon: (d) => `in ${d}`,
+    rel: ["Today", "Tomorrow"],
     brk: (m) => `\u2615 ${m} min break`,
     finish: (t) => `\u{1F3C1} Classes end at ${t}`,
     moved: "\u{1F501} Time changed",
@@ -589,8 +604,9 @@ function fmtDay(group, index, date, lang, nowDate) {
   const ls = d === 6 ? [] : lessonsForDay(group, d, parity);
   const endM = ls.length ? Math.max(...ls.map((l) => mins(times(index.periods, l).b))) : 0;
   const span = ls.length ? ` \xB7 ${times(index.periods, ls[0]).a}\u2013${hhmm(endM)}` : "";
+  const rel = nowDate ? ymd(nowDate) === ymd(date) ? w.rel[0] : ymd(addDays(nowDate, 1)) === ymd(date) ? w.rel[1] : "" : "";
   const head = [
-    `\u{1F4C5} <b>${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` \xB7 ${parity === "A" ? L.weekA : L.weekB}` : ""),
+    `\u{1F4C5} <b>${rel ? rel + " \xB7 " : ""}${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` \xB7 ${parity === "A" ? L.weekA : L.weekB}` : ""),
     `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` \xB7 ${w.count(ls.length)}${span}` : ""}`
   ].join("\n");
   if (!ls.length) return `${head}
@@ -610,9 +626,9 @@ ${noTimetable(group) ? L.noTT : L.noLessons}`;
     prevEnd = Math.max(prevEnd ?? 0, mins(t.b));
     let state = "";
     if (sameDay) {
-      if (nowM >= mins(t.a) && nowM < mins(t.b)) state = w.now;
+      if (nowM >= mins(t.a) && nowM < mins(t.b)) state = `${w.now} \xB7 ${w.left(w.h(mins(t.b) - nowM))}`;
       else if (nowM < mins(t.a) && !nextMarked) {
-        state = w.next;
+        state = `${w.next} \xB7 ${w.soon(w.h(mins(t.a) - nowM))}`;
         nextMarked = true;
       }
     }
@@ -738,6 +754,7 @@ function bcMessage(p, chat, ctx = {}) {
   return { text, photo: p.photo ? { photo: p.photo, caption: text } : null, markup: rows.length ? { inline_keyboard: rows } : void 0 };
 }
 var validBcId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id));
+var prettyText = (s) => typeof s === "string" && s.includes("`") ? s.replace(/(\p{L})`(?=\p{L})/gu, (m, a) => a + (/[oOgGоОгГ]/.test(a) ? "\u2018" : "\u2019")) : s;
 
 // src/friends.mjs
 var FT = {
@@ -930,6 +947,17 @@ ${F.empty}`, pages: 1, page: 0 };
   }
   if (!me) out.push("", F.noGroup);
   return { text: out.join("\n"), pages, page };
+}
+
+// src/pretty.mjs
+function prettyBody(body) {
+  if (!body || typeof body !== "object") return body;
+  let out = body;
+  for (const k of ["text", "caption"]) if (typeof body[k] === "string" && body[k].includes("`")) out = { ...out, [k]: prettyText(body[k]) };
+  const kb = body.reply_markup;
+  const fixRows = (rows) => rows.map((r) => Array.isArray(r) ? r.map((b) => b && typeof b.text === "string" && b.text.includes("`") ? { ...b, text: prettyText(b.text) } : b) : r);
+  if (kb && Array.isArray(kb.inline_keyboard)) out = { ...out, reply_markup: { ...kb, inline_keyboard: fixRows(kb.inline_keyboard) } };
+  return out;
 }
 
 // src/jokes.mjs
@@ -1267,7 +1295,7 @@ function lessonRunPlan(periods) {
 // worker/worker.mjs
 var PAGE = 36;
 var TPAGE = 16;
-var KB_VERSION = 3;
+var KB_VERSION = 4;
 var CALENDAR_ENABLED = false;
 var SECURITY_HEADERS = {
   "x-content-type-options": "nosniff",
@@ -1472,7 +1500,7 @@ async function tg(env, method, body, token = env.BOT_TOKEN) {
   const res = await fetch(`${tgBase(env)}/bot${token}/${method}`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify(body)
+    body: JSON.stringify(prettyBody(body))
   });
   const j2 = await res.json().catch(() => ({ ok: false }));
   if (!j2.ok && !/message is not modified/.test(j2.description || "")) console.warn(method, j2.description);
@@ -2699,6 +2727,7 @@ var COUNTED_COMMANDS = /* @__PURE__ */ new Set([
   "today",
   "tomorrow",
   "week",
+  "smart",
   "settings",
   "start",
   "help",
@@ -2722,6 +2751,7 @@ var COUNTED_COMMANDS = /* @__PURE__ */ new Set([
   "dostlar"
 ]);
 var USAGE_NAMES = {
+  smart: "\u{1F4C5} Jadval (aqlli tugma)",
   today: "\u{1F4C5} Bugungi darslar",
   tomorrow: "\u27A1\uFE0F Ertangi darslar",
   week: "\u{1F5D3} Haftalik jadval",
@@ -2828,7 +2858,7 @@ async function adminMenu(env) {
 }
 function mainKeyboard(env, lang, groupId, role) {
   const L = tr(lang);
-  const rows = [[{ text: L.btnToday }, { text: L.btnTomorrow }, { text: L.btnWeek }]];
+  const rows = [[{ text: L.btnSmart }, { text: L.btnWeek }]];
   if (siteUrl(env)) rows.push(
     [{ text: L.btnWhere }, { text: ft(lang).btn }, { text: L.btnFree, web_app: { url: `${siteUrl(env)}/#tab=free&${groupId ? `${role === "teacher" ? "t" : "g"}=${groupId}&` : ""}l=${lang}` } }],
     [{ text: L.btnApp, web_app: { url: appUrl(env, groupId, lang, role) } }, { text: L.btnSettings }]
@@ -2843,6 +2873,7 @@ var BUTTONS = /* @__PURE__ */ Object.create(null);
 for (const l of LANGS) {
   BUTTONS[T[l].btnToday] = "today";
   BUTTONS[T[l].btnTomorrow] = "tomorrow";
+  BUTTONS[T[l].btnSmart] = "smart";
   BUTTONS[T[l].btnWeek] = "week";
   BUTTONS[T[l].btnSettings] = "settings";
   BUTTONS[T[l].btnWhere] = "where";
@@ -3074,7 +3105,7 @@ async function upgradeKeyboard(env, chatId) {
   const row = await getChat(env, chatId);
   if (!row || (row.kbv | 0) >= KB_VERSION) return;
   await (await db(env)).prepare("UPDATE chats SET kbv = ? WHERE chat_id = ?").bind(KB_VERSION, chatId).run();
-  await send(env, chatId, ft(row.lang).whatsNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
+  await send(env, chatId, (row.kbv | 0) < 3 ? ft(row.lang).whatsNew : tr(row.lang).kbNew, { reply_markup: mainKeyboard(env, row.lang, row.group_id, row.role) });
 }
 async function privateMain(env, msg, command, flags) {
   if (isAdminChat(env, msg.chat.id) && await onAdminReply(env, msg, command)) return;
@@ -3132,7 +3163,7 @@ async function privateMain(env, msg, command, flags) {
   if (action === "app") {
     return send(env, msg.chat.id, "\u{1F4F1}", { reply_markup: { inline_keyboard: [[{ text: L.btnApp, web_app: { url: appUrl(env, row.group_id, lang, row.role) } }]] } });
   }
-  if (action === "today" || action === "tomorrow" || action === "week") {
+  if (action === "today" || action === "tomorrow" || action === "week" || action === "smart") {
     if (!row.group_id) {
       if (isTeacher(row)) {
         await send(env, msg.chat.id, L.noTeacher);
@@ -3232,7 +3263,11 @@ async function sendSchedule(env, chatId, row, what) {
     if (r.ok) return r;
     return send(env, chatId, fmtWeek(group, index, monday, row.lang), extra);
   }
-  const date = what === "tomorrow" ? addDays(now, 1) : now;
+  let date = what === "tomorrow" ? addDays(now, 1) : now;
+  if (what === "smart") {
+    const st = whereIs(group, index, now);
+    if (st.state === "after" || st.state === "off") date = st.next && !st.next.today ? st.next.date : addDays(now, 1);
+  }
   return send(env, chatId, fmtDay(group, index, date, row.lang, now), { reply_markup: dayKeyboard(row.lang, date, now, kb) });
 }
 function dayKeyboard(lang, date, now, extraKb) {
