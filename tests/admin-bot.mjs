@@ -43,7 +43,7 @@ r = await postTo('/tga', sha('tg:secretkey'), msg('/stats', me, meU));
 check('/tga with the STUDENT bot\'s secret → 403', r.status === 403);
 await reset(); await adminBot(msg('/stats', other, otherU));
 l = await log();
-check('a stranger gets no statistics — a friendly "what this is" with a button to the student bot', viaAdmin(l).some((c) => /xizmat boti/.test(c.data.text || '') && (c.data.reply_markup?.inline_keyboard?.flat() || []).some((b) => /^https:\/\/t\.me\//.test(b.url || ''))) && !l.some((c) => /Jami: \d+/.test(c.data.text || '')), l);
+check('a stranger gets no statistics — a friendly "what this is" with a button to the student bot', viaAdmin(l).some((c) => /xizmat boti/.test(c.data.text || '') && (c.data.reply_markup?.inline_keyboard?.flat() || []).some((b) => /^https:\/\/t\.me\//.test(b.url || ''))) && !l.some((c) => /Foydalanuvchilar/.test(c.data.text || '')), l);
 await reset(); await adminBot(msg('/start', other, { ...otherU, language_code: 'ru' }));
 l = await log();
 check('…in their language', viaAdmin(l).some((c) => /служебный бот/.test(c.data.text || '')), l);
@@ -63,7 +63,7 @@ check('/start → admin menu with the reply keyboard', viaAdmin(l).some((c) => /
 await reset(); await adminBot(msg('📊 Statistika', me, meU));
 l = await log();
 const st = viaAdmin(l).find((c) => /statistika/.test(c.data.text || ''));
-check('📊 Statistika → the statistics, sent by the ADMIN bot', st && /Jami: \d+/.test(st.data.text), l.map((c) => [c.bot, c.method]));
+check('📊 Statistika → the statistics, sent by the ADMIN bot', st && /Foydalanuvchilar: <\/b>|Foydalanuvchilar: \d+/.test(st.data.text) && /Faol kishilar/.test(st.data.text), l.map((c) => [c.bot, c.method]));
 await reset(); await adminBot({ callback_query: { id: 'q1', from: meU, data: 'adm:stats', message: { message_id: 77, chat: me } } });
 l = await log();
 check('refresh button edits the statistics in the admin bot', viaAdmin(l).some((c) => c.method === 'editMessageText' && c.data.message_id === 77));
@@ -112,7 +112,7 @@ check('/reply <id> text works too', viaStudent(l).some((c) => c.data.chat_id ===
 // ---- the student bot no longer does admin work
 await reset(); await student(msg('/stats', me, meU));
 l = await log();
-check('/stats in the STUDENT bot points to the admin bot instead', viaStudent(l).some((c) => /alohida botda/.test(c.data.text || '')) && !l.some((c) => /Jami: \d+/.test(c.data.text || '')), l.map((c) => [c.bot, c.method, (c.data.text || '').slice(0, 40)]));
+check('/stats in the STUDENT bot points to the admin bot instead', viaStudent(l).some((c) => /alohida botda/.test(c.data.text || '')) && !l.some((c) => /Foydalanuvchilar/.test(c.data.text || '')), l.map((c) => [c.bot, c.method, (c.data.text || '').slice(0, 40)]));
 check('…and removes the admin commands from the student bot menu', viaStudent(l).some((c) => c.method === 'deleteMyCommands' && c.data.scope?.chat_id === ADMIN));
 
 // ---- the E'lon screen accepts only the admin bot's signature

@@ -4,6 +4,8 @@ import assert from 'node:assert/strict';
 import { buildAll, pickTimetable, diffLessons, groupId } from '../src/build.mjs';
 import { fmtDay, fmtWeek, fmtChanges, weekParity, mondayOf, parseClock, hhmm, fmtTomorrowFull, setSubjects, hasSubject, parseSubject, subjectName, subjHtml, whereIs, fmtWhere, words, displayMonday, weekImgPath, tashkentNow } from '../src/shared.mjs';
 import { renderSvg } from '../scripts/render.mjs';
+import { ttEnd, prettyText, T as TX } from '../src/shared.mjs';
+import { prettyBody } from '../src/pretty.mjs';
 
 const raw = JSON.parse(fs.readFileSync(new URL('./fixtures/regulartt-small.json', import.meta.url)));
 const viewer = JSON.parse(fs.readFileSync(new URL('./fixtures/ttviewer.json', import.meta.url)));
@@ -250,6 +252,25 @@ setSubjects({});
   assert.match(fmtWeek(b.groups[groupId('MO-901/26')], b.index, new Date('2026-09-21T00:00:00Z'), 'ru'), /ещё не внесено/);
   assert.ok(facs['Sirtqi'].courses[0].groups.some((g) => g[1] === 'инф-1'), 'a Cyrillic group code is recognised as a group too');
   assert.ok(buildAll(synth, { num: '1', from: '2026-09-07' }, { keepEmpty: false }).index.faculties.flatMap((f) => f.courses.flatMap((c) => c.groups)).every((g) => g[2] !== 0), 'keepEmpty:false restores the old behaviour');
+}
+
+// ---- timetable end date, the "published until" notice, apostrophes, the author
+{
+  assert.equal(ttEnd({ label: 'September 14 -2026 (07. 09. - 30. 10. 2026)' }), '2026-10-30');
+  assert.equal(ttEnd({ label: '(01.11.2026 - 15.01.2027)' }), '2027-01-15');
+  assert.equal(ttEnd({ label: 'no dates' }), null);
+  const idx = { periods: [{ p: 1, start: '08:00', end: '09:20' }], weekA: null };
+  const g = { name: 'X-1', tt: { label: 'T (07. 09. - 30. 10. 2026)' }, lessons: [{ d: 0, p: 1, n: 1, s: 'Fan (Ma)', t: 'Go`zal', r: '8-107' }] };
+  const mon = new Date('2026-11-02T00:00:00Z'), fri = new Date('2026-10-26T00:00:00Z');
+  assert.match(fmtDay(g, idx, mon, 'uz', mon), /30\.10 gacha e'lon qilingan/);
+  assert.doesNotMatch(fmtDay(g, idx, fri, 'uz', fri), /e'lon qilingan/);
+  assert.match(fmtDay(g, idx, mon, 'ru', mon), /до 30\.10/);
+  assert.equal(prettyText('O`zbekiston Go`zal Ma`ruza `x`'), 'O‘zbekiston Go‘zal Ma’ruza `x`');
+  const pb = prettyBody({ text: 'Go`zal', reply_markup: { inline_keyboard: [[{ text: 'Go`zal', callback_data: 'w:Go`zal' }]] } });
+  assert.equal(pb.text, 'Go‘zal'); assert.equal(pb.reply_markup.inline_keyboard[0][0].text, 'Go‘zal'); assert.equal(pb.reply_markup.inline_keyboard[0][0].callback_data, 'w:Go`zal');
+  assert.match(TX.uz.help, /Xolmamatov Shavkat/); assert.match(TX.ru.help, /Холмаматов Шавкат/); assert.match(TX.en.help, /Shavkat Kholmamatov/);
+  assert.match(TX.uz.welcome, /Xolmamatov Shavkat/);
+  console.log('✅ timetable end notice, apostrophes, author');
 }
 
 console.log('All unit tests passed ✅');

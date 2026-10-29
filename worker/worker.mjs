@@ -21,7 +21,7 @@
 
 import {
   LANGS, T as TEXTS, tr, esc, langFromCode, tashkentNow, addDays, weekday, mondayOf,
-  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, whereIs, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX,
+  fmtDay, fmtWeek, fmtWeekCaption, fmtWhere, whereIs, hhmm, parseClock, setSubjects, ymd, displayMonday, weekImgPath, noTimetable, bcMessage, BC_CAPTION_MAX, AUTHOR, ttEnd,
 } from '../src/shared.mjs';
 import { ft, fmtFriends, FRIENDS_MAX } from '../src/friends.mjs';
 import { prettyBody } from '../src/pretty.mjs';
@@ -65,9 +65,46 @@ export default {
     await Promise.all([
       timetableTick(env, at).catch((e) => console.error('timetable tick', e?.message)),
       lessonsTick(env, at).catch((e) => console.error('lessons tick', e?.message)),
+      ensureAbout(env).catch((e) => console.warn('about', e?.message)),
+      dailySnapshot(env, at).catch((e) => console.warn('snapshot', e?.message)),
     ]);
   },
 };
+
+/**
+ * The author's name on the bot's profile — once per ABOUT_VERSION (then a single cached flag per Worker instance).
+ * Texts set by hand in BotFather are kept: the author line is ADDED to them when it fits Telegram's limit
+ * (512 for the description shown in an empty chat, 120 for the profile's "about"); only an empty text is filled in.
+ */
+const ABOUT_VERSION = '1';
+let aboutDone = false;
+async function ensureAbout(env) {
+  if (aboutDone || !env.BOT_TOKEN) return;
+  const D = await db(env);
+  if ((await D.prepare("SELECT v FROM admin_state WHERE k = 'about'").first())?.v === ABOUT_VERSION) { aboutDone = true; return; }
+  const has = (t) => /Xolmamatov|Холмаматов|Kholmamatov/i.test(t || '');
+  let ok = true; // a failed call (Telegram down, flood limit) → try again on a later tick
+  for (const lang of [undefined, 'ru', 'en']) {
+    const a = lang ? AUTHOR[lang] : AUTHOR.uz;
+    const line = lang === 'ru' ? `👨‍💻 Автор: ${a} (${AUTHOR.handle})` : lang === 'en' ? `👨‍💻 Made by ${a} (${AUTHOR.handle})` : `👨‍💻 Muallif: ${a} (${AUTHOR.handle})`;
+    const cur = (await tg(env, 'getMyDescription', lang ? { language_code: lang } : {}))?.result?.description || '';
+    if (!has(cur) && (cur || !lang)) {
+      const description = cur ? (cur.length + line.length + 2 <= 512 ? `${cur}\n\n${line}` : null) : ABOUT_DEFAULT + '\n\n' + line;
+      if (description) ok = (await tg(env, 'setMyDescription', { description, ...(lang ? { language_code: lang } : {}) }))?.ok && ok;
+    }
+    const short = (await tg(env, 'getMyShortDescription', lang ? { language_code: lang } : {}))?.result?.short_description || '';
+    if (!has(short) && (short || !lang)) {
+      const tail = lang === 'ru' ? ` Автор: ${a}` : lang === 'en' ? ` By ${a}` : ` Muallif: ${a}`;
+      const short_description = short && short.length + tail.length <= 120 ? short + tail : (lang ? null : ABOUT_SHORT);
+      if (short_description) ok = (await tg(env, 'setMyShortDescription', { short_description, ...(lang ? { language_code: lang } : {}) }))?.ok && ok;
+    }
+  }
+  if (!ok) return;
+  await D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('about', ?)").bind(ABOUT_VERSION).run();
+  aboutDone = true;
+}
+const ABOUT_DEFAULT = "📅 TDIU talabalari va o'qituvchilari uchun dars jadvali.\n\n• Bugungi va ertangi darslar — bir bosishda\n• Jadval o'zgarsa — darhol xabar\n• Darsdan 11 daqiqa oldin eslatma\n• Bo'sh xonalar va «Ustoz qayerda?»\n• Do'stlar: kim qayerda, qachon birga bo'shsiz";
+const ABOUT_SHORT = "TDIU dars jadvali: o'zgarishlar, eslatmalar, bo'sh xonalar. Muallif: Xolmamatov Shavkat";
 
 /**
  * The main workflow (EduPage check, evening reminders, announcements): at most every 9 minutes in the day. At night
@@ -189,8 +226,9 @@ async function route(request, env, ctx) {
   try {
     if (request.method === 'POST' && url.pathname === '/tg') {
       if (env.ADMIN_BOT_TOKEN && ctx?.waitUntil) ctx.waitUntil(ensureAdminBot(env, url.origin).catch((e) => console.warn('admin bot setup', e?.message)));
-      return await onWebhook(request, env);
+      return await onWebhook(request, env, ctx);
     }
+    if (url.pathname === '/api/hit') return onAppHit(request, env, ctx);
     if (request.method === 'POST' && url.pathname === '/tga') return await onAdminWebhook(request, env);
     if (url.pathname === '/api/week-pic') return await onWeekPic(request, env);
     if (url.pathname === '/api/admin') return await onAdminApi(request, env);
@@ -613,7 +651,7 @@ async function onSetup(request, url, env) {
   if (siteUrl(env)) {
     out.menu = await tg(env, 'setChatMenuButton', { menu_button: { type: 'web_app', text: '📅 Jadval', web_app: { url: siteUrl(env) + '/' } } });
   }
-  out.description = await tg(env, 'setMyShortDescription', { short_description: "Talaba va o'qituvchilar uchun jadval, bo'sh xonalar va o'zgarishlar — hammasi bir joyda. Jadval o'zgarsa, birinchi siz bilasiz." });
+  out.description = await tg(env, 'setMyShortDescription', { short_description: ABOUT_SHORT });
   if (hasAdminBot(env)) {
     await (await db(env)).prepare("DELETE FROM admin_state WHERE k = 'abot'").run(); // force a fresh webhook + menu for the admin bot
     adminBotReadyFor = null;
@@ -1098,7 +1136,7 @@ async function onInternal(request, url, env) {
 
 // ---------------------------------------------------------------- Telegram updates
 
-async function onWebhook(request, env) {
+async function onWebhook(request, env, ctx) {
   if (authBlocked(request)) return tooManyAttempts();
   if (!(await safeEqual(request.headers.get('x-telegram-bot-api-secret-token'), await webhookSecret(env)))) {
     noteAuthFail(request);
@@ -1118,7 +1156,25 @@ async function onWebhook(request, env) {
   else if (update.callback_query) await onCallback(env, update.callback_query);
   else if (update.my_chat_member) await onMyChatMember(env, update.my_chat_member);
   await track(env, update);
+  flushSoon(env, ctx);
   return new Response('ok');
+}
+
+/**
+ * Mini App opened → +1 "📱 Mini App" in /stats. Fire-and-forget from the page (no body, no cookies, nothing personal);
+ * one count per address per minute, so reloading or a script can't inflate it much. Counted in the same buffered way as the bot's actions.
+ */
+const appHits = new Map();
+function onAppHit(request, env, ctx) {
+  const ip = clientIp(request), now = Date.now();
+  if (request.method === 'POST' && !(appHits.get(ip) > now - 60e3)) {
+    appHits.set(ip, now);
+    if (appHits.size > 5000) appHits.clear();
+    const key = `${ymd(tashkentNow(now))}|app`;
+    usageBuf.set(key, (usageBuf.get(key) || 0) + 1);
+    flushSoon(env, ctx);
+  }
+  return new Response(null, { status: 204, headers: { 'access-control-allow-origin': '*' } });
 }
 
 // ---------------------------------------------------------------- the admin bot (@tdiujadval_admin_bot)
@@ -1507,14 +1563,21 @@ async function track(env, update) {
     // usage counters are added up in memory and written together (one row per counter, at most about once a minute)
     const key = `${ymd(tn)}|${k}`;
     usageBuf.set(key, (usageBuf.get(key) || 0) + 1);
-    if (now - usageFlushedAt > 60e3 || usageBuf.size > 20) await flushUsage(env);
+    if (now - usageFlushedAt > 30e3 || usageBuf.size > 20) await flushUsage(env);
   } catch (e) {
     console.warn('track', e?.message);
   }
 }
 const seenChats = new Map(); // chat → when this Worker instance last marked it as seen
 const usageBuf = new Map(); // 'YYYY-MM-DD|key' → count not yet written
-let usageFlushedAt = Date.now();
+let usageFlushedAt = 0;
+let flushTimer = false;
+/** Counts still in memory are written within ~20 s even when no other request comes (a quiet Worker can be shut down any time). */
+function flushSoon(env, ctx) {
+  if (!usageBuf.size || flushTimer || !ctx?.waitUntil) return;
+  flushTimer = true;
+  ctx.waitUntil(new Promise((r) => setTimeout(r, 20e3)).then(() => flushUsage(env)).catch(() => {}).finally(() => { flushTimer = false; }));
+}
 async function flushUsage(env) {
   if (!usageBuf.size) return;
   const items = [...usageBuf]; usageBuf.clear(); usageFlushedAt = Date.now();
@@ -1535,6 +1598,29 @@ const USAGE_NAMES = {
   friends: "👥 Do'stlar", dostlar: "👥 Do'stlar", where: '🔎 Ustoz qayerda?', ustoz: '🔎 Ustoz qayerda?', text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
 };
 
+/**
+ * End of each day (Tashkent, last cron ticks after 23:40): how many people used the bot that day, kept as admin_state
+ * "day:YYYY-MM-DD". last_seen only remembers the LATEST visit, so "active yesterday / on Monday" can't be counted later — this
+ * snapshot is what makes the daily-active line in /stats exact. One small write per tick in that window, nothing at other times.
+ */
+let snapDay = null;
+async function dailySnapshot(env, at) {
+  const tn = tashkentNow(at);
+  if (tn.getUTCHours() * 60 + tn.getUTCMinutes() < 23 * 60 + 40) return;
+  const day = ymd(tn);
+  if (snapDay === day + tn.getUTCMinutes()) return;
+  await flushUsage(env);
+  const D = await db(env);
+  const today0 = Date.UTC(tn.getUTCFullYear(), tn.getUTCMonth(), tn.getUTCDate()) - (tn.getTime() - at);
+  const [c, u] = await D.batch([
+    D.prepare("SELECT COUNT(*) total, SUM(kind = 'private') priv, SUM(kind = 'private' AND last_seen >= ?) dau, SUM(created_at >= ?) new FROM chats").bind(today0, today0),
+    D.prepare("SELECT SUM(n) n, SUM(CASE WHEN k = 'app' THEN n ELSE 0 END) app FROM usage WHERE day = ?").bind(day),
+  ]);
+  const r = c.results[0] || {}, x = u.results[0] || {};
+  await D.prepare('INSERT OR REPLACE INTO admin_state (k, v) VALUES (?, ?)').bind(`day:${day}`, JSON.stringify({ total: r.total || 0, priv: r.priv || 0, dau: r.dau || 0, new: r.new || 0, acts: x.n || 0, app: x.app || 0 })).run();
+  snapDay = day + tn.getUTCMinutes();
+}
+
 /** The admin's statistics message (only ever sent to ADMIN_CHAT_ID). editId = refresh an earlier one in place. */
 async function sendStats(env, chatId, editId, viaAdminBot = false) {
   await flushUsage(env); // this instance's latest counts
@@ -1543,62 +1629,97 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
   const tn = tashkentNow(now);
   const tz = tn.getTime() - now;
   const today0 = Date.UTC(tn.getUTCFullYear(), tn.getUTCMonth(), tn.getUTCDate()) - tz; // Tashkent midnight
-  const yday0 = today0 - 864e5, week0 = today0 - 6 * 864e5;
+  const yday0 = today0 - 864e5, week0 = today0 - 6 * 864e5, month0 = today0 - 29 * 864e5;
   const day = ymd(tn), dayW = ymd(tashkentNow(week0));
-  const [a, top, use1, use7, fb, perDay, first] = await D.batch([
+  const days7 = Array.from({ length: 7 }, (_, i) => ymd(tashkentNow(week0 + i * 864e5))); // the last 7 days, today last
+  const [a, top, use1, use7, fb, perDay, first, fr, bc, snaps] = await D.batch([
     D.prepare(`SELECT COUNT(*) total, SUM(kind = 'private') priv, SUM(kind != 'private') grp,
-      SUM(kind = 'private' AND role = 'teacher') teachers, SUM(group_id IS NOT NULL) picked,
-      SUM(created_at >= ?) new0, SUM(created_at >= ? AND created_at < ?) new1, SUM(created_at >= ?) new7,
-      SUM(kind = 'private' AND last_seen >= ?) act0, SUM(kind = 'private' AND last_seen >= ?) act7, SUM(kind != 'private' AND last_seen >= ?) gact7,
+      SUM(kind = 'private' AND role = 'teacher') teachers, SUM(kind = 'private' AND group_id IS NOT NULL) picked, SUM(kind != 'private' AND group_id IS NOT NULL) gpicked,
+      SUM(created_at >= ?) new0, SUM(created_at >= ? AND created_at < ?) new1, SUM(created_at >= ?) new7, SUM(created_at >= ?) new30,
+      SUM(kind = 'private' AND last_seen >= ?) act0, SUM(kind = 'private' AND last_seen >= ?) act7, SUM(kind = 'private' AND last_seen >= ?) act30,
+      SUM(kind != 'private' AND last_seen >= ?) gact7,
       SUM(lang = 'uz') uz, SUM(lang = 'ru') ru, SUM(lang = 'en') en,
-      SUM(alerts = 1) alerts, SUM(remind_at >= 0) remind, SUM(weekly = 1) weekly FROM chats`).bind(today0, yday0, today0, week0, today0, week0, week0),
+      SUM(group_id IS NOT NULL AND alerts = 1) alerts, SUM(group_id IS NOT NULL AND remind_at >= 0) remind, SUM(group_id IS NOT NULL AND weekly = 1) weekly,
+      SUM(kind = 'private' AND group_id IS NOT NULL AND lr = 1) lr, SUM(kind = 'private' AND group_id IS NOT NULL AND de = 1) de FROM chats`)
+      .bind(today0, yday0, today0, week0, month0, today0, week0, month0, week0),
     D.prepare("SELECT group_name, COUNT(*) n FROM chats WHERE group_id IS NOT NULL AND kind = 'private' AND role != 'teacher' GROUP BY group_id ORDER BY n DESC LIMIT 5"),
     D.prepare('SELECT k, n FROM usage WHERE day = ? ORDER BY n DESC').bind(day),
     D.prepare('SELECT k, SUM(n) n FROM usage WHERE day >= ? GROUP BY k ORDER BY n DESC').bind(dayW),
     D.prepare('SELECT COUNT(*) total, SUM(created_at >= ?) today FROM feedback').bind(today0),
     D.prepare("SELECT date((created_at + ?) / 1000, 'unixepoch') d, COUNT(*) n FROM chats WHERE created_at >= ? GROUP BY d ORDER BY d").bind(tz, week0),
     D.prepare('SELECT MIN(day) d FROM usage'),
+    D.prepare('SELECT COUNT(*) pairs, COUNT(DISTINCT a) people FROM friends'),
+    D.prepare('SELECT id, total, sent, failed, status, created_at FROM broadcasts ORDER BY id DESC LIMIT 1'),
+    D.prepare("SELECT k, v FROM admin_state WHERE k >= ? AND k < ?").bind(`day:${days7[0]}`, `day:${day}`),
   ]);
   const r = a.results[0] || {};
   const ghErr = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'gh_err'").first().catch(() => null))?.v || 'null');
+  const index = await getIndex(env).catch(() => null);
   const n = (v) => v || 0;
+  const pct = (x, of) => (of ? `${Math.round((x / of) * 100)}%` : '—');
   const dm = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
+  const named = (k) => (Object.hasOwn(USAGE_NAMES, k) ? USAGE_NAMES[k] : '/' + esc(k));
   const feat = (rows) => {
-    const list = rows.filter((x) => !x.k.startsWith('cb:') && x.k !== 'stats' && x.k !== 'reply').slice(0, 6);
-    return list.length ? list.map((x, i) => `${i + 1}. ${Object.hasOwn(USAGE_NAMES, x.k) ? USAGE_NAMES[x.k] : '/' + esc(x.k)} — <b>${x.n}</b>`).join('\n') : '—';
+    const list = rows.filter((x) => !x.k.startsWith('cb:') && x.k !== 'stats' && x.k !== 'reply' && x.k !== 'other' && x.k !== 'app').slice(0, 7);
+    return list.length ? list.map((x, i) => `${i + 1}. ${named(x.k)} — <b>${x.n}</b>`).join('\n') : '—';
   };
-  const taps = (rows) => rows.filter((x) => x.k.startsWith('cb:')).reduce((s, x) => s + x.n, 0);
+  const sum = (rows, f = () => true) => rows.filter(f).reduce((t, x) => t + x.n, 0);
+  const taps = (rows) => sum(rows, (x) => x.k.startsWith('cb:'));
   const since = first.results[0]?.d;
+  const students = n(r.priv) - n(r.teachers);
+  // new chats per day — every one of the last 7 days, including the empty ones
+  const newBy = Object.fromEntries(perDay.results.map((x) => [x.d, x.n]));
+  // people active per day: finished days from the end-of-day snapshots, today live
+  const snap = Object.fromEntries(snaps.results.map((x) => [x.k.slice(4), (() => { try { return JSON.parse(x.v); } catch { return null; } })()]));
+  const dauLine = days7.map((d) => (d === day ? `<b>${dm(d)}: ${n(r.act0)}</b>` : snap[d] ? `${dm(d)}: ${snap[d].dau}` : null)).filter(Boolean);
+  const fr0 = fr.results[0] || {}, b = bc.results[0];
+  const ttLabel = index?.tt?.label || '';
+  const period = (/\(([^)]*)\)\s*$/.exec(ttLabel) || [])[1]?.replace(/\s+/g, ' ').trim() || ttLabel;
+  const ttEndD = ttEnd(index?.tt);
+  const changedAt = index?.changedAt ? new Date(Date.parse(index.changedAt) + 5 * 3600e3) : null;
+  const when = (d) => `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')} ${hhmm(d.getUTCHours() * 60 + d.getUTCMinutes())}`;
   const lines = [
     '📊 <b>TDIU Jadval — statistika</b>',
     `🕘 ${dm(day)}.${day.slice(0, 4)}, ${hhmm(tn.getUTCHours() * 60 + tn.getUTCMinutes())} (Toshkent)`,
     '',
-    `👥 <b>Jami: ${n(r.total)}</b>`,
-    `   👤 Shaxsiy: ${n(r.priv)} — 🎓 ${n(r.priv) - n(r.teachers)} talaba, 👨‍🏫 ${n(r.teachers)} o'qituvchi`,
-    `   💬 Guruh chatlari: ${n(r.grp)}`,
-    `   ✅ Guruh/o'qituvchi tanlagan: ${n(r.picked)}`,
+    `👥 <b>Foydalanuvchilar: ${n(r.priv)}</b> kishi` + (n(r.grp) ? ` + ${n(r.grp)} guruh chati` : ''),
+    `   🎓 Talaba: ${students} · 👨‍🏫 O'qituvchi: ${n(r.teachers)}`,
+    `   ✅ Jadvalini tanlagan: ${n(r.picked)} (${pct(n(r.picked), n(r.priv))}) · ⏳ tanlamagan: ${n(r.priv) - n(r.picked)}`,
     '',
-    `🆕 <b>Yangi:</b> bugun ${n(r.new0)} · kecha ${n(r.new1)} · 7 kunda ${n(r.new7)}`,
-    perDay.results.length ? `📈 ${perDay.results.map((x) => `${dm(x.d)}: ${x.n}`).join(' · ')}` : null,
-    `🔥 <b>Faol:</b> bugun ${n(r.act0)} · 7 kunda ${n(r.act7)} kishi` + (n(r.gact7) ? ` (+${n(r.gact7)} guruh chati)` : ''),
-    since && since > dayW ? `<i>(faollik ${dm(since)} dan beri hisoblanmoqda)</i>` : null,
+    `🔥 <b>Faol kishilar</b> (botdan foydalangan)`,
+    `   Bugun <b>${n(r.act0)}</b> · 7 kunda <b>${n(r.act7)}</b> · 30 kunda <b>${n(r.act30)}</b>` + (n(r.gact7) ? ` · guruh chatlari (7 kun): ${n(r.gact7)}` : ''),
+    dauLine.length > 1 ? `   📅 Kunma-kun: ${dauLine.join(' · ')}` : null,
+    `   Kunlik faollik ulushi: ${pct(n(r.act0), n(r.act30))} (bugungi faollar ÷ 30 kunlik faollar)`,
+    since && since > dayW ? `   <i>(harakatlar ${dm(since)} dan beri hisoblanmoqda)</i>` : null,
     '',
-    "⭐ <b>Eng ko'p ishlatilgan — bugun</b>",
+    `🆕 <b>Yangi:</b> bugun ${n(r.new0)} · kecha ${n(r.new1)} · 7 kunda ${n(r.new7)} · 30 kunda ${n(r.new30)}`,
+    `   📈 ${days7.map((d) => `${dm(d)}: ${newBy[d] || 0}`).join(' · ')}`,
+    '',
+    `⭐ <b>Bugun</b> — ${sum(use1.results, (x) => x.k !== 'app')} ta harakat bot ichida` + (taps(use1.results) ? ` (shundan tugma bosish: ${taps(use1.results)})` : ''),
     feat(use1.results),
-    taps(use1.results) ? `👆 Tugmalar bosildi: ${taps(use1.results)} marta` : null,
+    `📱 Mini App ochildi: <b>${sum(use1.results, (x) => x.k === 'app')}</b> marta`,
     '',
-    "⭐ <b>Eng ko'p ishlatilgan — 7 kun</b>",
+    `⭐ <b>7 kun</b> — ${sum(use7.results, (x) => x.k !== 'app')} ta harakat bot ichida`,
     feat(use7.results),
+    `📱 Mini App ochildi: <b>${sum(use7.results, (x) => x.k === 'app')}</b> marta`,
+    '',
+    "🔔 <b>Yoqilgan xabarlar</b> (jadvali tanlangan chatlar)",
+    `   O'zgarish xabari: ${n(r.alerts)} · Kechki eslatma: ${n(r.remind)} · Haftalik: ${n(r.weekly)}`,
+    `   Darsdan 11 daqiqa oldin: ${n(r.lr)} · Kun yakuni: ${n(r.de)}`,
+    '',
+    `👥 <b>Do'stlar:</b> ${Math.round(n(fr0.pairs) / 2)} juftlik · ${n(fr0.people)} kishida kamida bitta do'st`,
+    b ? `📣 <b>Oxirgi e'lon</b> #${b.id} (${when(new Date(b.created_at + 5 * 3600e3))}): ${b.sent}/${b.total} yetkazildi` + (b.failed ? `, ${b.failed} ta yetmadi` : '') + (b.status !== 'done' ? ` · ${esc(b.status)}` : '') : null,
     '',
     "🏆 <b>Eng ko'p a'zoli guruhlar</b>",
     top.results.map((x, i) => `${i + 1}. ${esc(x.group_name || '?')} — ${x.n}`).join('\n') || '—',
     '',
     `🌐 Til: 🇺🇿 ${n(r.uz)} · 🇷🇺 ${n(r.ru)} · 🇬🇧 ${n(r.en)}`,
-    `🔔 O'zgarish xabari: ${n(r.alerts)} · 🌙 Kechki eslatma: ${n(r.remind)} · 🗓 Haftalik: ${n(r.weekly)}`,
     `✍️ Fikr-mulohaza: jami ${n(fb.results[0]?.total)} · bugun ${n(fb.results[0]?.today)}`,
-    ghErr ? `⚠️ <b>GitHub chaqiruvi ishlamayapti</b>: xato ${ghErr.status} (${hhmm(((ghErr.at + 5 * 3600e3) % 864e5) / 6e4 | 0)} dan beri)` : null,
     '',
-    "<i>Mini App ochilishlari bu yerda hisoblanmaydi (u alohida sayt).</i>",
+    '⚙️ <b>Tizim</b>',
+    period ? `   📚 Jadval: ${esc(period)}` + (ttEndD && day > ttEndD ? " — ⚠️ <b>muddati o'tgan</b>, EduPage'da yangisi hali yo'q" : '') : null,
+    changedAt ? `   🔄 Jadvaldagi oxirgi o'zgarish: ${when(changedAt)}` : null,
+    ghErr ? `   ⚠️ <b>GitHub chaqiruvi ishlamayapti</b>: xato ${ghErr.status} (${hhmm(((ghErr.at + 5 * 3600e3) % 864e5) / 6e4 | 0)} dan beri)` : '   ✅ Eslatmalar va tekshiruvlar ishlayapti (GitHub)',
   ].filter((x) => x !== null);
   const text = lines.join('\n');
   const reply_markup = { inline_keyboard: [[{ text: '🔄 Yangilash', callback_data: 'adm:stats' }]] };

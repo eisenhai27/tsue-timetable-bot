@@ -10,7 +10,7 @@ export const T = {
     months: ['yanvar', 'fevral', 'mart', 'aprel', 'may', 'iyun', 'iyul', 'avgust', 'sentabr', 'oktabr', 'noyabr', 'dekabr'],
     langName: "🇺🇿 O'zbekcha",
     chooseLang: 'Tilni tanlang / Выберите язык / Choose language',
-    welcome: "Assalomu alaykum! 👋\nMen <b>TDIU Jadval</b> botiman.\n\n• Talaba va o'qituvchilar jadvalini ko'rsataman\n• Jadval o'zgarsa darhol xabar beraman\n• Bo'sh xonalarni qidiraman\n• Ustoz hozir qaysi xonada ekanini aytaman\n\nBoshlash uchun kim ekaningizni tanlang 👇",
+    welcome: "Assalomu alaykum! 👋\nMen <b>TDIU Jadval</b> botiman.\n\n• Talaba va o'qituvchilar jadvalini ko'rsataman\n• Jadval o'zgarsa darhol xabar beraman\n• Bo'sh xonalarni qidiraman\n• Ustoz hozir qaysi xonada ekanini aytaman\n\n👨‍💻 Muallif: Xolmamatov Shavkat\n\nBoshlash uchun kim ekaningizni tanlang 👇",
     chooseFaculty: '🏛 Fakultetni tanlang:',
     chooseCourse: '🎓 Kursni tanlang:',
     chooseGroup: '👥 Guruhni tanlang:',
@@ -67,7 +67,7 @@ export const T = {
     back: '⬅️ Orqaga',
     more: 'Yana ➡️',
     unset: "✅ Bu chat guruhdan uzildi.",
-    help: "<b>Buyruqlar</b>\n/today — bugungi darslar\n/tomorrow — ertangi darslar\n/week — haftalik jadval\n/group — guruhni tanlash (talaba)\n/where — ustoz qayerda? (masalan: /where Karimov)\n/teacher — o'qituvchi sifatida kirish\n/settings — sozlamalar\n/time — ertangi dars eslatmasi vaqti\n/app — ilovani ochish\n/feedback — taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup — chatni guruhga ulash (admin)\n/unset — uzish (admin)\n/time — ertangi dars eslatmasi vaqti (admin)",
+    help: "<b>Buyruqlar</b>\n/today — bugungi darslar\n/tomorrow — ertangi darslar\n/week — haftalik jadval\n/group — guruhni tanlash (talaba)\n/where — ustoz qayerda? (masalan: /where Karimov)\n/teacher — o'qituvchi sifatida kirish\n/settings — sozlamalar\n/time — ertangi dars eslatmasi vaqti\n/app — ilovani ochish\n/feedback — taklif yoki xato yuborish\n\n<b>Guruh chatida</b>\n/setgroup — chatni guruhga ulash (admin)\n/unset — uzish (admin)\n/time — ertangi dars eslatmasi vaqti (admin)\n\n👨‍💻 Muallif: <b>Xolmamatov Shavkat</b> (@Eisenhai)",
     dataError: "Jadvalni yuklab bo'lmadi, birozdan so'ng qayta urinib ko'ring.",
     now: 'Hozir',
     btnInvite: "📤 Do'stlarni taklif qilish",
@@ -107,7 +107,7 @@ export const T = {
     months: ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря'],
     langName: '🇷🇺 Русский',
     chooseLang: 'Tilni tanlang / Выберите язык / Choose language',
-    welcome: 'Здравствуйте! 👋\nЯ <b>TDIU Jadval</b> — бот расписания ТГЭУ.\n\n• Показываю расписание студентов и преподавателей\n• Сразу сообщаю об изменениях\n• Ищу свободные аудитории\n• Подскажу, в какой аудитории сейчас преподаватель\n\nДля начала выберите, кто вы 👇',
+    welcome: 'Здравствуйте! 👋\nЯ <b>TDIU Jadval</b> — бот расписания ТГЭУ.\n\n• Показываю расписание студентов и преподавателей\n• Сразу сообщаю об изменениях\n• Ищу свободные аудитории\n• Подскажу, в какой аудитории сейчас преподаватель\n\n👨‍💻 Автор: Холмаматов Шавкат\n\nДля начала выберите, кто вы 👇',
     chooseFaculty: '🏛 Выберите факультет:',
     chooseCourse: '🎓 Выберите курс:',
     chooseGroup: '👥 Выберите группу:',
@@ -164,7 +164,7 @@ export const T = {
     back: '⬅️ Назад',
     more: 'Ещё ➡️',
     unset: '✅ Чат отвязан от группы.',
-    help: '<b>Команды</b>\n/today — пары на сегодня\n/tomorrow — пары на завтра\n/week — расписание на неделю\n/where — где преподаватель? (например: /where Karimov)\n/group — выбрать группу (студент)\n/teacher — войти как преподаватель\n/settings — настройки\n/time — время напоминания о парах на завтра\n/app — открыть приложение\n/feedback — отправить отзыв или сообщить об ошибке\n\n<b>В чате группы</b>\n/setgroup — привязать чат к группе (админ)\n/unset — отвязать (админ)\n/time — время напоминания о парах на завтра (админ)',
+    help: '<b>Команды</b>\n/today — пары на сегодня\n/tomorrow — пары на завтра\n/week — расписание на неделю\n/where — где преподаватель? (например: /where Karimov)\n/group — выбрать группу (студент)\n/teacher — войти как преподаватель\n/settings — настройки\n/time — время напоминания о парах на завтра\n/app — открыть приложение\n/feedback — отправить отзыв или сообщить об ошибке\n\n<b>В чате группы</b>\n/setgroup — привязать чат к группе (админ)\n/unset — отвязать (админ)\n/time — время напоминания о парах на завтра (админ)\n\n👨‍💻 Автор: <b>Холмаматов Шавкат</b> (@Eisenhai)',
     dataError: 'Не удалось загрузить расписание, попробуйте чуть позже.',
     now: 'Сейчас',
     btnInvite: '📤 Пригласить друзей',
@@ -204,7 +204,7 @@ export const T = {
     months: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
     langName: '🇬🇧 English',
     chooseLang: 'Tilni tanlang / Выберите язык / Choose language',
-    welcome: "Hi! 👋\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n• I show student and teacher timetables\n• I tell you right away when it changes\n• I can find free rooms\n• I can tell where a teacher is right now\n\nTo start, tell me who you are 👇",
+    welcome: "Hi! 👋\nI'm <b>TDIU Jadval</b>, the TSUE timetable bot.\n\n• I show student and teacher timetables\n• I tell you right away when it changes\n• I can find free rooms\n• I can tell where a teacher is right now\n\n👨‍💻 Made by Shavkat Kholmamatov\n\nTo start, tell me who you are 👇",
     chooseFaculty: '🏛 Choose your faculty:',
     chooseCourse: '🎓 Choose your year:',
     chooseGroup: '👥 Choose your group:',
@@ -261,7 +261,7 @@ export const T = {
     back: '⬅️ Back',
     more: 'More ➡️',
     unset: '✅ This chat is no longer linked to a group.',
-    help: '<b>Commands</b>\n/today — today\'s classes\n/tomorrow — tomorrow\'s classes\n/week — weekly timetable\n/where — find a teacher (e.g. /where Karimov)\n/group — choose group (student)\n/teacher — sign in as a teacher\n/settings — settings\n/time — reminder time for tomorrow\'s classes\n/app — open the app\n/feedback — send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup — link chat to a group (admin)\n/unset — unlink (admin)\n/time — reminder time for tomorrow\'s classes (admin)',
+    help: '<b>Commands</b>\n/today — today\'s classes\n/tomorrow — tomorrow\'s classes\n/week — weekly timetable\n/where — find a teacher (e.g. /where Karimov)\n/group — choose group (student)\n/teacher — sign in as a teacher\n/settings — settings\n/time — reminder time for tomorrow\'s classes\n/app — open the app\n/feedback — send feedback or report a bug\n\n<b>In a group chat</b>\n/setgroup — link chat to a group (admin)\n/unset — unlink (admin)\n/time — reminder time for tomorrow\'s classes (admin)\n\n👨‍💻 Made by <b>Shavkat Kholmamatov</b> (@Eisenhai)',
     dataError: "Couldn't load the timetable, please try again in a moment.",
     now: 'Now',
     btnInvite: '📤 Invite friends',
@@ -366,7 +366,7 @@ const dm = (d) => `${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCM
 // Extra words used by the message formatters
 const W = {
   uz: { lecture: "Ma'ruza", seminar: 'Seminar', lab: 'Laboratoriya', practice: 'Amaliy', bld: (b) => `${b}-bino`, room: (r) => `${r}-xona`,
-    count: (n) => `${n} ta dars`, pair: (n) => `${n}-para`, now: '🟢 Hozir', next: '⏭ Keyingi', left: (d) => `${d} qoldi`, soon: (d) => `${d}dan so'ng`, rel: ['Bugun', 'Ertaga'], brk: (m) => `☕ ${m} daqiqa tanaffus`,
+    count: (n) => `${n} ta dars`, pair: (n) => `${n}-para`, now: '🟢 Hozir', next: '⏭ Keyingi', left: (d) => `${d} qoldi`, soon: (d) => `${d}dan so'ng`, rel: ['Bugun', 'Ertaga'], expired: (d) => `⚠️ <i>Rasmiy jadval ${d} gacha e'lon qilingan. Yangisi EduPage'da chiqishi bilan bot o'zi yangilaydi — hozircha eski jadval ko'rsatilmoqda.</i>`, brk: (m) => `☕ ${m} daqiqa tanaffus`,
     finish: (t) => `🏁 Darslar ${t} da tugaydi`, moved: '🔁 Vaqti o‘zgardi', roomCh: '🚪 Xona o‘zgardi', teachCh: '👤 O‘qituvchi o‘zgardi', groupCh: '👥 Guruhlar o‘zgardi',
     removed: '❌ Bekor qilindi', added: '➕ Yangi dars', wkCap: (g, r, n) => `🗓 <b>${g}</b> — haftalik jadval\n${r} · ${n} ta dars`,
     lessonsWeek: 'Haftalik jadval', freeWeek: "Bu hafta dars yo'q 🎉", seeApp: '📱 Batafsil — ilovada',
@@ -376,7 +376,7 @@ const W = {
       noRoom: "xona ko'rsatilmagan", note: "ℹ️ Rasmiy dars jadvali asosida — kutilmagan o'zgarishlar bo'lishi mumkin." } },
   ru: { lecture: 'Лекция', seminar: 'Семинар', lab: 'Лабораторная', practice: 'Практика', bld: (b) => `корпус ${b}`, room: (r) => `ауд. ${r}`,
     count: (n) => `${n} ${n % 10 === 1 && n % 100 !== 11 ? 'пара' : n % 10 >= 2 && n % 10 <= 4 && (n % 100 < 10 || n % 100 >= 20) ? 'пары' : 'пар'}`, pair: (n) => `${n} пара`,
-    now: '🟢 Сейчас', next: '⏭ Следующая', left: (d) => `осталось ${d}`, soon: (d) => `через ${d}`, rel: ['Сегодня', 'Завтра'], brk: (m) => `☕ перерыв ${m} мин`, finish: (t) => `🏁 Пары закончатся в ${t}`,
+    now: '🟢 Сейчас', next: '⏭ Следующая', left: (d) => `осталось ${d}`, soon: (d) => `через ${d}`, rel: ['Сегодня', 'Завтра'], expired: (d) => `⚠️ <i>Официальное расписание опубликовано до ${d}. Как только на EduPage появится новое, бот обновится сам — пока показано прежнее.</i>`, brk: (m) => `☕ перерыв ${m} мин`, finish: (t) => `🏁 Пары закончатся в ${t}`,
     moved: '🔁 Изменилось время', roomCh: '🚪 Изменилась аудитория', teachCh: '👤 Изменился преподаватель', groupCh: '👥 Изменились группы', removed: '❌ Отменено', added: '➕ Новая пара',
     wkCap: (g, r, n) => `🗓 <b>${g}</b> — расписание на неделю\n${r} · ${n} пар`, lessonsWeek: 'Расписание на неделю', freeWeek: 'На этой неделе пар нет 🎉', seeApp: '📱 Подробнее — в приложении',
     h: (m) => (m >= 60 ? `${Math.floor(m / 60)} ч${m % 60 ? ' ' + (m % 60) + ' мин' : ''}` : `${m} мин`),
@@ -384,7 +384,7 @@ const W = {
       until: (t, left) => `⏱ до ${t} — осталось ${left}`, next: '⏭ <b>Следующая пара</b>', inM: (d) => `через ${d}`, tomorrow: 'Завтра', today: (c) => `🗓 <b>План на сегодня</b> · ${c}`,
       noRoom: 'аудитория не указана', note: 'ℹ️ По официальному расписанию — возможны неожиданные изменения.' } },
   en: { lecture: 'Lecture', seminar: 'Seminar', lab: 'Lab', practice: 'Practice', bld: (b) => `Building ${b}`, room: (r) => `Room ${r}`,
-    count: (n) => `${n} class${n === 1 ? '' : 'es'}`, pair: (n) => `Period ${n}`, now: '🟢 Now', next: '⏭ Next', left: (d) => `${d} left`, soon: (d) => `in ${d}`, rel: ['Today', 'Tomorrow'], brk: (m) => `☕ ${m} min break`,
+    count: (n) => `${n} class${n === 1 ? '' : 'es'}`, pair: (n) => `Period ${n}`, now: '🟢 Now', next: '⏭ Next', left: (d) => `${d} left`, soon: (d) => `in ${d}`, rel: ['Today', 'Tomorrow'], expired: (d) => `⚠️ <i>The official timetable was published until ${d}. The bot updates itself as soon as a new one is on EduPage — until then this is the previous one.</i>`, brk: (m) => `☕ ${m} min break`,
     finish: (t) => `🏁 Classes end at ${t}`, moved: '🔁 Time changed', roomCh: '🚪 Room changed', teachCh: '👤 Teacher changed', groupCh: '👥 Groups changed', removed: '❌ Cancelled',
     added: '➕ New class', wkCap: (g, r, n) => `🗓 <b>${g}</b> — weekly timetable\n${r} · ${n} classes`, lessonsWeek: 'Weekly timetable', freeWeek: 'No classes this week 🎉', seeApp: '📱 More in the app',
     h: (m) => (m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ' ' + (m % 60) + ' min' : ''}` : `${m} min`),
@@ -515,7 +515,8 @@ export function fmtDay(group, index, date, lang, nowDate) {
   const rel = nowDate ? (ymd(nowDate) === ymd(date) ? w.rel[0] : ymd(addDays(nowDate, 1)) === ymd(date) ? w.rel[1] : '') : '';
   const head = [`📅 <b>${rel ? rel + ' · ' : ''}${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` · ${parity === 'A' ? L.weekA : L.weekB}` : ''),
     `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` · ${w.count(ls.length)}${span}` : ''}`].join('\n');
-  if (!ls.length) return `${head}\n\n${noTimetable(group) ? L.noTT : L.noLessons}`;
+  const end = ttEnd(group.tt), past = end && ymd(date) > end ? `\n\n${w.expired(`${end.slice(8, 10)}.${end.slice(5, 7)}`)}` : '';
+  if (!ls.length) return `${head}\n\n${noTimetable(group) ? L.noTT : L.noLessons}${past}`;
   const sameDay = nowDate && ymd(nowDate) === ymd(date);
   const nowM = sameDay ? nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes() : -1;
   let nextMarked = false;
@@ -535,7 +536,7 @@ export function fmtDay(group, index, date, lang, nowDate) {
     }
     blocks.push(fmtLesson(l, index.periods, lang, parity, state));
   }
-  return clip(`${head}\n\n${blocks.join('\n')}\n\n${w.finish(hhmm(endM))}`);
+  return clip(`${head}\n\n${blocks.join('\n')}\n\n${w.finish(hhmm(endM))}${past}`);
 }
 
 // ---------- "Where is the teacher?" ----------
@@ -757,3 +758,12 @@ const validBcId = (id) => /^[A-Za-z0-9_-]{1,40}$/.test(String(id));
  * the data itself is never touched (it is compared and searched as EduPage gives it).
  */
 export const prettyText = (s) => (typeof s === 'string' && s.includes('`') ? s.replace(/(\p{L})`(?=\p{L})/gu, (m, a) => a + (/[oOgGоОгГ]/.test(a) ? '‘' : '’')) : s);
+
+/** Last day of a timetable from its EduPage label "September 14 -2026 (07. 09. - 30. 10. 2026)" → "2026-10-30" (null if not given). */
+export function ttEnd(tt) {
+  const m = /(\d{1,2})\.\s*(\d{1,2})\.?\s*(?:\d{4})?\s*[-–]\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/.exec(String(tt?.label || ''));
+  return m ? `${m[5]}-${m[4].padStart(2, '0')}-${m[3].padStart(2, '0')}` : null;
+}
+
+/** Who made the bot — shown in /help, the welcome, the bot's profile and the Mini App. */
+export const AUTHOR = { uz: 'Xolmamatov Shavkat', ru: 'Холмаматов Шавкат', en: 'Shavkat Kholmamatov', handle: '@Eisenhai' };

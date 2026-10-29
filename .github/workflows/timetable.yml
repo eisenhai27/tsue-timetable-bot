@@ -79,13 +79,25 @@ jobs:
             exit 1
           fi
 
+      # The pictures of the previous run come back from the cache, so only the timetables that changed are drawn again
+      # (seconds instead of ~4 minutes) and the change alerts below go out that much sooner. The key changes with anything
+      # that changes how a picture looks; a miss simply means everything is drawn, as before.
+      - name: Restore weekly pictures from the previous run
+        if: github.event_name == 'push' || steps.update.outputs.written != '0'
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: docs/img
+          key: img-${{ hashFiles('scripts/render.mjs', 'src/shared.mjs', 'docs/data/subjects.json', 'docs/icon-192.png', 'fonts/**', 'package-lock.json') }}-${{ github.run_id }}
+          restore-keys: img-${{ hashFiles('scripts/render.mjs', 'src/shared.mjs', 'docs/data/subjects.json', 'docs/icon-192.png', 'fonts/**', 'package-lock.json') }}-
+
       - name: Draw weekly timetable pictures
+        id: render
         if: github.event_name == 'push' || steps.update.outputs.written != '0'
         run: |
           # exactly the versions in package-lock.json, and no package may run an install script (those would run with the
           # repository write token on disk) — the picture libraries ship prebuilt binaries, so none is needed
           npm ci --omit=dev --ignore-scripts --no-audit --no-fund
-          node scripts/render.mjs
+          node scripts/render.mjs --only-changed
 
       - name: Generate calendar (.ics) feeds
         if: github.event_name == 'push' || steps.update.outputs.written != '0'
@@ -144,3 +156,11 @@ jobs:
           WORKER_URL: ${{ vars.WORKER_URL }}
           ADMIN_KEY: ${{ secrets.ADMIN_KEY }}
         run: node scripts/stats.mjs
+
+      - name: Keep the pictures for the next run
+        # last, so uploading ~400 MB never holds up the deploy or the messages
+        if: steps.render.outcome == 'success' && steps.render.outputs.rendered != '0'
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: docs/img
+          key: img-${{ hashFiles('scripts/render.mjs', 'src/shared.mjs', 'docs/data/subjects.json', 'docs/icon-192.png', 'fonts/**', 'package-lock.json') }}-${{ github.run_id }}

@@ -355,13 +355,20 @@ await post({ message: { message_id: 11, date: 0, chat: adminChat, from: admin, t
 l = await log();
 check('Reply to some other bot message is still handled normally (group search)', !l.some((c) => c.data.chat_id === 555) && l.some((c) => String(c.data.chat_id) === '999999'), texts(l));
 
+// ---- Mini App opens are counted (anonymous tick; one per address per minute)
+{
+  const h1 = await fetch(W + '/api/hit', { method: 'POST' }), h2 = await fetch(W + '/api/hit', { method: 'POST' });
+  check('/api/hit → 204 (twice from one address = counted once)', h1.status === 204 && h2.status === 204);
+}
 // ---- /stats: the admin's own statistics — nobody else gets them
 await reset(); await post(msg('/stats', adminChat, admin));
 l = await log();
 const stMsg = l.find((c) => c.method === 'sendMessage' && String(c.data.chat_id) === '999999' && /statistika/.test(c.data.text || ''));
 console.log('   ' + (stMsg?.data.text || '').replace(/\n/g, '\n   '));
-check('/stats from the admin → statistics', stMsg && /Jami: \d+/.test(stMsg.data.text) && /Faol:/.test(stMsg.data.text), texts(l));
+check('/stats from the admin → statistics', stMsg && /Foydalanuvchilar: \d+/.test(stMsg.data.text.replace(/<\/?b>/g, '')) && /Faol kishilar/.test(stMsg.data.text) && /Do'stlar:/.test(stMsg.data.text) && /Tizim/.test(stMsg.data.text), texts(l));
 check('/stats counts what people used (today, by action)', stMsg && /Bugungi darslar — <b>\d+/.test(stMsg.data.text), stMsg?.data.text);
+check('/stats shows Mini App opens (1, not 2)', stMsg && /Mini App ochildi: <b>1<\/b> marta/.test(stMsg.data.text), stMsg?.data.text);
+check('/stats: new members for each of the last 7 days (empty days too)', stMsg && /📈 (\d\d\.\d\d: \d+ · ){6}\d\d\.\d\d: \d+/.test(stMsg.data.text), stMsg?.data.text);
 check('/stats has a refresh button', stMsg?.data.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data === 'adm:stats');
 check("/stats and /elon are added to the admin's own command menu only", l.some((c) => c.method === 'setMyCommands' && c.data.scope?.type === 'chat' && String(c.data.scope.chat_id) === '999999' && c.data.commands[0].command === 'stats' && c.data.commands[1].command === 'elon' && c.data.commands.length === 4), texts(l));
 await reset(); await post(cb('adm:stats', adminChat, admin));

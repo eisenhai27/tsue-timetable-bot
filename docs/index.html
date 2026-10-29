@@ -384,6 +384,8 @@ html.dark .bcgo{color:#fff}
 .search>svg{flex:none;color:var(--hint)}
 .row .ri{color:var(--blue)}
 html.dark .row .ri{color:#7FB3F5}
+.banner.exp{padding:10px 12px;font-size:13px;font-weight:700;line-height:1.35}
+.foot .aname{color:inherit;font-weight:800}
 </style>
 </head>
 <body>
@@ -447,7 +449,7 @@ const I = {
   uz: { days:['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'], dShort:['Du','Se','Ch','Pa','Ju','Sh','Ya'],
     navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", navAdmin:"E'lon", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`,
     lessonsN:(n)=>`${n} ta dars`, groupsN:(n)=>`${n} ta guruh`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling",
-    weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'muallif', todayL:'Bugun',
+    weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'Muallif:', authorName:'Xolmamatov Shavkat', expiredT:(d)=>`Rasmiy jadval ${d} gacha e'lon qilingan. Yangisi EduPage'da chiqishi bilan bu yer o'zi yangilanadi — hozircha eski jadval ko'rsatilmoqda.`, todayL:'Bugun',
     months:['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'],
     monthsG:['yanvar','fevral','mart','aprel','may','iyun','iyul','avgust','sentabr','oktabr','noyabr','dekabr'],
     dateF:(d,m)=>`${d}-${m}`, goToday:'Bugun', nowBtn:'Hozir', freeNowT:"Hozir bo'sh xonalar", freeNextT:"Keyingi parada bo'sh", allB:'Hammasi',
@@ -475,7 +477,7 @@ const I = {
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
     navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', navAdmin:'Объявление', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
     lessonsN:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, groupsN:(n)=>`${n} ${plRu(n,'группа','группы','групп')}`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте',
-    weekPic:'Картинка недели', share:'Поделиться', madeBy:'автор', todayL:'Сегодня',
+    weekPic:'Картинка недели', share:'Поделиться', madeBy:'Автор:', authorName:'Холмаматов Шавкат', expiredT:(d)=>`Официальное расписание опубликовано до ${d}. Как только на EduPage появится новое, здесь всё обновится само — пока показано прежнее.`, todayL:'Сегодня',
     months:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
     monthsG:['января','февраля','марта','апреля','мая','июня','июля','августа','сентября','октября','ноября','декабря'],
     dateF:(d,m)=>`${d} ${m}`, goToday:'Сегодня', nowBtn:'Сейчас', freeNowT:'Свободно сейчас', freeNextT:'Свободно на след. паре', allB:'Все',
@@ -503,7 +505,7 @@ const I = {
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
     navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', navAdmin:'Announce', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
     lessonsN:(n)=>`${n} class${n === 1 ? '' : 'es'}`, groupsN:(n)=>`${n} group${n === 1 ? '' : 's'}`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy',
-    weekPic:'Week picture', share:'Share', madeBy:'by', todayL:'Today',
+    weekPic:'Week picture', share:'Share', madeBy:'Made by', authorName:'Shavkat Kholmamatov', expiredT:(d)=>`The official timetable was published until ${d}. As soon as a new one is on EduPage this updates itself — until then this is the previous one.`, todayL:'Today',
     months:['January','February','March','April','May','June','July','August','September','October','November','December'],
     monthsG:['January','February','March','April','May','June','July','August','September','October','November','December'],
     dateF:(d,m)=>`${m} ${d}`, goToday:'Today', nowBtn:'Now', freeNowT:'Free right now', freeNextT:'Free next period', allB:'All',
@@ -868,6 +870,11 @@ function renderOnboarding() {
 }
 
 // ---- timetable tab
+/** Last day of the timetable from its label "(07. 09. - 30. 10. 2026)" → "2026-10-30" (same rule as the bot, src/shared.mjs ttEnd). */
+function ttEndOf(tt) {
+  const m = /(\d{1,2})\.\s*(\d{1,2})\.?\s*(?:\d{4})?\s*[-–]\s*(\d{1,2})\.\s*(\d{1,2})\.\s*(\d{4})/.exec(String(tt?.label || ''));
+  return m ? `${m[5]}-${m[4].padStart(2, '0')}-${m[3].padStart(2, '0')}` : null;
+}
 function validityText(tt) {
   if (!tt) return '';
   const m = /\(([^)]*)\)\s*$/.exec(tt.label || '');
@@ -885,7 +892,7 @@ function heroHtml(v, sub, extra) {
     ${v && !isMine(v) ? `<button class="star ${fav ? 'on' : ''}" id="favBtn" aria-label="favorite">${fav ? '★' : '☆'}</button>` : ''}</div>${extra || ''}</div>`;
 }
 function footHtml(label) {
-  return `<div class="foot">${label ? esc(L.validity) + ': ' + esc(label) + '<br>' : ''}<span class="sig">⚡ <b>TDIU Jadval</b> · @tdiujadval_bot</span><br>${esc(L.madeBy)} <a class="author" href="https://t.me/Eisenhai" target="_blank" rel="noopener">@Eisenhai</a></div>`;
+  return `<div class="foot">${label ? esc(L.validity) + ': ' + esc(label) + '<br>' : ''}<span class="sig">⚡ <b>TDIU Jadval</b> · @tdiujadval_bot</span><br>${esc(L.madeBy)} <b class="aname">${esc(L.authorName)}</b> · <a class="author" href="https://t.me/Eisenhai" target="_blank" rel="noopener">@Eisenhai</a></div>`;
 }
 function bindHero() {
   const go = () => { haptic(); S.stack.push(snap()); S.tab = 'search'; S.picking = null; render(); };
@@ -1052,6 +1059,8 @@ const renderTimetable = safe(async function () {
 
   const week = S.vm === 'week';
   const date = addD(mon, S.day);
+  const ttEndS = ttEndOf(data.tt), shownFrom = (week ? mon : date).toISOString().slice(0, 10);
+  if (ttEndS && shownFrom > ttEndS) banner = `<div class="banner exp">⚠️ ${esc(L.expiredT(`${ttEndS.slice(8, 10)}.${ttEndS.slice(5, 7)}`))}</div>` + banner;
   const parLbl = par ? (par === 'A' ? L.weekA : L.weekB) : '';
   const flat = []; // lessons in the order they are drawn (the click handlers map back to them)
   let body = '';
@@ -1961,6 +1970,8 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
   // everything a launch needs starts downloading right now, in parallel (index, and the user's own timetable if we know it)
   load('index.json').catch(() => {});
   if (S.mine) load(fileOf(S.mine)).catch(() => {});
+  // one anonymous "the app was opened" tick for the owner's /stats (no data sent; only from the real site, never from tests or copies)
+  if (/\.github\.io$/.test(location.hostname)) try { fetch(`${API_URL}/api/hit`, { method: 'POST', mode: 'no-cors', keepalive: true, credentials: 'omit' }).catch(() => {}); } catch {}
   // opened from the bot (#g= / #t=): that timetable is the one to show — start fetching it now, not after the index
   const hashT = hash.get('g') ? `g/${hash.get('g')}.json` : hash.get('t') ? `t/${hash.get('t')}.json` : null;
   if (hashT && (!S.mine || fileOf(S.mine) !== hashT)) load(hashT).catch(() => {});

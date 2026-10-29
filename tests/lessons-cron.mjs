@@ -13,9 +13,10 @@ const plan = lessonRunPlan(JSON.parse(indexText).periods).map(clock);
 const calls = [];
 let ghStatus = 204;
 const tgSent = [];
+const profile = []; // setMyDescription / setMyShortDescription calls, whenever they happen
 globalThis.fetch = async (url, init = {}) => {
   url = String(url);
-  if (url.includes('api.telegram.org')) { tgSent.push(JSON.parse(init.body || '{}')); return new Response('{"ok":true,"result":{}}'); }
+  if (url.includes('api.telegram.org')) { tgSent.push(JSON.parse(init.body || '{}')); if (/setMy(Short)?Description$/.test(url)) profile.push(JSON.parse(init.body || '{}')); return new Response('{"ok":true,"result":{}}'); }
   if (/\/dispatches$/.test(url) && ghStatus !== 204) return new Response('Bad credentials', { status: ghStatus });
   if (url.endsWith('/data/index.json')) return new Response(indexText, { headers: { 'content-type': 'application/json' } });
   if (/\/dispatches$/.test(url)) { calls.push({ file: /workflows\/([^/]+)\/dispatches/.exec(url)[1], body: JSON.parse(init.body || '{}') }); return new Response(null, { status: 204 }); }
@@ -79,6 +80,18 @@ check('each moment is handed out 5–16 minutes before it (time for GitHub to st
   ghStatus = 204; tgSent.length = 0;
   for (let m = 13 * 60; m < 13 * 60 + 30; m += 10) await worker.scheduled({ scheduledTime: tk('2026-10-27', m), cron: '' }, e4, { waitUntil() {} });
   check('…and one "works again" message once it is fixed', tgSent.filter((b) => /tiklandi/.test(b.text || '')).length === 1, tgSent);
+}
+
+// the bot's profile gets the author once; every evening the day's active people are written down for /stats
+{
+  const e = env();
+  tgSent.length = 0;
+  for (const m of [600, 610, 23 * 60 + 40, 23 * 60 + 50]) await worker.scheduled({ scheduledTime: tk('2026-10-28', m), cron: '' }, e, { waitUntil() {} });
+  const desc = profile.filter((b) => typeof b.description === 'string');
+  check('profile description set once, with the author', desc.length === 1 && /Xolmamatov Shavkat/.test(desc[0].description), desc);
+  check('short "about" set once, with the author, within 120 characters', profile.filter((b) => typeof b.short_description === 'string').length === 1 && /Xolmamatov/.test(profile.find((b) => b.short_description)?.short_description) && profile.find((b) => b.short_description).short_description.length <= 120, profile);
+  const snap = DB._db.prepare("SELECT v FROM admin_state WHERE k = 'day:2026-10-28'").get();
+  check('end-of-day snapshot of active people written (only in the last ticks of the day)', !!snap && 'dau' in JSON.parse(snap.v), snap);
 }
 
 console.log(fails ? `\n${fails} lessons-cron check(s) failed` : '\nAll lessons-cron checks passed ✅');

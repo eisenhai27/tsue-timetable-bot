@@ -15,6 +15,7 @@ import fs from 'node:fs/promises';
 import fsSync from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
+import { createHash } from 'node:crypto';
 import { Worker, isMainThread, parentPort, workerData } from 'node:worker_threads';
 import { Resvg } from '@resvg/resvg-js';
 import { parseSubject, setSubjects, tr, words, weekParity, displayMonday, tashkentNow, addDays, weekImgPath } from '../src/shared.mjs';
@@ -41,22 +42,25 @@ const C = {
   otherWeek: { fill: '#F1F3F7', bar: '#C5CCD8' },
 };
 
+// "September 14 -2026 (07. 09. - 30. 10. 2026)" → "07.09 – 30.10.2026" (the footer also carries the author, so it has to stay short)
+const ttPeriod = (tt) => { const m = /\(([^)]*)\)\s*$/.exec(tt?.label || ''); return m ? m[1].replace(/\s+/g, '').replace(/\.?-/, ' – ').replace(/\.$/, '') : (tt?.label || ''); };
+
 // Everything the picture says in words (subject names come from the data / subjects.json).
 const IMG = {
   uz: {
-    title: 'Haftalik dars jadvali', teacher: 'O‘qituvchi', course: (n) => `${n}-kurs`, free: 'Dars yo‘q', src: 'Manba',
+    title: 'Haftalik dars jadvali', teacher: 'O‘qituvchi', course: (n) => `${n}-kurs`, free: 'Dars yo‘q', src: 'Manba', author: 'Muallif: Xolmamatov Shavkat',
     promo: 'Jadval o‘zgarsa — darhol xabar: t.me/tdiujadval_bot',
     tag: { lecture: 'MA‘RUZA', seminar: 'SEMINAR', lab: 'LAB', practice: 'AMALIY' }, wk: { A: 'YUQORI', B: 'QUYI' },
     legThis: (w) => `${w} — shu haftadagi darslar`, legOther: (w) => `${w} — bu haftada o‘tilmaydi`,
   },
   ru: {
-    title: 'Расписание на неделю', teacher: 'Преподаватель', course: (n) => `${n} курс`, free: 'Занятий нет', src: 'Источник',
+    title: 'Расписание на неделю', teacher: 'Преподаватель', course: (n) => `${n} курс`, free: 'Занятий нет', src: 'Источник', author: 'Автор: Холмаматов Шавкат',
     promo: 'Расписание изменится — сразу сообщим: t.me/tdiujadval_bot',
     tag: { lecture: 'ЛЕКЦИЯ', seminar: 'СЕМИНАР', lab: 'ЛАБ', practice: 'ПРАКТИКА' }, wk: { A: 'ВЕРХНЯЯ', B: 'НИЖНЯЯ' },
     legThis: (w) => `${w} — занятия этой недели`, legOther: (w) => `${w} — на этой неделе нет`,
   },
   en: {
-    title: 'Weekly timetable', teacher: 'Teacher', course: (n) => `Year ${n}`, free: 'No classes', src: 'Source',
+    title: 'Weekly timetable', teacher: 'Teacher', course: (n) => `Year ${n}`, free: 'No classes', src: 'Source', author: 'Made by Shavkat Kholmamatov',
     promo: 'Timetable changes — instant alert: t.me/tdiujadval_bot',
     tag: { lecture: 'LECTURE', seminar: 'SEMINAR', lab: 'LAB', practice: 'PRACTICE' }, wk: { A: 'UPPER', B: 'LOWER' },
     legThis: (w) => `${w} — this week’s classes`, legOther: (w) => `${w} — not this week`,
@@ -292,7 +296,7 @@ export function renderSvg(group, index, logoDataUri, opts = {}) {
 
   // ---- footer
   const fy = H - M - 14;
-  o.push(`<text x="${M}" y="${fy}" font-size="17" font-weight="600" fill="${C.mute}">${x(S.src)}: tsue.edupage.org · ${x(group.tt?.label || '')}</text>`);
+  o.push(`<text x="${M}" y="${fy}" font-size="17" font-weight="600" fill="${C.mute}">${x(S.src)}: tsue.edupage.org · ${x(ttPeriod(group.tt))} · ${x(S.author)}</text>`);
   o.push(`<text x="${W - M}" y="${fy}" font-size="17" font-weight="800" fill="${C.navy}" text-anchor="end">${x(S.promo)}</text>`);
   o.push('</svg>');
   return o.join('\n');
@@ -355,7 +359,34 @@ async function main() {
 
   const ls = async (k) => (await fs.readdir(path.join(DATA, k))).filter((f) => f.endsWith('.json')).map((f) => [k, f.replace(/\.json$/, '')]);
   let jobs = argv.filter((a) => !a.startsWith('--')).map((id) => [id.startsWith('t') && !fsSync.existsSync(path.join(DATA, 'g', `${id}.json`)) ? 't' : 'g', id]);
-  if (!jobs.length) jobs = [...(await ls('g')), ...(await ls('t'))];
+  const all = !jobs.length;
+  if (all) jobs = [...(await ls('g')), ...(await ls('t'))];
+
+  // --only-changed (the workflow): docs/img comes back from the cache of the previous run, with img/manifest.json saying which
+  // version (a hash of everything the picture shows) each picture was drawn from and for which week. Only what changed since is drawn again —
+  // a timetable edit then takes seconds instead of redrawing all ~8,000 pictures, so the site (and the bot's "today") is fresh
+  // minutes sooner. Another week / week type / language set (or no cache) → everything is drawn, exactly as before.
+  const MANIFEST = path.join(outRoot, 'img', 'manifest.json');
+  let manifestOut = null;
+  if (all && argv.includes('--only-changed')) {
+    const key = JSON.stringify({ monday, parity, langs });
+    let old = null;
+    try { old = JSON.parse(await fs.readFile(MANIFEST, 'utf8')); } catch {}
+    const cur = {};
+    for (const [k, id] of jobs) {
+      try { const o = JSON.parse(await fs.readFile(path.join(DATA, k, `${id}.json`), 'utf8')); cur[`${k}:${id}`] = (o.lessons || []).length ? createHash('sha1').update(JSON.stringify([o.name, o.fac, o.course, o.tt, o.lessons])).digest('base64url').slice(0, 16) : '-'; } catch { cur[`${k}:${id}`] = '?'; }
+    }
+    if (old && old.key === key && old.v) {
+      const before = jobs.length;
+      jobs = jobs.filter(([k, id]) => {
+        const v = cur[`${k}:${id}`];
+        if (v === '-') return false; // no lessons → no picture
+        return v === '?' || old.v[`${k}:${id}`] !== v || !langs.every((l) => fsSync.existsSync(path.join(outRoot, weekImgPath(k, id, l))));
+      });
+      console.log(`only-changed: ${jobs.length} of ${before} timetables to draw again`);
+    } else console.log('only-changed: no picture set for this week from an earlier run → drawing all');
+    manifestOut = { key, v: cur };
+  }
   let logo = null;
   try { logo = 'data:image/png;base64,' + (await fs.readFile(path.resolve('docs/icon-192.png'))).toString('base64'); } catch {}
   for (const lang of langs) for (const k of ['g', 't']) await fs.mkdir(path.dirname(path.join(outRoot, weekImgPath(k, 'x', lang))), { recursive: true });
@@ -375,6 +406,8 @@ async function main() {
     })));
   }
   const n = results.reduce((a, r) => a + r.n, 0), bytes = results.reduce((a, r) => a + r.bytes, 0);
+  if (manifestOut) await fs.writeFile(MANIFEST, JSON.stringify(manifestOut));
+  if (process.env.GITHUB_OUTPUT) await fs.appendFile(process.env.GITHUB_OUTPUT, `rendered=${n}\n`);
   console.log(`Rendered ${n} weekly pictures (${langs.join('/')}; ${parity ? (parity === 'A' ? 'upper' : 'lower') + ' week' : 'week type unknown'}) in ${((Date.now() - t0) / 1000).toFixed(1)}s, ${(bytes / 1048576).toFixed(0)} MB`);
 }
 
