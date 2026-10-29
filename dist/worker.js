@@ -399,7 +399,6 @@ var W = {
     left: (d) => `${d} qoldi`,
     soon: (d) => `${d}dan so'ng`,
     rel: ["Bugun", "Ertaga"],
-    expired: (d) => `\u26A0\uFE0F <i>Rasmiy jadval ${d} gacha e'lon qilingan. Yangisi EduPage'da chiqishi bilan bot o'zi yangilaydi \u2014 hozircha eski jadval ko'rsatilmoqda.</i>`,
     brk: (m) => `\u2615 ${m} daqiqa tanaffus`,
     finish: (t) => `\u{1F3C1} Darslar ${t} da tugaydi`,
     moved: "\u{1F501} Vaqti o\u2018zgardi",
@@ -443,7 +442,6 @@ ${r} \xB7 ${n} ta dars`,
     left: (d) => `\u043E\u0441\u0442\u0430\u043B\u043E\u0441\u044C ${d}`,
     soon: (d) => `\u0447\u0435\u0440\u0435\u0437 ${d}`,
     rel: ["\u0421\u0435\u0433\u043E\u0434\u043D\u044F", "\u0417\u0430\u0432\u0442\u0440\u0430"],
-    expired: (d) => `\u26A0\uFE0F <i>\u041E\u0444\u0438\u0446\u0438\u0430\u043B\u044C\u043D\u043E\u0435 \u0440\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043E\u043F\u0443\u0431\u043B\u0438\u043A\u043E\u0432\u0430\u043D\u043E \u0434\u043E ${d}. \u041A\u0430\u043A \u0442\u043E\u043B\u044C\u043A\u043E \u043D\u0430 EduPage \u043F\u043E\u044F\u0432\u0438\u0442\u0441\u044F \u043D\u043E\u0432\u043E\u0435, \u0431\u043E\u0442 \u043E\u0431\u043D\u043E\u0432\u0438\u0442\u0441\u044F \u0441\u0430\u043C \u2014 \u043F\u043E\u043A\u0430 \u043F\u043E\u043A\u0430\u0437\u0430\u043D\u043E \u043F\u0440\u0435\u0436\u043D\u0435\u0435.</i>`,
     brk: (m) => `\u2615 \u043F\u0435\u0440\u0435\u0440\u044B\u0432 ${m} \u043C\u0438\u043D`,
     finish: (t) => `\u{1F3C1} \u041F\u0430\u0440\u044B \u0437\u0430\u043A\u043E\u043D\u0447\u0430\u0442\u0441\u044F \u0432 ${t}`,
     moved: "\u{1F501} \u0418\u0437\u043C\u0435\u043D\u0438\u043B\u043E\u0441\u044C \u0432\u0440\u0435\u043C\u044F",
@@ -487,7 +485,6 @@ ${r} \xB7 ${n} \u043F\u0430\u0440`,
     left: (d) => `${d} left`,
     soon: (d) => `in ${d}`,
     rel: ["Today", "Tomorrow"],
-    expired: (d) => `\u26A0\uFE0F <i>The official timetable was published until ${d}. The bot updates itself as soon as a new one is on EduPage \u2014 until then this is the previous one.</i>`,
     brk: (m) => `\u2615 ${m} min break`,
     finish: (t) => `\u{1F3C1} Classes end at ${t}`,
     moved: "\u{1F501} Time changed",
@@ -612,12 +609,9 @@ function fmtDay(group, index, date, lang, nowDate) {
     `\u{1F4C5} <b>${rel ? rel + " \xB7 " : ""}${L.days[d]}, ${fmtDate(date, lang)}</b>` + (parity ? ` \xB7 ${parity === "A" ? L.weekA : L.weekB}` : ""),
     `${whoIcon(group)} ${esc(group.name)}${ls.length ? ` \xB7 ${w.count(ls.length)}${span}` : ""}`
   ].join("\n");
-  const end = ttEnd(group.tt), past = end && ymd(date) > end ? `
-
-${w.expired(`${end.slice(8, 10)}.${end.slice(5, 7)}`)}` : "";
   if (!ls.length) return `${head}
 
-${noTimetable(group) ? L.noTT : L.noLessons}${past}`;
+${noTimetable(group) ? L.noTT : L.noLessons}`;
   const sameDay = nowDate && ymd(nowDate) === ymd(date);
   const nowM = sameDay ? nowDate.getUTCHours() * 60 + nowDate.getUTCMinutes() : -1;
   let nextMarked = false;
@@ -644,7 +638,7 @@ ${noTimetable(group) ? L.noTT : L.noLessons}${past}`;
 
 ${blocks.join("\n")}
 
-${w.finish(hhmm(endM))}${past}`);
+${w.finish(hhmm(endM))}`);
 }
 function spanOf(periods, l) {
   const a = periods.find((p) => p.p === l.p);

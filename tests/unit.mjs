@@ -262,15 +262,15 @@ setSubjects({});
   const idx = { periods: [{ p: 1, start: '08:00', end: '09:20' }], weekA: null };
   const g = { name: 'X-1', tt: { label: 'T (07. 09. - 30. 10. 2026)' }, lessons: [{ d: 0, p: 1, n: 1, s: 'Fan (Ma)', t: 'Go`zal', r: '8-107' }] };
   const mon = new Date('2026-11-02T00:00:00Z'), fri = new Date('2026-10-26T00:00:00Z');
-  assert.match(fmtDay(g, idx, mon, 'uz', mon), /30\.10 gacha e'lon qilingan/);
+  // after the published period students see the timetable as usual — no "old timetable" notice (only the admin's /stats says so)
+  assert.doesNotMatch(fmtDay(g, idx, mon, 'uz', mon), /e'lon qilingan|eski jadval/);
   assert.doesNotMatch(fmtDay(g, idx, fri, 'uz', fri), /e'lon qilingan/);
-  assert.match(fmtDay(g, idx, mon, 'ru', mon), /до 30\.10/);
   assert.equal(prettyText('O`zbekiston Go`zal Ma`ruza `x`'), 'O‘zbekiston Go‘zal Ma’ruza `x`');
   const pb = prettyBody({ text: 'Go`zal', reply_markup: { inline_keyboard: [[{ text: 'Go`zal', callback_data: 'w:Go`zal' }]] } });
   assert.equal(pb.text, 'Go‘zal'); assert.equal(pb.reply_markup.inline_keyboard[0][0].text, 'Go‘zal'); assert.equal(pb.reply_markup.inline_keyboard[0][0].callback_data, 'w:Go`zal');
   assert.match(TX.uz.help, /Xolmamatov Shavkat/); assert.match(TX.ru.help, /Холмаматов Шавкат/); assert.match(TX.en.help, /Shavkat Kholmamatov/);
   assert.match(TX.uz.welcome, /Xolmamatov Shavkat/);
-  console.log('✅ timetable end notice, apostrophes, author');
+  console.log('✅ timetable end date, no notice for students, apostrophes, author');
 }
 
 console.log('All unit tests passed ✅');
