@@ -31,7 +31,8 @@ permissions:
   id-token: write
 
 concurrency:
-  group: timetable
+  # Fresh queue after GitHub run 42068841603 became stuck and could not be cancelled.
+  group: timetable-v2
   cancel-in-progress: false
 
 jobs:
