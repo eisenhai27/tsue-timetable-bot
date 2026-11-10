@@ -360,6 +360,10 @@ check('Reply to some other bot message is still handled normally (group search)'
   const h1 = await fetch(W + '/api/hit', { method: 'POST' }), h2 = await fetch(W + '/api/hit', { method: 'POST' });
   check('/api/hit → 204 (twice from one address = counted once)', h1.status === 204 && h2.status === 204);
 }
+// ---- campaign links: /start video1 is counted per source (+ "new" for first-timers) and shown in /stats
+await reset(); await post(msg('/start Video1', { id: 9101, type: 'private' }, { id: 9101, first_name: 'Src1', language_code: 'uz' }));
+await post(msg('/start video1', { id: 9102, type: 'private' }, { id: 9102, first_name: 'Src2', language_code: 'uz' }));
+await post(msg('/start video1', { id: 9101, type: 'private' }, { id: 9101, first_name: 'Src1', language_code: 'uz' })); // same person again: a start, not a new one
 // ---- /stats: the admin's own statistics — nobody else gets them
 await reset(); await post(msg('/stats', adminChat, admin));
 l = await log();
@@ -367,6 +371,7 @@ const stMsg = l.find((c) => c.method === 'sendMessage' && String(c.data.chat_id)
 console.log('   ' + (stMsg?.data.text || '').replace(/\n/g, '\n   '));
 check('/stats from the admin → statistics', stMsg && /Foydalanuvchilar: \d+/.test(stMsg.data.text.replace(/<\/?b>/g, '')) && /Faol kishilar/.test(stMsg.data.text) && /Do'stlar:/.test(stMsg.data.text) && /Tizim/.test(stMsg.data.text), texts(l));
 check('/stats counts what people used (today, by action)', stMsg && /Bugungi darslar — <b>\d+/.test(stMsg.data.text), stMsg?.data.text);
+check('/stats shows links: video1 — 3 starts, 2 new; not mixed into the action lists', stMsg && /video1 — 3 marta bosildi, <b>2<\/b> yangi/.test(stMsg.data.text) && !/\/src:/.test(stMsg.data.text), stMsg?.data.text);
 check('/stats shows Mini App opens (1, not 2)', stMsg && /Mini App ochildi: <b>1<\/b> marta/.test(stMsg.data.text), stMsg?.data.text);
 check('/stats: new members for each of the last 7 days (empty days too)', stMsg && /📈 (\d\d\.\d\d: \d+ · ){6}\d\d\.\d\d: \d+/.test(stMsg.data.text), stMsg?.data.text);
 check('/stats has a refresh button', stMsg?.data.reply_markup?.inline_keyboard?.[0]?.[0]?.callback_data === 'adm:stats');

@@ -287,7 +287,7 @@ try {
 
     // -- home of the tab
     s = await openAt(at(during), '#tab=where&l=en');
-    ok((await s.page.locator('.nav button:visible').count()) === 4, 'nav shows four tabs (the owner-only announcement tab stays hidden)');
+    ok((await s.page.locator('.nav button:visible').count()) === 5, 'nav shows five tabs (the owner-only announcement tab stays hidden)');
     ok(await s.page.locator('.nav button[data-tab="where"]').evaluate((b) => b.classList.contains('on')), '#tab=where opens the Teacher tab');
     ok(/Where is the teacher\?/.test(await txt(s.page, '.htitle .t1')), 'where tab title');
     ok((await s.page.locator('.wtips').count()) === 1, 'empty state shows the tips card');
@@ -540,7 +540,7 @@ try {
     s2 = await open({ mode: 'tg', hash: `#g=${gid}&l=uz`, ctx: await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, locale: 'en-US' }) });
     const seen = await fake(s2.page, true); await s2.page.reload(); await settle(s2.page, 700);
     ok(await s2.page.locator('.nav [data-tab="admin"]').isVisible(), 'announcement tab: shown for the owner');
-    ok((await s2.page.locator('.nav button:visible').count()) === 5, 'announcement tab: five tabs fit');
+    ok((await s2.page.locator('.nav button:visible').count()) === 6, 'announcement tab: six tabs fit');
     await s2.page.click('.nav [data-tab="admin"]'); await settle(s2.page, 700);
     ok(/E'lon yuborish/.test(await txt(s2.page, '.bc .t1')), 'announcement screen opens');
     ok(await s2.page.locator('#bcTest').isDisabled() && await s2.page.locator('#bcSend').isDisabled(), 'announcement: test and send are off while the text is empty');

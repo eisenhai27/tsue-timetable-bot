@@ -25,6 +25,7 @@ import {
 } from '../src/shared.mjs';
 import { ft, fmtFriends, FRIENDS_MAX } from '../src/friends.mjs';
 import { prettyBody } from '../src/pretty.mjs';
+import { approveAt, banAt, cleanTaskText, hideAt, nextLessons, subjectKey, subjectsOf, taskState, taskTx, validDay, TASKS_PER_DAY, TASK_KEEP_DAYS, TASK_HORIZON } from '../src/tasks.mjs';
 import { lw as lessonWords, nextJoke, jokeList, jokePool, jokeText, jokeHtml, isTeacherKey, paragraphs, lessonRunPlan, clock } from '../src/lessons.mjs';
 
 const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
@@ -67,6 +68,7 @@ export default {
       lessonsTick(env, at).catch((e) => console.error('lessons tick', e?.message)),
       ensureAbout(env).catch((e) => console.warn('about', e?.message)),
       dailySnapshot(env, at).catch((e) => console.warn('snapshot', e?.message)),
+      tasksTick(env, at).catch((e) => console.warn('tasks tick', e?.message)),
     ]);
   },
 };
@@ -232,6 +234,7 @@ async function route(request, env, ctx) {
     if (request.method === 'POST' && url.pathname === '/tga') return await onAdminWebhook(request, env);
     if (url.pathname === '/api/week-pic') return await onWeekPic(request, env);
     if (url.pathname === '/api/admin') return await onAdminApi(request, env);
+    if (url.pathname === '/api/tasks') return await onTasksApi(request, env);
     if (url.pathname === '/setup') return await onSetup(request, url, env);
     if (url.pathname.startsWith('/internal/')) return await onInternal(request, url, env);
     return new Response('TDIU Jadval bot is running ✅', { headers: { 'content-type': 'text/plain; charset=utf-8' } });
@@ -377,7 +380,7 @@ async function getEntity(env, row) {
 let schemaReady = false;
 // Bump when the tables/columns below change. A fresh Worker instance (~900 a day) then only reads this one row instead of
 // re-checking every table — that check used to be more than half of all the database reads.
-const SCHEMA_VERSION = '2026-10-25a';
+const SCHEMA_VERSION = '2026-11-10a';
 async function db(env) {
   if (!schemaReady) {
     try {
@@ -462,6 +465,41 @@ async function db(env) {
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
         k TEXT PRIMARY KEY,
         v TEXT)`),
+      // 📝 group tasks: st 0 = not confirmed, 1 = confirmed by the group (👍), 2 = hidden (🚩); s0 = "confirmed" notice sent
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        gid TEXT NOT NULL,
+        subj TEXT NOT NULL,
+        body TEXT NOT NULL,
+        due TEXT NOT NULL,
+        uid INTEGER NOT NULL,
+        uname TEXT,
+        at INTEGER NOT NULL,
+        st INTEGER NOT NULL DEFAULT 0,
+        up INTEGER NOT NULL DEFAULT 0,
+        down INTEGER NOT NULL DEFAULT 0,
+        s0 INTEGER NOT NULL DEFAULT 0)`),
+      env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tasks_gid ON tasks(gid, due)'),
+      env.DB.prepare('CREATE INDEX IF NOT EXISTS idx_tasks_due ON tasks(due)'),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_votes (
+        tid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        v INTEGER NOT NULL,
+        PRIMARY KEY (tid, uid)) WITHOUT ROWID`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_subs (
+        tid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        PRIMARY KEY (tid, uid)) WITHOUT ROWID`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_ban (
+        gid TEXT NOT NULL,
+        uid INTEGER NOT NULL,
+        at INTEGER,
+        PRIMARY KEY (gid, uid)) WITHOUT ROWID`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_sent (
+        tid INTEGER NOT NULL,
+        k INTEGER NOT NULL,
+        chat_id INTEGER NOT NULL,
+        PRIMARY KEY (tid, k, chat_id)) WITHOUT ROWID`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS usage (
         day TEXT NOT NULL,
         k TEXT NOT NULL,
@@ -633,9 +671,9 @@ async function onSetup(request, url, env) {
     drop_pending_updates: true,
   });
   const cmds = {
-    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['friends', "Do'stlar — kim qayerda, qachon bo'sh"], ['group', 'Guruhni tanlash (talaba)'], ['teacher', "O'qituvchi sifatida kirish"], ['settings', 'Sozlamalar'], ['time', 'Ertangi dars eslatmasi vaqti'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
-    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['where', 'Где преподаватель? (/where Karimov)'], ['friends', 'Друзья — кто где, когда свободны'], ['group', 'Выбрать группу (студент)'], ['teacher', 'Войти как преподаватель'], ['settings', 'Настройки'], ['time', 'Время напоминания о парах'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
-    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['where', 'Find a teacher (/where Karimov)'], ['friends', "Friends — who's where, when free"], ['group', 'Choose group (student)'], ['teacher', 'Sign in as a teacher'], ['settings', 'Settings'], ['time', 'Reminder time'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['friends', "Do'stlar — kim qayerda, qachon bo'sh"], ['vazifa', 'Guruh vazifalari'], ['group', 'Guruhni tanlash (talaba)'], ['teacher', "O'qituvchi sifatida kirish"], ['settings', 'Sozlamalar'], ['time', 'Ertangi dars eslatmasi vaqti'], ['app', 'Ilovani ochish'], ['calendar', "Kalendarga obuna bo'lish"], ['feedback', 'Taklif yoki xato yuborish'], ['help', 'Yordam']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    ru: [['today', 'Пары на сегодня'], ['tomorrow', 'Пары на завтра'], ['week', 'Расписание на неделю'], ['where', 'Где преподаватель? (/where Karimov)'], ['friends', 'Друзья — кто где, когда свободны'], ['vazifa', 'Задания группы'], ['group', 'Выбрать группу (студент)'], ['teacher', 'Войти как преподаватель'], ['settings', 'Настройки'], ['time', 'Время напоминания о парах'], ['app', 'Открыть приложение'], ['calendar', 'Подписка на календарь'], ['feedback', 'Отзыв или ошибка'], ['help', 'Помощь']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
+    en: [['today', "Today's classes"], ['tomorrow', "Tomorrow's classes"], ['week', 'Weekly timetable'], ['where', 'Find a teacher (/where Karimov)'], ['friends', "Friends — who's where, when free"], ['vazifa', 'Group tasks'], ['group', 'Choose group (student)'], ['teacher', 'Sign in as a teacher'], ['settings', 'Settings'], ['time', 'Reminder time'], ['app', 'Open the app'], ['calendar', 'Subscribe to calendar'], ['feedback', 'Send feedback'], ['help', 'Help']].filter(([c]) => CALENDAR_ENABLED || c !== 'calendar'),
   };
   const groupCmds = {
     uz: [['today', 'Bugungi darslar'], ['tomorrow', 'Ertangi darslar'], ['week', 'Haftalik jadval'], ['where', 'Ustoz qayerda? (/where Karimov)'], ['setgroup', 'Chatni guruhga ulash (admin)'], ['unset', 'Uzish (admin)'], ['time', 'Eslatma vaqti (admin)']],
@@ -1177,6 +1215,187 @@ function onAppHit(request, env, ctx) {
   return new Response(null, { status: 204, headers: { 'access-control-allow-origin': '*' } });
 }
 
+// ---------------------------------------------------------------- 📝 group tasks ("Vazifalar")
+// Anybody in a group can post a task for one of the group's subjects. The group itself keeps it honest: 👍 from enough classmates
+// confirms it (then everybody is reminded), 🚩 hides it, and when half of the group has flagged one person's tasks that person can no
+// longer post in the group (the admin can lift it with /vunban). Who is asking is always proven by Telegram's signed initData, and the
+// group is read from the database — never from the request.
+
+const taskName = (u) => [u.first_name, u.last_name].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim().slice(0, 40) || 'Talaba';
+const dayMs = (day) => Date.parse(day + 'T00:00:00Z') - 5 * 3600e3; // the start of a Tashkent day, in ms
+const taskMemberRow = (D, uid) => D.prepare("SELECT chat_id, group_id, group_name, lang FROM chats WHERE chat_id = ? AND kind = 'private' AND group_id IS NOT NULL AND role != 'teacher'").bind(uid).first();
+const taskMembers = async (D, gid) => Math.max(1, (await D.prepare("SELECT COUNT(*) n FROM chats WHERE kind = 'private' AND role != 'teacher' AND group_id = ?").bind(gid).first())?.n || 0);
+const taskBanned = async (D, gid, uid) => !!(await D.prepare('SELECT 1 x FROM task_ban WHERE gid = ? AND uid = ?').bind(gid, uid).first());
+const lastTaskCall = new Map(); // user → time of the last call (a brake on hammering)
+
+async function onTasksApi(request, env) {
+  if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsFor(env) });
+  if (request.method !== 'POST') return jsonCors(env, { ok: false, error: 'method' }, 405);
+  if (Number(request.headers.get('content-length') || 0) > 20000) return jsonCors(env, { ok: false, error: 'too big' }, 413);
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== 'object') return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+  const user = await verifyInitData(env, body.initData);
+  if (!user) return jsonCors(env, { ok: false, error: 'auth' }, 401);
+  const nowMs = Date.now();
+  if (nowMs - (lastTaskCall.get(user.id) || 0) < Number(env.TASK_BRAKE_MS ?? 300)) return jsonCors(env, { ok: false, error: 'wait' }, 429);
+  if (lastTaskCall.size > 1000) lastTaskCall.clear();
+  lastTaskCall.set(user.id, nowMs);
+
+  const D = await db(env);
+  const me = await taskMemberRow(D, user.id);
+  if (!me) return jsonCors(env, { ok: false, error: 'nogroup' });
+  const gid = me.group_id;
+  const admin = isAdminUser(env, user);
+  const tn = tashkentNow(nowMs), today = ymd(tn);
+  const id = Number.isSafeInteger(body.id) ? body.id : 0;
+  const mine = async () => {
+    const t = id ? await D.prepare('SELECT * FROM tasks WHERE id = ? AND gid = ?').bind(id, gid).first() : null;
+    return t;
+  };
+
+  if (body.op === 'list') {
+    await loadSubjects(env);
+    const [group, index, members, banned] = await Promise.all([getGroup(env, gid), getIndex(env), taskMembers(D, gid), taskBanned(D, gid, user.id)]);
+    const nl = group && index ? nextLessons(group, index, tn) : {};
+    const subjects = subjectsOf(group).map((name) => ({ n: name, next: nl[subjectKey(name)] || null }));
+    const rows = (await D.prepare(`SELECT t.id, t.subj, t.body, t.due, t.uid, t.uname, t.at, t.st, t.up, t.down, v.v my, (s.uid IS NOT NULL) sub
+      FROM tasks t LEFT JOIN task_votes v ON v.tid = t.id AND v.uid = ? LEFT JOIN task_subs s ON s.tid = t.id AND s.uid = ?
+      WHERE t.gid = ? AND t.due >= ? AND (t.st != 2 OR t.uid = ? OR ? = 1) ORDER BY t.due, t.id LIMIT 120`)
+      .bind(user.id, user.id, gid, ymd(addDays(tn, -1)), user.id, admin ? 1 : 0).all()).results || [];
+    const left = Math.max(0, TASKS_PER_DAY - ((await D.prepare('SELECT COUNT(*) n FROM tasks WHERE uid = ? AND at >= ?').bind(user.id, dayMs(today)).first())?.n || 0));
+    return jsonCors(env, {
+      ok: true, gid, gname: me.group_name, members, banned, left, admin, today,
+      need: { up: approveAt(members), down: hideAt(members) },
+      subjects,
+      tasks: rows.map((r) => ({ id: r.id, subj: r.subj, body: r.body, due: r.due, by: r.uname || '', mine: r.uid === user.id, st: r.st, up: r.up, down: r.down, my: r.my || 0, sub: !!r.sub, at: r.at })),
+    });
+  }
+
+  if (body.op === 'add') {
+    if (await taskBanned(D, gid, user.id)) return jsonCors(env, { ok: false, error: 'banned' });
+    await loadSubjects(env);
+    const [group, index] = await Promise.all([getGroup(env, gid), getIndex(env)]);
+    const subj = subjectsOf(group).find((n) => n === body.subj);
+    if (!subj) return jsonCors(env, { ok: false, error: 'subject' });
+    const text = cleanTaskText(body.text);
+    if (text.length < 3) return jsonCors(env, { ok: false, error: 'text' });
+    let due = null;
+    if (body.due === 'next') due = nextLessons(group, index, tn)[subjectKey(subj)] || null;
+    else {
+      due = validDay(body.due);
+      if (due && (due < today || due > ymd(addDays(tn, TASK_HORIZON)))) due = null;
+    }
+    if (!due) return jsonCors(env, { ok: false, error: 'due' });
+    const used = (await D.prepare('SELECT COUNT(*) n FROM tasks WHERE uid = ? AND at >= ?').bind(user.id, dayMs(today)).first())?.n || 0;
+    if (used >= TASKS_PER_DAY) return jsonCors(env, { ok: false, error: 'limit' });
+    if (await D.prepare('SELECT 1 x FROM tasks WHERE gid = ? AND subj = ? AND body = ? AND due >= ?').bind(gid, subj, text, today).first()) return jsonCors(env, { ok: false, error: 'dup' });
+    const ins = await D.prepare('INSERT INTO tasks (gid, subj, body, due, uid, uname, at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id').bind(gid, subj, text, due, user.id, taskName(user), nowMs).first();
+    await D.prepare('INSERT OR IGNORE INTO task_subs (tid, uid) VALUES (?, ?)').bind(ins.id, user.id).run(); // the author is reminded too
+    return jsonCors(env, { ok: true, id: ins.id, due });
+  }
+
+  if (body.op === 'vote') {
+    const t = await mine();
+    if (!t || t.uid === user.id) return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+    const v = body.v === 1 ? 1 : body.v === -1 ? -1 : 0;
+    if (v === 0) await D.prepare('DELETE FROM task_votes WHERE tid = ? AND uid = ?').bind(t.id, user.id).run();
+    else await D.prepare('INSERT OR REPLACE INTO task_votes (tid, uid, v) VALUES (?, ?, ?)').bind(t.id, user.id, v).run();
+    const c = await D.prepare('SELECT COALESCE(SUM(v = 1), 0) up, COALESCE(SUM(v = -1), 0) down FROM task_votes WHERE tid = ?').bind(t.id).first();
+    const members = await taskMembers(D, gid);
+    const st = taskState(c.up, c.down, members);
+    await D.prepare('UPDATE tasks SET up = ?, down = ?, st = ? WHERE id = ?').bind(c.up, c.down, st, t.id).run();
+    let banned = false;
+    if (v === -1) {
+      // different classmates who have flagged this author's tasks (a person who left the group no longer counts)
+      const n = (await D.prepare(`SELECT COUNT(DISTINCT v.uid) n FROM task_votes v JOIN tasks t ON t.id = v.tid
+        JOIN chats c ON c.chat_id = v.uid AND c.group_id = t.gid AND c.kind = 'private' AND c.role != 'teacher'
+        WHERE t.gid = ? AND t.uid = ? AND v.v = -1`).bind(gid, t.uid).first())?.n || 0;
+      if (n >= banAt(members)) {
+        const r = await D.prepare('INSERT OR IGNORE INTO task_ban (gid, uid, at) VALUES (?, ?, ?)').bind(gid, t.uid, nowMs).run();
+        if (r.meta?.changes) {
+          banned = true;
+          await D.prepare('UPDATE tasks SET st = 2 WHERE gid = ? AND uid = ?').bind(gid, t.uid).run();
+          const a = await getChat(env, t.uid);
+          await send(env, t.uid, taskTx(a?.lang).banned).catch(() => {});
+        }
+      }
+    }
+    return jsonCors(env, { ok: true, up: c.up, down: c.down, st: banned ? 2 : st, my: v });
+  }
+
+  if (body.op === 'sub') {
+    const t = await mine();
+    if (!t || (t.st === 2 && t.uid !== user.id)) return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+    if (body.on) await D.prepare('INSERT OR IGNORE INTO task_subs (tid, uid) VALUES (?, ?)').bind(t.id, user.id).run();
+    else await D.prepare('DELETE FROM task_subs WHERE tid = ? AND uid = ?').bind(t.id, user.id).run();
+    return jsonCors(env, { ok: true, sub: !!body.on });
+  }
+
+  if (body.op === 'del') {
+    const t = await mine();
+    if (!t || (t.uid !== user.id && !admin)) return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+    await D.batch([
+      D.prepare('DELETE FROM task_votes WHERE tid = ?').bind(t.id), D.prepare('DELETE FROM task_subs WHERE tid = ?').bind(t.id),
+      D.prepare('DELETE FROM task_sent WHERE tid = ?').bind(t.id), D.prepare('DELETE FROM tasks WHERE id = ?').bind(t.id),
+    ]);
+    return jsonCors(env, { ok: true });
+  }
+  return jsonCors(env, { ok: false, error: 'bad request' }, 400);
+}
+
+/**
+ * Task messages, sent from the Worker's own 10-minute cron in small batches (a Worker may only make ~50 outgoing calls at a time):
+ *  k 0 — "a new task, confirmed by your group" to the group (those with the evening reminder on) — once per task,
+ *  k 1 — the evening before the due day (from 18:00), k 2 — the due day (07:00–12:00): to the people who pressed 🔔 and, for a
+ *        confirmed task, to the whole group. Who has been told is kept in task_sent, so a batch that stops half way goes on next time.
+ */
+const TASK_SENDS_PER_TICK = 25;
+async function tasksTick(env, at) {
+  if (!env.BOT_TOKEN) return;
+  const tn = tashkentNow(at), today = ymd(tn);
+  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+  if (nowMin < 6 * 60 || nowMin > 22 * 60) return; // night: nothing is sent and nothing is read
+  const D = await db(env);
+  if ((await D.prepare("SELECT v FROM admin_state WHERE k = 'tasks_gc'").first())?.v !== today) {
+    // old tasks go away a month after their due date, with everything that hangs on them
+    const old = ymd(addDays(tn, -TASK_KEEP_DAYS));
+    await D.batch([
+      D.prepare('DELETE FROM task_votes WHERE tid IN (SELECT id FROM tasks WHERE due < ?)').bind(old),
+      D.prepare('DELETE FROM task_subs WHERE tid IN (SELECT id FROM tasks WHERE due < ?)').bind(old),
+      D.prepare('DELETE FROM task_sent WHERE tid IN (SELECT id FROM tasks WHERE due < ?)').bind(old),
+      D.prepare('DELETE FROM tasks WHERE due < ?').bind(old),
+      D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tasks_gc', ?)").bind(today),
+    ]);
+  }
+  const tomorrow = ymd(addDays(tn, 1));
+  const jobs = [];
+  jobs.push(...((await D.prepare('SELECT * FROM tasks WHERE st = 1 AND s0 = 0 AND due >= ? ORDER BY id LIMIT 10').bind(today).all()).results || []).map((t) => [t, 0]));
+  if (nowMin >= 18 * 60) jobs.push(...((await D.prepare('SELECT * FROM tasks WHERE due = ? AND st != 2 ORDER BY id LIMIT 10').bind(tomorrow).all()).results || []).map((t) => [t, 1]));
+  if (nowMin >= 7 * 60 && nowMin <= 12 * 60) jobs.push(...((await D.prepare('SELECT * FROM tasks WHERE due = ? AND st != 2 ORDER BY id LIMIT 10').bind(today).all()).results || []).map((t) => [t, 2]));
+  let budget = TASK_SENDS_PER_TICK;
+  const sent = [];
+  for (const [t, k] of jobs) {
+    if (budget <= 0) break;
+    const who = (await D.prepare(`SELECT c.chat_id, c.lang, c.group_id FROM chats c WHERE c.kind = 'private'
+      AND c.chat_id NOT IN (SELECT chat_id FROM task_sent WHERE tid = ? AND k = ?)
+      AND ((? = 0 AND c.group_id = ? AND c.role != 'teacher' AND c.remind_at >= 0 AND c.chat_id != ?)
+        OR (? > 0 AND ((? = 1 AND c.group_id = ? AND c.role != 'teacher' AND c.remind_at >= 0) OR EXISTS (SELECT 1 FROM task_subs s WHERE s.tid = ? AND s.uid = c.chat_id))))
+      ORDER BY c.chat_id LIMIT ?`).bind(t.id, k, k, t.gid, t.uid, k, t.st, t.gid, t.id, budget + 1).all()).results || [];
+    const batch = who.slice(0, budget);
+    for (const c of batch) {
+      const x = taskTx(c.lang);
+      const head = k === 0 ? x.fresh : k === 1 ? x.tomorrow : x.today;
+      const [yy, mm, dd] = t.due.split('-');
+      const text = `${head} · <b>${esc(t.subj)}</b>\n${esc(t.body)}\n\n⏰ ${x.due}: ${dd}.${mm}.${yy}` + `\n👤 ${x.by}: ${esc(t.uname || '')}` + (t.st === 1 ? `\n${x.approved}` : '');
+      await send(env, c.chat_id, text, { reply_markup: { inline_keyboard: [[{ text: x.open, web_app: { url: `${appUrl(env, t.gid, c.lang, 'student')}&tab=tasks` } }]] } }).catch(() => {});
+      sent.push(D.prepare('INSERT OR IGNORE INTO task_sent (tid, k, chat_id) VALUES (?, ?, ?)').bind(t.id, k, c.chat_id));
+    }
+    budget -= batch.length;
+    if (k === 0 && who.length <= batch.length) sent.push(D.prepare('UPDATE tasks SET s0 = 1 WHERE id = ?').bind(t.id)); // everybody has been told
+  }
+  if (sent.length) await D.batch(sent);
+}
+
 // ---------------------------------------------------------------- the admin bot (@tdiujadval_admin_bot)
 // A separate bot for the owner's work: statistics, feedback (read + answer), announcements. Students never see it, and it never
 // messages students itself — answers and announcements still go out through the student bot, the only one they started.
@@ -1291,6 +1510,7 @@ async function onAdminWebhook(request, env) {
     return new Response('ok');
   }
   if (cmd === 'stats') { await sendStats(env, chatId, null, true); return new Response('ok'); }
+  if (cmd === 'vunban') { await taskUnban(env, chatId, command.arg); return new Response('ok'); }
   if (cmd === 'elon') {
     if (siteUrl(env)) await atg(env, 'sendMessage', { chat_id: chatId, text: "📣 E'lon yuborish oynasi:", reply_markup: adminElonButton(env) });
     await sendBcList(env, chatId);
@@ -1591,11 +1811,11 @@ async function flushUsage(env) {
 }
 
 const COUNTED_COMMANDS = new Set(['today', 'tomorrow', 'week', 'smart', 'settings', 'start', 'help', 'app', 'group', 'setgroup', 'unset', 'teacher', 'where', 'ustoz', 'find',
-  'feedback', 'time', 'remind', 'lang', 'language', 'calendar', 'stats', 'reply', 'friends', 'dostlar']);
+  'feedback', 'time', 'remind', 'lang', 'language', 'calendar', 'stats', 'reply', 'friends', 'dostlar', 'vazifa', 'tasks']);
 const USAGE_NAMES = {
   smart: '📅 Jadval (aqlli tugma)', today: '📅 Bugungi darslar', tomorrow: '➡️ Ertangi darslar', week: '🗓 Haftalik jadval', settings: '⚙️ Sozlamalar',
   start: '▶️ /start', help: '❓ Yordam', app: '📱 /app', group: '👥 Guruh tanlash', teacher: "👨‍🏫 O'qituvchi bo'limi",
-  friends: "👥 Do'stlar", dostlar: "👥 Do'stlar", where: '🔎 Ustoz qayerda?', ustoz: '🔎 Ustoz qayerda?', text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
+  vazifa: '📝 Vazifalar', tasks: '📝 Vazifalar', friends: "👥 Do'stlar", dostlar: "👥 Do'stlar", where: '🔎 Ustoz qayerda?', ustoz: '🔎 Ustoz qayerda?', text: '🔎 Nom yozib qidirish', feedback: '✍️ Fikr yuborish', time: '⏰ Eslatma vaqti', lang: '🌐 Til', setgroup: '🔗 /setgroup (guruhda)',
 };
 
 /**
@@ -1632,7 +1852,7 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
   const yday0 = today0 - 864e5, week0 = today0 - 6 * 864e5, month0 = today0 - 29 * 864e5;
   const day = ymd(tn), dayW = ymd(tashkentNow(week0));
   const days7 = Array.from({ length: 7 }, (_, i) => ymd(tashkentNow(week0 + i * 864e5))); // the last 7 days, today last
-  const [a, top, use1, use7, fb, perDay, first, fr, bc, snaps] = await D.batch([
+  const [a, top, use1, use7, fb, perDay, first, fr, bc, snaps, tk, tb] = await D.batch([
     D.prepare(`SELECT COUNT(*) total, SUM(kind = 'private') priv, SUM(kind != 'private') grp,
       SUM(kind = 'private' AND role = 'teacher') teachers, SUM(kind = 'private' AND group_id IS NOT NULL) picked, SUM(kind != 'private' AND group_id IS NOT NULL) gpicked,
       SUM(created_at >= ?) new0, SUM(created_at >= ? AND created_at < ?) new1, SUM(created_at >= ?) new7, SUM(created_at >= ?) new30,
@@ -1651,6 +1871,8 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     D.prepare('SELECT COUNT(*) pairs, COUNT(DISTINCT a) people FROM friends'),
     D.prepare('SELECT id, total, sent, failed, status, created_at FROM broadcasts ORDER BY id DESC LIMIT 1'),
     D.prepare("SELECT k, v FROM admin_state WHERE k >= ? AND k < ?").bind(`day:${days7[0]}`, `day:${day}`),
+    D.prepare('SELECT COUNT(*) n, COALESCE(SUM(st = 1), 0) ok, COALESCE(SUM(st = 2), 0) hid, COALESCE(SUM(at >= ?), 0) today FROM tasks WHERE due >= ?').bind(today0, day),
+    D.prepare('SELECT b.uid, b.gid, (SELECT group_name FROM chats WHERE group_id = b.gid LIMIT 1) gname FROM task_ban b ORDER BY b.at DESC LIMIT 5'),
   ]);
   const r = a.results[0] || {};
   const ghErr = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'gh_err'").first().catch(() => null))?.v || 'null');
@@ -1660,8 +1882,14 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
   const dm = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
   const named = (k) => (Object.hasOwn(USAGE_NAMES, k) ? USAGE_NAMES[k] : '/' + esc(k));
   const feat = (rows) => {
-    const list = rows.filter((x) => !x.k.startsWith('cb:') && x.k !== 'stats' && x.k !== 'reply' && x.k !== 'other' && x.k !== 'app').slice(0, 7);
+    const list = rows.filter((x) => !x.k.startsWith('cb:') && x.k !== 'stats' && x.k !== 'reply' && x.k !== 'other' && x.k !== 'app' && !isSrc(x.k)).slice(0, 7);
     return list.length ? list.map((x, i) => `${i + 1}. ${named(x.k)} — <b>${x.n}</b>`).join('\n') : '—';
+  };
+  const isSrc = (k) => k.startsWith('src:') || k.startsWith('srn:');
+  const srcLines = (rows) => {
+    const m = new Map();
+    for (const x of rows) if (isSrc(x.k)) { const s = m.get(x.k.slice(4)) || { all: 0, nw: 0 }; if (x.k[2] === 'c') s.all += x.n; else s.nw += x.n; m.set(x.k.slice(4), s); }
+    return [...m].sort((p, q) => q[1].all - p[1].all).slice(0, 8).map(([name, s]) => `   ${esc(name)} — ${s.all} marta bosildi, <b>${s.nw}</b> yangi`);
   };
   const sum = (rows, f = () => true) => rows.filter(f).reduce((t, x) => t + x.n, 0);
   const taps = (rows) => sum(rows, (x) => x.k.startsWith('cb:'));
@@ -1695,19 +1923,23 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     `🆕 <b>Yangi:</b> bugun ${n(r.new0)} · kecha ${n(r.new1)} · 7 kunda ${n(r.new7)} · 30 kunda ${n(r.new30)}`,
     `   📈 ${days7.map((d) => `${dm(d)}: ${newBy[d] || 0}`).join(' · ')}`,
     '',
-    `⭐ <b>Bugun</b> — ${sum(use1.results, (x) => x.k !== 'app')} ta harakat bot ichida` + (taps(use1.results) ? ` (shundan tugma bosish: ${taps(use1.results)})` : ''),
+    `⭐ <b>Bugun</b> — ${sum(use1.results, (x) => x.k !== 'app' && !isSrc(x.k))} ta harakat bot ichida` + (taps(use1.results) ? ` (shundan tugma bosish: ${taps(use1.results)})` : ''),
     feat(use1.results),
     `📱 Mini App ochildi: <b>${sum(use1.results, (x) => x.k === 'app')}</b> marta`,
     '',
-    `⭐ <b>7 kun</b> — ${sum(use7.results, (x) => x.k !== 'app')} ta harakat bot ichida`,
+    `⭐ <b>7 kun</b> — ${sum(use7.results, (x) => x.k !== 'app' && !isSrc(x.k))} ta harakat bot ichida`,
     feat(use7.results),
     `📱 Mini App ochildi: <b>${sum(use7.results, (x) => x.k === 'app')}</b> marta`,
     '',
+    srcLines(use7.results).length ? "🔗 <b>Havolalar</b> (7 kun, ?start=nom)\n" + srcLines(use7.results).join('\n') : null,
+    srcLines(use7.results).length ? '' : null,
     "🔔 <b>Yoqilgan xabarlar</b> (jadvali tanlangan chatlar)",
     `   O'zgarish xabari: ${n(r.alerts)} · Kechki eslatma: ${n(r.remind)} · Haftalik: ${n(r.weekly)}`,
     `   Darsdan 11 daqiqa oldin: ${n(r.lr)} · Kun yakuni: ${n(r.de)}`,
     '',
     `👥 <b>Do'stlar:</b> ${Math.round(n(fr0.pairs) / 2)} juftlik · ${n(fr0.people)} kishida kamida bitta do'st`,
+    n(tk.results[0]?.n) || tb.results.length ? `📝 <b>Vazifalar:</b> ${n(tk.results[0]?.n)} ta faol (tasdiqlangan ${n(tk.results[0]?.ok)} · yashirin ${n(tk.results[0]?.hid)}) · bugun yozilgan ${n(tk.results[0]?.today)}` : null,
+    tb.results.length ? `   🚫 Taqiqlangan (/vunban ID): ` + tb.results.map((x) => `<code>${x.uid}</code> ${esc(x.gname || x.gid)}`).join(' · ') : null,
     b ? `📣 <b>Oxirgi e'lon</b> #${b.id} (${when(new Date(b.created_at + 5 * 3600e3))}): ${b.sent}/${b.total} yetkazildi` + (b.failed ? `, ${b.failed} ta yetmadi` : '') + (b.status !== 'done' ? ` · ${esc(b.status)}` : '') : null,
     '',
     "🏆 <b>Eng ko'p a'zoli guruhlar</b>",
@@ -1808,6 +2040,19 @@ const isAdminChat = (env, chatId) => !!env.ADMIN_CHAT_ID && String(chatId) === S
  * The admin answers a feedback message: Reply to the forwarded DM (or `/reply <chat_id> text`) and the
  * answer goes to that user, in their language. Returns true when the message was handled here.
  */
+/** Admin: lets a person post tasks again (and forgets the 🚩 they got). `arg` = their Telegram id. */
+async function taskUnban(env, chatId, arg) {
+  const uid = Number(String(arg || '').trim());
+  if (!Number.isSafeInteger(uid) || uid <= 0) return send(env, chatId, 'ℹ️ /vunban <Telegram ID> — vazifa yozish taqiqini olib tashlaydi. ID ni «Taqiqlanganlar» ro\'yxatidan oling (/stats).');
+  const D = await db(env);
+  const [r] = await D.batch([
+    D.prepare('DELETE FROM task_ban WHERE uid = ?').bind(uid),
+    D.prepare('DELETE FROM task_votes WHERE v = -1 AND tid IN (SELECT id FROM tasks WHERE uid = ?)').bind(uid),
+    D.prepare('UPDATE tasks SET down = 0, st = CASE WHEN up >= 2 THEN 1 ELSE 0 END WHERE uid = ?').bind(uid),
+  ]);
+  return send(env, chatId, r.meta?.changes ? `✅ ${uid} yana vazifa yoza oladi.` : `ℹ️ ${uid} taqiqlanganlar ro'yxatida yo'q edi.`);
+}
+
 async function onAdminReply(env, msg, command) {
   let target;
   let text;
@@ -1817,6 +2062,7 @@ async function onAdminReply(env, msg, command) {
     await adminMenu(env);
     return true;
   }
+  if (command?.cmd === 'vunban') { await taskUnban(env, msg.chat.id, command.arg); return true; }
   if (command?.cmd === 'elon' || command?.cmd === 'announce') {
     // The E'lon screen needs Telegram's signed initData, which a Mini App opened from the reply keyboard does not get —
     // an inline web_app button does, so the admin opens it from here.
@@ -2032,6 +2278,12 @@ async function privateMain(env, msg, command, flags) {
       if (isNew) await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
       return friendInvite(env, msg.chat.id, row, mf[1], msg.from);
     }
+    // a plain campaign tag (t.me/bot?start=video1): counted per source, and again when the person is new — shown in /stats
+    const ms = /^[a-z][a-z0-9]{1,15}$/.exec(String(command.arg || '').toLowerCase());
+    if (ms) {
+      const d = ymd(tashkentNow(Date.now()));
+      for (const k of isNew ? [`src:${ms[0]}`, `srn:${ms[0]}`] : [`src:${ms[0]}`]) usageBuf.set(`${d}|${k}`, (usageBuf.get(`${d}|${k}`) || 0) + 1);
+    }
     if (siteUrl(env)) await syncMenu(env, msg.chat.id);
     flags.kbSent = true;
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
@@ -2057,6 +2309,10 @@ async function privateMain(env, msg, command, flags) {
   if (action === 'lang' || action === 'language') return askLanguage(env, msg.chat.id, 'settings');
   if (action === 'time' || action === 'remind') return setRemindTime(env, msg.chat.id, row, command?.arg);
   if (action === 'settings') return showSettings(env, msg.chat.id, row, null);
+  if (action === 'vazifa' || action === 'tasks' || action === 'vazifalar') {
+    if (!row.group_id || isTeacher(row)) return send(env, msg.chat.id, taskTx(lang).needGroup);
+    return send(env, msg.chat.id, taskTx(lang).intro, { reply_markup: { inline_keyboard: [[{ text: taskTx(lang).open, web_app: { url: `${appUrl(env, row.group_id, lang, row.role)}&tab=tasks` } }]] } });
+  }
   if (action === 'app') {
     return send(env, msg.chat.id, '📱', { reply_markup: { inline_keyboard: [[{ text: L.btnApp, web_app: { url: appUrl(env, row.group_id, lang, row.role) } }]] } });
   }

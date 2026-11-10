@@ -365,6 +365,31 @@ html.dark .bcgo{color:#fff}
 .bc .act:disabled,.bcgo:disabled{opacity:.45}
 .bcrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line);color:var(--text);font-weight:600}
 .bcrow:last-child{border-bottom:0}
+/* ---- tasks tab */
+.bc select{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);padding:11px 12px;font:600 15px/1.35 inherit;font-family:inherit;outline:0}
+.bc input[type=date]{width:100%;box-sizing:border-box;border:1.5px solid var(--line);border-radius:12px;background:var(--bg);color:var(--text);padding:10px 12px;font:600 15px/1.35 inherit;font-family:inherit;outline:0}
+.tksec{margin:18px 4px 8px;font-size:13px;font-weight:800;color:var(--hint);text-transform:uppercase;letter-spacing:.04em}
+.tkcard{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:13px 14px;margin-bottom:10px;border-left:4px solid var(--line)}
+.tkcard.tkok{border-left-color:var(--bolt)}
+.tkcard.tkhid{opacity:.55}
+.tkh{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.tksub{font-size:15.5px;font-weight:800;overflow-wrap:anywhere}
+.tkdue{flex:none;font-size:12.5px;font-weight:800;color:var(--hint)}
+.tkbody{margin:7px 0 6px;font-weight:600;font-size:15px;line-height:1.4;white-space:pre-wrap;overflow-wrap:anywhere}
+.tkbody a{color:var(--blue);text-decoration:underline}
+.tkmeta{font-size:12.5px;font-weight:700;color:var(--hint)}
+.tkact{display:flex;gap:7px;flex-wrap:wrap;margin-top:10px}
+.tkb{border:1.5px solid var(--line);background:var(--bg);color:var(--text);border-radius:999px;padding:6px 12px;font:800 13.5px/1 inherit;font-family:inherit}
+.tkb.on{background:var(--navy);border-color:var(--navy);color:#fff}
+html.dark .tkb.on{background:var(--blue);border-color:var(--blue)}
+.tkb.bad.on{background:#c0392b;border-color:#c0392b}
+.tkdel{margin-left:auto;color:var(--hint)}
+.tkwarn{margin-top:14px;background:#fdecea;color:#8a1c12;font-weight:700}
+html.dark .tkwarn{background:#3a1b18;color:#ffb4a9}
+.tag.tkchip{background:var(--soft);color:var(--navy);border-radius:6px;padding:1px 7px;border:0;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
+html.dark .tag.tkchip{color:#fff}
+.mk .tkchip{background:var(--soft);color:var(--navy);border-radius:6px;padding:0 6px;border:0;font:inherit;font-weight:800;cursor:pointer}
+html.dark .mk .tkchip{color:#fff}
 @media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;transition-duration:.01ms!important}}
 
 /* ---- v5: tighter header (more of the day on the first screen), no stray "rings", words that don't break, relative day */
@@ -391,6 +416,7 @@ html.dark .row .ri{color:#7FB3F5}
 <div id="app"></div>
 <nav class="nav"><div class="wrap">
   <button data-tab="tt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="4"/><path d="M8 3v4M16 3v4M3 10h18M8 14h3M13 14h3M8 17h3"/></svg><span data-t="navTT"></span></button>
+  <button data-tab="tasks"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M3.5 6.5l1.2 1.2 2-2.4M3.5 12.5l1.2 1.2 2-2.4M3.5 18.5l1.2 1.2 2-2.4"/></svg><span data-t="navTasks"></span></button>
   <button data-tab="search"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><span data-t="navSearch"></span></button>
   <button data-tab="where"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-6.5-5.6-6.5-11a6.5 6.5 0 0 1 13 0c0 5.4-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.4"/></svg><span data-t="navWhere"></span></button>
   <button data-tab="free"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16M6 21V4a1 1 0 0 1 1-1h8l3 3v15"/><circle cx="14" cy="13" r="1" fill="currentColor"/></svg><span data-t="navFree"></span></button>
@@ -446,7 +472,7 @@ const plRu = (n, a, b, c) => { const m = n % 10, h = n % 100; return m === 1 && 
 const dur = (m, h, mi) => m >= 60 ? `${Math.floor(m / 60)} ${h}${m % 60 ? ' ' + (m % 60) + ' ' + mi : ''}` : `${m} ${mi}`;
 const I = {
   uz: { days:['Dushanba','Seshanba','Chorshanba','Payshanba','Juma','Shanba','Yakshanba'], dShort:['Du','Se','Ch','Pa','Ju','Sh','Ya'],
-    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", navAdmin:"E'lon", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`,
+    navTT:'Jadval', navSearch:'Qidiruv', navFree:"Bo'sh xonalar", navTasks:'Vazifalar', navAdmin:"E'lon", bld:(b)=>`${b}-bino`, roomW:(r)=>`${r}-xona`,
     lessonsN:(n)=>`${n} ta dars`, groupsN:(n)=>`${n} ta guruh`, until:(t)=>`${t} gacha`, dayOff:"Bugun dars yo'q — dam oling",
     weekPic:'Haftalik rasm', share:'Ulashish', madeBy:'Muallif:', authorName:'Xolmamatov Shavkat', todayL:'Bugun',
     months:['Yanvar','Fevral','Mart','Aprel','May','Iyun','Iyul','Avgust','Sentabr','Oktabr','Noyabr','Dekabr'],
@@ -474,7 +500,7 @@ const I = {
     whInline:{ now:'Hozir', next:'Keyingi' }, whAZ:'A–Z', whTips:["Ustoz hozir qaysi xonada", "Keyingi darsi qachon va qayerda", "Kun bo'yi tartibi"], whEmpty:"Ustozni qidiring yoki ro'yxatdan tanlang", whFavHint:'⭐ bosib sevimli qiling',
     myTeachers:'Mening ustozlarim', whBusyRoom:(n)=>`${n} ta dars`, whNoRoom:"xona ko'rsatilmagan", whWeekN:(s)=>`${s}`, nextWk:'Keyingi hafta', prevWk:"O'tgan hafta" },
   ru: { days:['Понедельник','Вторник','Среда','Четверг','Пятница','Суббота','Воскресенье'], dShort:['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
-    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', navAdmin:'Объявление', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
+    navTT:'Расписание', navSearch:'Поиск', navFree:'Свободные', navTasks:'Задания', navAdmin:'Объявление', bld:(b)=>`корпус ${b}`, roomW:(r)=>`ауд. ${r}`,
     lessonsN:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, groupsN:(n)=>`${n} ${plRu(n,'группа','группы','групп')}`, until:(t)=>`до ${t}`, dayOff:'Сегодня пар нет — отдыхайте',
     weekPic:'Картинка недели', share:'Поделиться', madeBy:'Автор:', authorName:'Холмаматов Шавкат', todayL:'Сегодня',
     months:['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
@@ -502,7 +528,7 @@ const I = {
     whInline:{ now:'Сейчас', next:'Далее' }, whAZ:'А–Я', whTips:['В какой аудитории сейчас', 'Когда и где следующая пара', 'План на весь день'], whEmpty:'Найдите преподавателя или выберите из списка', whFavHint:'Нажмите ⭐, чтобы сохранить',
     myTeachers:'Мои преподаватели', whBusyRoom:(n)=>`${n} ${plRu(n,'пара','пары','пар')}`, whNoRoom:'аудитория не указана', whWeekN:(s)=>`${s}`, nextWk:'Следующая неделя', prevWk:'Прошлая неделя' },
   en: { days:['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday','Sunday'], dShort:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', navAdmin:'Announce', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
+    navTT:'Timetable', navSearch:'Search', navFree:'Free rooms', navTasks:'Tasks', navAdmin:'Announce', bld:(b)=>`Building ${b}`, roomW:(r)=>`Room ${r}`,
     lessonsN:(n)=>`${n} class${n === 1 ? '' : 'es'}`, groupsN:(n)=>`${n} group${n === 1 ? '' : 's'}`, until:(t)=>`until ${t}`, dayOff:'No classes today — enjoy',
     weekPic:'Week picture', share:'Share', madeBy:'Made by', authorName:'Shavkat Kholmamatov', todayL:'Today',
     months:['January','February','March','April','May','June','July','August','September','October','November','December'],
@@ -839,6 +865,7 @@ async function render() {
     if (S.tab === 'admin' && S.admin) return renderAdmin();
     if (S.picking) return renderSearch();
     if (S.tab === 'search') return renderSearch();
+    if (S.tab === 'tasks') return await renderTasks();
     if (S.tab === 'free') return await renderFree();
     if (S.tab === 'where') return await renderWhere();
     if (!S.view) S.view = S.mine;
@@ -924,6 +951,7 @@ function lessonHtml(l, t, cls, state, v, isNew, par) {
   if (l.w && !par) tags.push(`<span class="tag wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>`);
   if (l.g) tags.push(`<span class="tag wk">${esc(l.g)}</span>`);
   if (isNew) tags.push(`<span class="tag new">${esc(L.new)}</span>`);
+  if (v.type === 'g' && isMine(v)) { const c = tkChip(st.orig || st.name); if (c) tags.push(c); }
   const meta = [];
   if (v.type !== 'r') {
     if (l.r) for (const r of splitList(l.r)) meta.push(`<button class="ln rm" data-open="r:${esc(r)}">📍 <span>${esc(roomLabel(r))}</span></button>`);
@@ -951,6 +979,7 @@ function miniHtml(l, v, par, k, isNew) {
   if (l.w && !par) tags.push(`<span class="wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>`);
   if (l.g) tags.push(`<span class="wk">${esc(l.g)}</span>`);
   if (isNew) tags.push(`<span class="new">${esc(L.new)}</span>`);
+  if (v.type === 'g' && isMine(v)) { const c = tkChip(st.orig || st.name); if (c) tags.push(c.replace('class="tag tkchip"', 'class="tkchip"')); }
   return `<button class="ml t-${st.cls}" data-k="${k}"><span class="mt"><b>${esc(t.a)}</b><small>${esc(t.b)}</small></span>
     <span class="mb">${tags.length ? `<span class="mk">${tags.join('')}</span>` : ''}<span class="ms">${nameHtml(st)}</span>
     <span class="mm">${bits.join(' · ')}</span></span></button>`;
@@ -1202,6 +1231,8 @@ const renderTimetable = safe(async function () {
   }, { passive: true });
 
   // tap on a room / teacher / group chip → that timetable; tap on the card → details
+  app.querySelectorAll('[data-tk]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); haptic(); S.stack.push(snap()); S.tab = 'tasks'; TS.fsubj = b.dataset.tk; TS.filter = 'all'; render(); window.scrollTo(0, 0); });
+  tkQuiet();
   app.querySelectorAll('[data-open]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); const e = entityOf(b.dataset.open); if (e) openEntity(e); });
   const onCard = (el, i) => { el.onclick = () => showLesson(flat[i], v, par); el.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); showLesson(flat[i], v, par); } }; };
   if (week) app.querySelectorAll('.ml').forEach(el => onCard(el, Number(el.dataset.k)));
@@ -1254,6 +1285,175 @@ function showLesson(l, v, par) {
   openSheet(`<h3>${nameHtml(st)}</h3>${rows.join('')}`);
   $('#sheet').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const e = entityOf(b.dataset.open); closeSheet(); if (e) openEntity(e); });
 }
+// ---------------------------------------------------------------- tasks ("Vazifalar")
+// Classmates post tasks for a subject; 👍 from enough of them confirms it, 🚩 hides it. Who you are and which group you are in is
+// decided by the server (Telegram's signed initData), so this tab only works when the app was opened by a button that carries it
+// (the 📅 menu button next to the text field, or the bot's /vazifa). The timetable also shows a small 📝 count on a lesson.
+const TKT = {
+  uz: { title: 'Vazifalar', sub: (g, n) => `${g} · ${n} kishi`, needTg: "Vazifalar faqat Telegram ichida, botning menyu tugmasi (📅 Jadval) yoki /vazifa orqali ochilganda ishlaydi.", noGroup: "Vazifalar uchun avval botda guruhingizni tanlang: /group", add: '➕ Vazifa yozish', close: '✕ Yopish', subject: 'Fan', textPh: 'Masalan: 5-mashq, 12-betdan', next: (d) => `Keyingi dars · ${d}`, noNext: 'Keyingi dars topilmadi', pickDate: '📅 Sana tanlash', post: '📨 Yuborish', left: (n) => `Bugun yana ${n} ta yoza olasiz`, banned: "🚫 Guruhingizdagi ko'pchilik vazifalaringizga shikoyat qildi — shu guruhda vazifa yoza olmaysiz.",
+    secOver: 'Kecha', secToday: 'Bugun', secTom: 'Ertaga', secWeek: 'Shu hafta', secLater: 'Keyinroq', empty: "Hozircha vazifa yo'q. Birinchi bo'lib yozing!", okTag: '✅ guruh tasdiqladi', newTag: (u, n) => `${u}/${n} 👍 — tasdiqlanmagan`, hidTag: '🚫 yashirilgan (shikoyatlar)', by: 'Yozdi', all: 'Hammasi', mine: '🔔 Meniki', remindOn: '🔔 Eslatma yoqildi', remindOff: '🔕 Eslatma o\'chirildi', del: '🗑', sure: "O'chirasizmi?", posted: '✅ Yuborildi', how: "👍 — to'g'ri. Yetarlicha 👍 yig'sa vazifa tasdiqlanadi va guruhga eslatma boradi. 🚩 — noto'g'ri yoki begona. 🔔 — faqat o'zingizga eslatma.", filterSubj: (s) => `Fan: ${s}`, clear: 'Hammasi',
+    err: { subject: "Bunday fan guruhda yo'q", text: 'Matn juda qisqa', due: "Muddat noto'g'ri", dup: 'Bunday vazifa allaqachon bor', limit: 'Bugungi limit tugadi (5 ta)', banned: 'Siz bu guruhda vazifa yoza olmaysiz', wait: 'Sekinroq, bir soniya…', nogroup: 'Guruh tanlanmagan', other: "Xatolik. Qayta urinib ko'ring" } },
+  ru: { title: 'Задания', sub: (g, n) => `${g} · ${n} чел.`, needTg: 'Задания работают только внутри Telegram — откройте приложение кнопкой меню бота (📅 Jadval) или командой /vazifa.', noGroup: 'Для заданий сначала выберите группу в боте: /group', add: '➕ Написать задание', close: '✕ Закрыть', subject: 'Предмет', textPh: 'Например: упр. 5, с. 12', next: (d) => `Следующая пара · ${d}`, noNext: 'Следующая пара не найдена', pickDate: '📅 Выбрать дату', post: '📨 Отправить', left: (n) => `Сегодня можно написать ещё ${n}`, banned: '🚫 Большинство вашей группы пожаловалось на ваши задания — писать задания в этой группе вы больше не можете.',
+    secOver: 'Вчера', secToday: 'Сегодня', secTom: 'Завтра', secWeek: 'На этой неделе', secLater: 'Позже', empty: 'Заданий пока нет. Напишите первым!', okTag: '✅ подтверждено группой', newTag: (u, n) => `${u}/${n} 👍 — не подтверждено`, hidTag: '🚫 скрыто (жалобы)', by: 'Написал(а)', all: 'Все', mine: '🔔 Мои', remindOn: '🔔 Напоминание включено', remindOff: '🔕 Напоминание выключено', del: '🗑', sure: 'Удалить?', posted: '✅ Отправлено', how: '👍 — верно. Когда наберётся достаточно 👍, задание подтверждается и группе приходит напоминание. 🚩 — неверно или посторонее. 🔔 — напоминание только вам.', filterSubj: (s) => `Предмет: ${s}`, clear: 'Все',
+    err: { subject: 'Такого предмета в группе нет', text: 'Слишком короткий текст', due: 'Неверный срок', dup: 'Такое задание уже есть', limit: 'Лимит на сегодня исчерпан (5)', banned: 'Вы не можете писать задания в этой группе', wait: 'Чуть помедленнее…', nogroup: 'Группа не выбрана', other: 'Ошибка. Попробуйте ещё раз' } },
+  en: { title: 'Tasks', sub: (g, n) => `${g} · ${n} people`, needTg: "Tasks only work inside Telegram — open the app with the bot's menu button (📅 Jadval) or the /vazifa command.", noGroup: 'Choose your group in the bot first: /group', add: '➕ Post a task', close: '✕ Close', subject: 'Subject', textPh: 'For example: exercise 5, page 12', next: (d) => `Next lesson · ${d}`, noNext: 'No next lesson found', pickDate: '📅 Pick a date', post: '📨 Post', left: (n) => `You can post ${n} more today`, banned: '🚫 Most of your group flagged your tasks — you can no longer post tasks in this group.',
+    secOver: 'Yesterday', secToday: 'Today', secTom: 'Tomorrow', secWeek: 'This week', secLater: 'Later', empty: 'No tasks yet. Be the first!', okTag: '✅ confirmed by the group', newTag: (u, n) => `${u}/${n} 👍 — not confirmed`, hidTag: '🚫 hidden (flags)', by: 'Posted by', all: 'All', mine: '🔔 Mine', remindOn: '🔔 Reminder on', remindOff: '🔕 Reminder off', del: '🗑', sure: 'Delete?', posted: '✅ Posted', how: '👍 — correct. With enough 👍 a task is confirmed and the group gets a reminder. 🚩 — wrong or off-topic. 🔔 — a reminder just for you.', filterSubj: (s) => `Subject: ${s}`, clear: 'All',
+    err: { subject: 'The group has no such subject', text: 'Text is too short', due: 'Wrong due date', dup: 'This task already exists', limit: "Today's limit is used up (5)", banned: 'You cannot post tasks in this group', wait: 'Slow down a second…', nogroup: 'No group chosen', other: 'Something went wrong. Try again' } },
+};
+const TS = { data: null, at: 0, form: false, subj: '', text: '', due: 'next', date: '', msg: '', busy: false, filter: 'all', fsubj: '', sure: 0 };
+const tkT = () => TKT[lang] || TKT.uz;
+const tkOK = () => !!(inTg && tg.initData);
+const tkKey = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+async function tkCall(body) {
+  const r = await fetch(`${API_URL}/api/tasks`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData, ...body }) });
+  const j = await r.json().catch(() => ({}));
+  return { status: r.status, ...j };
+}
+async function tkLoad() {
+  const j = await tkCall({ op: 'list' });
+  if (j.status === 401 || (j.status >= 500)) throw new Error('tasks ' + j.status);
+  TS.data = j; TS.at = Date.now();
+  return j;
+}
+const tkDays = (due, today) => Math.round((Date.parse(due + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 864e5);
+const tkDate = (iso) => { const d = new Date(iso + 'T00:00:00Z'); return `${L.dShort[(d.getUTCDay() + 6) % 7]} ${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
+const tkLink = (s) => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
+/** subject key → number of live tasks (for the 📝 chip on a lesson card); empty until the list has been loaded */
+function tkCounts() {
+  const d = TS.data, out = {};
+  if (!d || !d.ok) return out;
+  for (const t of d.tasks) if (t.st !== 2 && t.due >= d.today) out[tkKey(t.subj)] = (out[tkKey(t.subj)] || 0) + 1;
+  return out;
+}
+const tkSig = () => JSON.stringify(tkCounts());
+/** after the timetable is on the screen: quietly fetch the tasks (once a minute at most) so the lessons can show their 📝 count */
+function tkQuiet() {
+  if (!tkOK() || !S.mine || S.mine.type !== 'g' || !isMine(S.view)) return;
+  if (TS.data && Date.now() - TS.at < 60000) return;
+  const before = tkSig();
+  setTimeout(() => {
+    tkLoad().then(() => { if (tkSig() !== before && S.tab === 'tt' && S.view) { S.soft = true; renderTimetable(); } }).catch(() => { TS.at = Date.now(); });
+  }, 700);
+}
+function tkChip(subjectName) {
+  const n = tkCounts()[tkKey(subjectName)];
+  return n ? `<button class="tag tkchip" data-tk="${esc(subjectName)}">📝 ${n}</button>` : '';
+}
+
+const renderTasks = safe(async function () {
+  const my = ++seq;
+  const T = tkT();
+  const hero = (sub) => `<div class="hero"><div class="rings"><i></i><i></i></div><div class="hrow"><span class="mark">📝</span><div class="htitle"><div class="t1">${esc(T.title)}</div><div class="t2">${esc(sub || '')}</div></div>${themeBtn()}</div></div>`;
+  const note = (txt) => { app.innerHTML = `<div class="wrap bc">${hero('')}<div class="bccard"><p style="margin:0;font-weight:700">${esc(txt)}</p></div>${footHtml('')}</div>`; };
+  if (!tkOK()) return note(T.needTg);
+  if (!TS.data) app.innerHTML = `<div class="wrap bc">${hero('…')}<div class="bccard muted">…</div></div>`;
+  try { await tkLoad(); } catch { if (my === seq) { showError(); } return; }
+  if (my !== seq) return;
+  if (!TS.data.ok) return note(TS.data.error === 'nogroup' ? T.noGroup : T.err.other);
+  drawTasks(hero);
+});
+
+function drawTasks(heroFn) {
+  const T = tkT(), d = TS.data;
+  const hero = heroFn || ((sub) => `<div class="hero"><div class="rings"><i></i><i></i></div><div class="hrow"><span class="mark">📝</span><div class="htitle"><div class="t1">${esc(T.title)}</div><div class="t2">${esc(sub || '')}</div></div>${themeBtn()}</div></div>`);
+  const subjects = d.subjects;
+  if (!subjects.some(s => s.n === TS.subj)) TS.subj = (subjects.find(s => tkKey(s.n) === tkKey(TS.fsubj)) || subjects[0] || {}).n || '';
+  const cur = subjects.find(s => s.n === TS.subj) || {};
+  if (TS.due === 'next' && !cur.next) TS.due = 'date';
+  const maxDay = new Date(Date.parse(d.today + 'T00:00:00Z') + 90 * 864e5).toISOString().slice(0, 10);
+  const form = TS.form && !d.banned && d.left > 0 ? `<div class="bccard">
+      <label class="bclab">${esc(T.subject)}</label>
+      <select id="tkSubj">${subjects.map(s => `<option value="${esc(s.n)}"${s.n === TS.subj ? ' selected' : ''}>${esc(s.n)}</option>`).join('')}</select>
+      <textarea id="tkText" rows="3" maxlength="300" placeholder="${esc(T.textPh)}">${esc(TS.text)}</textarea>
+      <div class="bcpills">
+        <button class="pill${TS.due === 'next' ? ' on' : ''}" data-due="next"${cur.next ? '' : ' disabled'}>${esc(cur.next ? T.next(tkDate(cur.next)) : T.noNext)}</button>
+        <button class="pill${TS.due === 'date' ? ' on' : ''}" data-due="date">${esc(T.pickDate)}</button></div>
+      ${TS.due === 'date' ? `<input type="date" id="tkDate" min="${d.today}" max="${maxDay}" value="${esc(TS.date)}">` : ''}
+      <button class="act bcgo" id="tkPost"${TS.busy ? ' disabled' : ''}>${esc(T.post)}</button>
+      <div class="muted small" id="tkMsg" aria-live="polite">${esc(TS.msg || T.left(d.left))}</div></div>` : '';
+  const gate = d.banned ? `<div class="bccard tkwarn">${esc(T.banned)}</div>` : '';
+  let list = d.tasks;
+  if (TS.filter === 'mine') list = list.filter(t => t.sub || t.mine);
+  if (TS.fsubj) list = list.filter(t => tkKey(t.subj) === tkKey(TS.fsubj));
+  const sec = (t) => { const k = tkDays(t.due, d.today); return k < 0 ? 0 : k === 0 ? 1 : k === 1 ? 2 : k <= 7 ? 3 : 4; };
+  const names = [T.secOver, T.secToday, T.secTom, T.secWeek, T.secLater];
+  const card = (t) => {
+    const hid = t.st === 2;
+    const tag = hid ? T.hidTag : t.st === 1 ? T.okTag : T.newTag(t.up, d.need.up);
+    return `<div class="tkcard${hid ? ' tkhid' : ''}${t.st === 1 ? ' tkok' : ''}" data-id="${t.id}">
+      <div class="tkh"><b class="tksub">${esc(t.subj)}</b><span class="tkdue">${esc(tkDate(t.due))}</span></div>
+      <div class="tkbody">${tkLink(t.body)}</div>
+      <div class="tkmeta">👤 ${esc(t.by || '—')} · ${esc(tag)}</div>
+      <div class="tkact">
+        ${t.mine ? '' : `<button class="tkb${t.my === 1 ? ' on' : ''}" data-v="1" aria-label="👍">👍 ${t.up}</button><button class="tkb${t.my === -1 ? ' on bad' : ''}" data-v="-1" aria-label="🚩">🚩 ${t.down}</button>`}
+        <button class="tkb${t.sub ? ' on' : ''}" data-sub="${t.sub ? 0 : 1}" aria-label="🔔">🔔</button>
+        ${t.mine || d.admin ? `<button class="tkb tkdel" data-del="1">${esc(TS.sure === t.id ? T.sure : T.del)}</button>` : ''}
+      </div></div>`;
+  };
+  let body = '';
+  if (!list.length) body = `<div class="empty"><div class="big">📝</div><p>${esc(T.empty)}</p></div>`;
+  else for (let s = 0; s < 5; s++) { const g = list.filter(t => sec(t) === s); if (g.length) body += `<h4 class="tksec">${esc(names[s])}</h4>${g.map(card).join('')}`; }
+  app.innerHTML = `<div class="wrap bc">${hero(T.sub(d.gname || '', d.members))}
+    <div class="actions" style="margin-top:12px">${d.banned ? '' : `<button class="act" id="tkNew">${esc(TS.form ? T.close : T.add)}</button>`}</div>
+    ${gate}${form}
+    <div class="bcpills" style="margin-top:12px"><button class="pill${TS.filter === 'all' ? ' on' : ''}" data-fl="all">${esc(T.all)}</button><button class="pill${TS.filter === 'mine' ? ' on' : ''}" data-fl="mine">${esc(T.mine)}</button>${TS.fsubj ? `<button class="pill on" data-fs="">${esc(T.filterSubj(TS.fsubj))} ✕</button>` : ''}</div>
+    ${body}
+    <div class="muted small" style="margin:16px 4px 0">${esc(T.how)}</div>
+    ${footHtml('')}</div>`;
+  tkBind();
+}
+
+function tkBind() {
+  const T = tkT(), d = TS.data;
+  const redraw = () => drawTasks();
+  const nw = $('#tkNew'); if (nw) nw.onclick = () => { haptic(); TS.form = !TS.form; TS.msg = ''; redraw(); if (TS.form) { const x = $('#tkText'); if (x) x.focus(); } };
+  const sj = $('#tkSubj'); if (sj) sj.onchange = () => { TS.subj = sj.value; TS.text = ($('#tkText') || {}).value || ''; redraw(); };
+  const tx = $('#tkText'); if (tx) tx.oninput = () => { TS.text = tx.value; };
+  const dt = $('#tkDate'); if (dt) dt.onchange = () => { TS.date = dt.value; };
+  app.querySelectorAll('[data-due]').forEach(b => b.onclick = () => { haptic(); TS.text = ($('#tkText') || {}).value || TS.text; TS.due = b.dataset.due; redraw(); });
+  app.querySelectorAll('[data-fl]').forEach(b => b.onclick = () => { haptic(); TS.filter = b.dataset.fl; redraw(); });
+  app.querySelectorAll('[data-fs]').forEach(b => b.onclick = () => { haptic(); TS.fsubj = ''; redraw(); });
+  const post = $('#tkPost');
+  if (post) post.onclick = async () => {
+    if (TS.busy) return;
+    TS.text = $('#tkText').value; TS.subj = $('#tkSubj').value;
+    const due = TS.due === 'next' ? 'next' : (($('#tkDate') || {}).value || '');
+    const setMsg = (m) => { TS.msg = m; const e = $('#tkMsg'); if (e) e.textContent = m; };
+    if (TS.text.trim().length < 3) return setMsg(T.err.text);
+    if (!due) return setMsg(T.err.due);
+    TS.busy = true; post.disabled = true; haptic('medium');
+    try {
+      const j = await tkCall({ op: 'add', subj: TS.subj, text: TS.text, due });
+      if (j.ok) { TS.text = ''; TS.form = false; TS.msg = ''; await tkLoad(); TS.busy = false; drawTasks(); haptic('medium'); return; }
+      TS.busy = false; post.disabled = false;
+      if (j.error === 'banned') { await tkLoad(); return drawTasks(); }
+      setMsg(T.err[j.error] || T.err.other);
+    } catch { TS.busy = false; post.disabled = false; setMsg(T.err.other); }
+  };
+  app.querySelectorAll('.tkcard').forEach(card => {
+    const id = Number(card.dataset.id), t = d.tasks.find(x => x.id === id);
+    if (!t) return;
+    card.querySelectorAll('[data-v]').forEach(b => b.onclick = async () => {
+      haptic(); const v = Number(b.dataset.v) === t.my ? 0 : Number(b.dataset.v);
+      const j = await tkCall({ op: 'vote', id, v }).catch(() => null);
+      if (j && j.ok) { t.up = j.up; t.down = j.down; t.st = j.st; t.my = j.my; if (j.st === 2 && !t.mine) { /* hidden for others after refresh */ } drawTasks(); }
+    });
+    card.querySelectorAll('[data-sub]').forEach(b => b.onclick = async () => {
+      haptic(); const on = b.dataset.sub === '1';
+      const j = await tkCall({ op: 'sub', id, on }).catch(() => null);
+      if (j && j.ok) { t.sub = j.sub; drawTasks(); }
+    });
+    card.querySelectorAll('[data-del]').forEach(b => b.onclick = async () => {
+      haptic();
+      if (TS.sure !== id) { TS.sure = id; drawTasks(); return; }
+      TS.sure = 0;
+      const j = await tkCall({ op: 'del', id }).catch(() => null);
+      if (j && j.ok) { d.tasks = d.tasks.filter(x => x.id !== id); drawTasks(); } else drawTasks();
+    });
+    card.querySelectorAll('a[href]').forEach(a => a.onclick = (ev) => { if (inTg && tg.openLink) { ev.preventDefault(); try { tg.openLink(a.href); } catch { window.open(a.href, '_blank'); } } });
+  });
+}
+
 // ---- admin: announcements ("E'lon") — visible only to the bot's owner. The server decides who that is (Telegram's signed initData);
 // hiding the tab here is just a courtesy, every call is checked again on the server.
 const BC = { texts: { uz: '', ru: '', en: '' }, photo: null, photoView: null, btnUrl: '', btnText: { uz: '', ru: '', en: '' }, app: true, invite: true, ttl: 0,
@@ -1996,6 +2196,7 @@ if (!inTg && 'serviceWorker' in navigator) { try { navigator.serviceWorker.regis
   decideLang();
   if (hash.get('tab') === 'free') S.tab = 'free';
   else if (hash.get('tab') === 'where') S.tab = 'where';
+  else if (hash.get('tab') === 'tasks') S.tab = 'tasks';
   const wid = hash.get('w');
   if (wid) { // a link to "where is this teacher?" — opens the card, and does NOT make him "my timetable"
     try {

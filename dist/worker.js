@@ -965,6 +965,59 @@ function prettyBody(body) {
   return out;
 }
 
+// src/tasks.mjs
+var TASK_MAX_LEN = 300;
+var TASKS_PER_DAY = 5;
+var TASK_KEEP_DAYS = 30;
+var TASK_HORIZON = 90;
+var clamp = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
+var approveAt = (members) => clamp(Math.ceil(members / 2), 2, 3);
+var hideAt = (members) => approveAt(members);
+var banAt = (members) => Math.max(3, Math.ceil(members / 2));
+function cleanTaskText(s) {
+  const t = String(s ?? "").replace(/[\u0000-\u0008\u000b-\u001f\u007f​-‏‪-‮⁦-⁩]/g, "").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+  return t.length > TASK_MAX_LEN ? t.slice(0, TASK_MAX_LEN).trim() : t;
+}
+var subjKey2 = (name) => name.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+function subjectsOf(group) {
+  const seen = /* @__PURE__ */ new Map();
+  for (const l of group?.lessons || []) {
+    const name = parseSubject(l.s).name;
+    const key = subjKey2(name);
+    if (key && !seen.has(key)) seen.set(key, name);
+  }
+  return [...seen.values()].sort((a, b) => a.localeCompare(b, "uz"));
+}
+function validDay(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s))) return null;
+  const d = /* @__PURE__ */ new Date(s + "T00:00:00Z");
+  return !Number.isNaN(d.getTime()) && ymd(d) === s ? s : null;
+}
+function nextLessons(group, index, today) {
+  const out = {};
+  for (let i = 1; i <= 21; i++) {
+    const date = addDays(today, i);
+    const d = weekday(date);
+    if (d === 6) continue;
+    for (const l of lessonsForDay(group, d, weekParity(index?.weekA, date))) {
+      const k = subjKey2(parseSubject(l.s).name);
+      if (k && !out[k]) out[k] = ymd(date);
+    }
+  }
+  return out;
+}
+var subjectKey = (name) => subjKey2(parseSubject(name).name);
+function taskState(up, down, members) {
+  if (down >= hideAt(members)) return 2;
+  return up >= approveAt(members) ? 1 : 0;
+}
+var TX = {
+  uz: { needGroup: "\u{1F4DD} Vazifalar uchun avval guruhingizni tanlang: /group", intro: "\u{1F4DD} Guruh vazifalari \u2014 yozish, \u{1F44D} bilan tasdiqlash va \u{1F514} eslatma:", rel: ["bugun", "ertaga"], due: "Muddat", by: "Yozdi", open: "\u{1F4DD} Vazifalar", approved: "\u2705 Guruhingiz tasdiqladi", tomorrow: "\u23F0 <b>Ertaga muddat</b>", today: "\u23F0 <b>Bugun muddat</b>", fresh: "\u{1F195} <b>Yangi vazifa</b>", banned: "\u{1F6AB} Guruhingizdagi ko'pchilik vazifalaringizga shikoyat qildi, shuning uchun bu guruhda vazifa yoza olmaysiz." },
+  ru: { needGroup: "\u{1F4DD} \u0414\u043B\u044F \u0437\u0430\u0434\u0430\u043D\u0438\u0439 \u0441\u043D\u0430\u0447\u0430\u043B\u0430 \u0432\u044B\u0431\u0435\u0440\u0438\u0442\u0435 \u0433\u0440\u0443\u043F\u043F\u0443: /group", intro: "\u{1F4DD} \u0417\u0430\u0434\u0430\u043D\u0438\u044F \u0433\u0440\u0443\u043F\u043F\u044B \u2014 \u043F\u0438\u0441\u0430\u0442\u044C, \u043F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0430\u0442\u044C \u{1F44D} \u0438 \u0432\u043A\u043B\u044E\u0447\u0430\u0442\u044C \u{1F514} \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u0435:", rel: ["\u0441\u0435\u0433\u043E\u0434\u043D\u044F", "\u0437\u0430\u0432\u0442\u0440\u0430"], due: "\u0421\u0440\u043E\u043A", by: "\u041D\u0430\u043F\u0438\u0441\u0430\u043B(\u0430)", open: "\u{1F4DD} \u0417\u0430\u0434\u0430\u043D\u0438\u044F", approved: "\u2705 \u041F\u043E\u0434\u0442\u0432\u0435\u0440\u0436\u0434\u0435\u043D\u043E \u0433\u0440\u0443\u043F\u043F\u043E\u0439", tomorrow: "\u23F0 <b>\u0421\u0440\u043E\u043A \u2014 \u0437\u0430\u0432\u0442\u0440\u0430</b>", today: "\u23F0 <b>\u0421\u0440\u043E\u043A \u2014 \u0441\u0435\u0433\u043E\u0434\u043D\u044F</b>", fresh: "\u{1F195} <b>\u041D\u043E\u0432\u043E\u0435 \u0437\u0430\u0434\u0430\u043D\u0438\u0435</b>", banned: "\u{1F6AB} \u0411\u043E\u043B\u044C\u0448\u0438\u043D\u0441\u0442\u0432\u043E \u0432\u0430\u0448\u0435\u0439 \u0433\u0440\u0443\u043F\u043F\u044B \u043F\u043E\u0436\u0430\u043B\u043E\u0432\u0430\u043B\u043E\u0441\u044C \u043D\u0430 \u0432\u0430\u0448\u0438 \u0437\u0430\u0434\u0430\u043D\u0438\u044F, \u043F\u043E\u044D\u0442\u043E\u043C\u0443 \u043F\u0438\u0441\u0430\u0442\u044C \u0437\u0430\u0434\u0430\u043D\u0438\u044F \u0432 \u044D\u0442\u043E\u0439 \u0433\u0440\u0443\u043F\u043F\u0435 \u0432\u044B \u0431\u043E\u043B\u044C\u0448\u0435 \u043D\u0435 \u043C\u043E\u0436\u0435\u0442\u0435." },
+  en: { needGroup: "\u{1F4DD} To use tasks, choose your group first: /group", intro: "\u{1F4DD} Group tasks \u2014 post, confirm with \u{1F44D} and turn on a \u{1F514} reminder:", rel: ["today", "tomorrow"], due: "Due", by: "Posted by", open: "\u{1F4DD} Tasks", approved: "\u2705 Confirmed by your group", tomorrow: "\u23F0 <b>Due tomorrow</b>", today: "\u23F0 <b>Due today</b>", fresh: "\u{1F195} <b>New task</b>", banned: "\u{1F6AB} Most of your group flagged your tasks, so you can no longer post tasks in this group." }
+};
+var taskTx = (lang) => TX[lang] || TX.uz;
+
 // src/jokes.mjs
 var j = (uz, ru, en, extra = {}) => ({ uz, ru, en, ...extra });
 var JOKES = {
@@ -1331,7 +1384,8 @@ var worker_default = {
       timetableTick(env, at).catch((e) => console.error("timetable tick", e?.message)),
       lessonsTick(env, at).catch((e) => console.error("lessons tick", e?.message)),
       ensureAbout(env).catch((e) => console.warn("about", e?.message)),
-      dailySnapshot(env, at).catch((e) => console.warn("snapshot", e?.message))
+      dailySnapshot(env, at).catch((e) => console.warn("snapshot", e?.message)),
+      tasksTick(env, at).catch((e) => console.warn("tasks tick", e?.message))
     ]);
   }
 };
@@ -1476,6 +1530,7 @@ async function route(request, env, ctx) {
     if (request.method === "POST" && url.pathname === "/tga") return await onAdminWebhook(request, env);
     if (url.pathname === "/api/week-pic") return await onWeekPic(request, env);
     if (url.pathname === "/api/admin") return await onAdminApi(request, env);
+    if (url.pathname === "/api/tasks") return await onTasksApi(request, env);
     if (url.pathname === "/setup") return await onSetup(request, url, env);
     if (url.pathname.startsWith("/internal/")) return await onInternal(request, url, env);
     return new Response("TDIU Jadval bot is running \u2705", { headers: { "content-type": "text/plain; charset=utf-8" } });
@@ -1592,7 +1647,7 @@ async function getEntity(env, row) {
   return t ? { ...t, kind: "t" } : null;
 }
 var schemaReady = false;
-var SCHEMA_VERSION = "2026-10-25a";
+var SCHEMA_VERSION = "2026-11-10a";
 async function db(env) {
   if (!schemaReady) {
     try {
@@ -1678,6 +1733,41 @@ async function db(env) {
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS admin_state (
         k TEXT PRIMARY KEY,
         v TEXT)`),
+      // 📝 group tasks: st 0 = not confirmed, 1 = confirmed by the group (👍), 2 = hidden (🚩); s0 = "confirmed" notice sent
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS tasks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        gid TEXT NOT NULL,
+        subj TEXT NOT NULL,
+        body TEXT NOT NULL,
+        due TEXT NOT NULL,
+        uid INTEGER NOT NULL,
+        uname TEXT,
+        at INTEGER NOT NULL,
+        st INTEGER NOT NULL DEFAULT 0,
+        up INTEGER NOT NULL DEFAULT 0,
+        down INTEGER NOT NULL DEFAULT 0,
+        s0 INTEGER NOT NULL DEFAULT 0)`),
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_tasks_gid ON tasks(gid, due)"),
+      env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_tasks_due ON tasks(due)"),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_votes (
+        tid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        v INTEGER NOT NULL,
+        PRIMARY KEY (tid, uid)) WITHOUT ROWID`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_subs (
+        tid INTEGER NOT NULL,
+        uid INTEGER NOT NULL,
+        PRIMARY KEY (tid, uid)) WITHOUT ROWID`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_ban (
+        gid TEXT NOT NULL,
+        uid INTEGER NOT NULL,
+        at INTEGER,
+        PRIMARY KEY (gid, uid)) WITHOUT ROWID`),
+      env.DB.prepare(`CREATE TABLE IF NOT EXISTS task_sent (
+        tid INTEGER NOT NULL,
+        k INTEGER NOT NULL,
+        chat_id INTEGER NOT NULL,
+        PRIMARY KEY (tid, k, chat_id)) WITHOUT ROWID`),
       env.DB.prepare(`CREATE TABLE IF NOT EXISTS usage (
         day TEXT NOT NULL,
         k TEXT NOT NULL,
@@ -1820,9 +1910,9 @@ async function onSetup(request, url, env) {
     drop_pending_updates: true
   });
   const cmds = {
-    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["friends", "Do'stlar \u2014 kim qayerda, qachon bo'sh"], ["group", "Guruhni tanlash (talaba)"], ["teacher", "O'qituvchi sifatida kirish"], ["settings", "Sozlamalar"], ["time", "Ertangi dars eslatmasi vaqti"], ["app", "Ilovani ochish"], ["calendar", "Kalendarga obuna bo'lish"], ["feedback", "Taklif yoki xato yuborish"], ["help", "Yordam"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
-    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["where", "\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? (/where Karimov)"], ["friends", "\u0414\u0440\u0443\u0437\u044C\u044F \u2014 \u043A\u0442\u043E \u0433\u0434\u0435, \u043A\u043E\u0433\u0434\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)"], ["teacher", "\u0412\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["calendar", "\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"], ["feedback", "\u041E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u0448\u0438\u0431\u043A\u0430"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
-    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["where", "Find a teacher (/where Karimov)"], ["friends", "Friends \u2014 who's where, when free"], ["group", "Choose group (student)"], ["teacher", "Sign in as a teacher"], ["settings", "Settings"], ["time", "Reminder time"], ["app", "Open the app"], ["calendar", "Subscribe to calendar"], ["feedback", "Send feedback"], ["help", "Help"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar")
+    uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["friends", "Do'stlar \u2014 kim qayerda, qachon bo'sh"], ["vazifa", "Guruh vazifalari"], ["group", "Guruhni tanlash (talaba)"], ["teacher", "O'qituvchi sifatida kirish"], ["settings", "Sozlamalar"], ["time", "Ertangi dars eslatmasi vaqti"], ["app", "Ilovani ochish"], ["calendar", "Kalendarga obuna bo'lish"], ["feedback", "Taklif yoki xato yuborish"], ["help", "Yordam"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
+    ru: [["today", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0441\u0435\u0433\u043E\u0434\u043D\u044F"], ["tomorrow", "\u041F\u0430\u0440\u044B \u043D\u0430 \u0437\u0430\u0432\u0442\u0440\u0430"], ["week", "\u0420\u0430\u0441\u043F\u0438\u0441\u0430\u043D\u0438\u0435 \u043D\u0430 \u043D\u0435\u0434\u0435\u043B\u044E"], ["where", "\u0413\u0434\u0435 \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C? (/where Karimov)"], ["friends", "\u0414\u0440\u0443\u0437\u044C\u044F \u2014 \u043A\u0442\u043E \u0433\u0434\u0435, \u043A\u043E\u0433\u0434\u0430 \u0441\u0432\u043E\u0431\u043E\u0434\u043D\u044B"], ["vazifa", "\u0417\u0430\u0434\u0430\u043D\u0438\u044F \u0433\u0440\u0443\u043F\u043F\u044B"], ["group", "\u0412\u044B\u0431\u0440\u0430\u0442\u044C \u0433\u0440\u0443\u043F\u043F\u0443 (\u0441\u0442\u0443\u0434\u0435\u043D\u0442)"], ["teacher", "\u0412\u043E\u0439\u0442\u0438 \u043A\u0430\u043A \u043F\u0440\u0435\u043F\u043E\u0434\u0430\u0432\u0430\u0442\u0435\u043B\u044C"], ["settings", "\u041D\u0430\u0441\u0442\u0440\u043E\u0439\u043A\u0438"], ["time", "\u0412\u0440\u0435\u043C\u044F \u043D\u0430\u043F\u043E\u043C\u0438\u043D\u0430\u043D\u0438\u044F \u043E \u043F\u0430\u0440\u0430\u0445"], ["app", "\u041E\u0442\u043A\u0440\u044B\u0442\u044C \u043F\u0440\u0438\u043B\u043E\u0436\u0435\u043D\u0438\u0435"], ["calendar", "\u041F\u043E\u0434\u043F\u0438\u0441\u043A\u0430 \u043D\u0430 \u043A\u0430\u043B\u0435\u043D\u0434\u0430\u0440\u044C"], ["feedback", "\u041E\u0442\u0437\u044B\u0432 \u0438\u043B\u0438 \u043E\u0448\u0438\u0431\u043A\u0430"], ["help", "\u041F\u043E\u043C\u043E\u0449\u044C"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar"),
+    en: [["today", "Today's classes"], ["tomorrow", "Tomorrow's classes"], ["week", "Weekly timetable"], ["where", "Find a teacher (/where Karimov)"], ["friends", "Friends \u2014 who's where, when free"], ["vazifa", "Group tasks"], ["group", "Choose group (student)"], ["teacher", "Sign in as a teacher"], ["settings", "Settings"], ["time", "Reminder time"], ["app", "Open the app"], ["calendar", "Subscribe to calendar"], ["feedback", "Send feedback"], ["help", "Help"]].filter(([c]) => CALENDAR_ENABLED || c !== "calendar")
   };
   const groupCmds = {
     uz: [["today", "Bugungi darslar"], ["tomorrow", "Ertangi darslar"], ["week", "Haftalik jadval"], ["where", "Ustoz qayerda? (/where Karimov)"], ["setgroup", "Chatni guruhga ulash (admin)"], ["unset", "Uzish (admin)"], ["time", "Eslatma vaqti (admin)"]],
@@ -2332,6 +2422,179 @@ function onAppHit(request, env, ctx) {
   }
   return new Response(null, { status: 204, headers: { "access-control-allow-origin": "*" } });
 }
+var taskName = (u) => [u.first_name, u.last_name].filter(Boolean).join(" ").replace(/\s+/g, " ").trim().slice(0, 40) || "Talaba";
+var dayMs = (day) => Date.parse(day + "T00:00:00Z") - 5 * 36e5;
+var taskMemberRow = (D, uid) => D.prepare("SELECT chat_id, group_id, group_name, lang FROM chats WHERE chat_id = ? AND kind = 'private' AND group_id IS NOT NULL AND role != 'teacher'").bind(uid).first();
+var taskMembers = async (D, gid) => Math.max(1, (await D.prepare("SELECT COUNT(*) n FROM chats WHERE kind = 'private' AND role != 'teacher' AND group_id = ?").bind(gid).first())?.n || 0);
+var taskBanned = async (D, gid, uid) => !!await D.prepare("SELECT 1 x FROM task_ban WHERE gid = ? AND uid = ?").bind(gid, uid).first();
+var lastTaskCall = /* @__PURE__ */ new Map();
+async function onTasksApi(request, env) {
+  if (request.method === "OPTIONS") return new Response(null, { status: 204, headers: corsFor(env) });
+  if (request.method !== "POST") return jsonCors(env, { ok: false, error: "method" }, 405);
+  if (Number(request.headers.get("content-length") || 0) > 2e4) return jsonCors(env, { ok: false, error: "too big" }, 413);
+  const body = await request.json().catch(() => null);
+  if (!body || typeof body !== "object") return jsonCors(env, { ok: false, error: "bad request" }, 400);
+  const user = await verifyInitData(env, body.initData);
+  if (!user) return jsonCors(env, { ok: false, error: "auth" }, 401);
+  const nowMs = Date.now();
+  if (nowMs - (lastTaskCall.get(user.id) || 0) < Number(env.TASK_BRAKE_MS ?? 300)) return jsonCors(env, { ok: false, error: "wait" }, 429);
+  if (lastTaskCall.size > 1e3) lastTaskCall.clear();
+  lastTaskCall.set(user.id, nowMs);
+  const D = await db(env);
+  const me = await taskMemberRow(D, user.id);
+  if (!me) return jsonCors(env, { ok: false, error: "nogroup" });
+  const gid = me.group_id;
+  const admin = isAdminUser(env, user);
+  const tn = tashkentNow(nowMs), today = ymd(tn);
+  const id = Number.isSafeInteger(body.id) ? body.id : 0;
+  const mine = async () => {
+    const t = id ? await D.prepare("SELECT * FROM tasks WHERE id = ? AND gid = ?").bind(id, gid).first() : null;
+    return t;
+  };
+  if (body.op === "list") {
+    await loadSubjects(env);
+    const [group, index, members, banned] = await Promise.all([getGroup(env, gid), getIndex(env), taskMembers(D, gid), taskBanned(D, gid, user.id)]);
+    const nl = group && index ? nextLessons(group, index, tn) : {};
+    const subjects = subjectsOf(group).map((name) => ({ n: name, next: nl[subjectKey(name)] || null }));
+    const rows = (await D.prepare(`SELECT t.id, t.subj, t.body, t.due, t.uid, t.uname, t.at, t.st, t.up, t.down, v.v my, (s.uid IS NOT NULL) sub
+      FROM tasks t LEFT JOIN task_votes v ON v.tid = t.id AND v.uid = ? LEFT JOIN task_subs s ON s.tid = t.id AND s.uid = ?
+      WHERE t.gid = ? AND t.due >= ? AND (t.st != 2 OR t.uid = ? OR ? = 1) ORDER BY t.due, t.id LIMIT 120`).bind(user.id, user.id, gid, ymd(addDays(tn, -1)), user.id, admin ? 1 : 0).all()).results || [];
+    const left = Math.max(0, TASKS_PER_DAY - ((await D.prepare("SELECT COUNT(*) n FROM tasks WHERE uid = ? AND at >= ?").bind(user.id, dayMs(today)).first())?.n || 0));
+    return jsonCors(env, {
+      ok: true,
+      gid,
+      gname: me.group_name,
+      members,
+      banned,
+      left,
+      admin,
+      today,
+      need: { up: approveAt(members), down: hideAt(members) },
+      subjects,
+      tasks: rows.map((r) => ({ id: r.id, subj: r.subj, body: r.body, due: r.due, by: r.uname || "", mine: r.uid === user.id, st: r.st, up: r.up, down: r.down, my: r.my || 0, sub: !!r.sub, at: r.at }))
+    });
+  }
+  if (body.op === "add") {
+    if (await taskBanned(D, gid, user.id)) return jsonCors(env, { ok: false, error: "banned" });
+    await loadSubjects(env);
+    const [group, index] = await Promise.all([getGroup(env, gid), getIndex(env)]);
+    const subj = subjectsOf(group).find((n) => n === body.subj);
+    if (!subj) return jsonCors(env, { ok: false, error: "subject" });
+    const text = cleanTaskText(body.text);
+    if (text.length < 3) return jsonCors(env, { ok: false, error: "text" });
+    let due = null;
+    if (body.due === "next") due = nextLessons(group, index, tn)[subjectKey(subj)] || null;
+    else {
+      due = validDay(body.due);
+      if (due && (due < today || due > ymd(addDays(tn, TASK_HORIZON)))) due = null;
+    }
+    if (!due) return jsonCors(env, { ok: false, error: "due" });
+    const used = (await D.prepare("SELECT COUNT(*) n FROM tasks WHERE uid = ? AND at >= ?").bind(user.id, dayMs(today)).first())?.n || 0;
+    if (used >= TASKS_PER_DAY) return jsonCors(env, { ok: false, error: "limit" });
+    if (await D.prepare("SELECT 1 x FROM tasks WHERE gid = ? AND subj = ? AND body = ? AND due >= ?").bind(gid, subj, text, today).first()) return jsonCors(env, { ok: false, error: "dup" });
+    const ins = await D.prepare("INSERT INTO tasks (gid, subj, body, due, uid, uname, at) VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id").bind(gid, subj, text, due, user.id, taskName(user), nowMs).first();
+    await D.prepare("INSERT OR IGNORE INTO task_subs (tid, uid) VALUES (?, ?)").bind(ins.id, user.id).run();
+    return jsonCors(env, { ok: true, id: ins.id, due });
+  }
+  if (body.op === "vote") {
+    const t = await mine();
+    if (!t || t.uid === user.id) return jsonCors(env, { ok: false, error: "bad request" }, 400);
+    const v = body.v === 1 ? 1 : body.v === -1 ? -1 : 0;
+    if (v === 0) await D.prepare("DELETE FROM task_votes WHERE tid = ? AND uid = ?").bind(t.id, user.id).run();
+    else await D.prepare("INSERT OR REPLACE INTO task_votes (tid, uid, v) VALUES (?, ?, ?)").bind(t.id, user.id, v).run();
+    const c = await D.prepare("SELECT COALESCE(SUM(v = 1), 0) up, COALESCE(SUM(v = -1), 0) down FROM task_votes WHERE tid = ?").bind(t.id).first();
+    const members = await taskMembers(D, gid);
+    const st = taskState(c.up, c.down, members);
+    await D.prepare("UPDATE tasks SET up = ?, down = ?, st = ? WHERE id = ?").bind(c.up, c.down, st, t.id).run();
+    let banned = false;
+    if (v === -1) {
+      const n = (await D.prepare(`SELECT COUNT(DISTINCT v.uid) n FROM task_votes v JOIN tasks t ON t.id = v.tid
+        JOIN chats c ON c.chat_id = v.uid AND c.group_id = t.gid AND c.kind = 'private' AND c.role != 'teacher'
+        WHERE t.gid = ? AND t.uid = ? AND v.v = -1`).bind(gid, t.uid).first())?.n || 0;
+      if (n >= banAt(members)) {
+        const r = await D.prepare("INSERT OR IGNORE INTO task_ban (gid, uid, at) VALUES (?, ?, ?)").bind(gid, t.uid, nowMs).run();
+        if (r.meta?.changes) {
+          banned = true;
+          await D.prepare("UPDATE tasks SET st = 2 WHERE gid = ? AND uid = ?").bind(gid, t.uid).run();
+          const a = await getChat(env, t.uid);
+          await send(env, t.uid, taskTx(a?.lang).banned).catch(() => {
+          });
+        }
+      }
+    }
+    return jsonCors(env, { ok: true, up: c.up, down: c.down, st: banned ? 2 : st, my: v });
+  }
+  if (body.op === "sub") {
+    const t = await mine();
+    if (!t || t.st === 2 && t.uid !== user.id) return jsonCors(env, { ok: false, error: "bad request" }, 400);
+    if (body.on) await D.prepare("INSERT OR IGNORE INTO task_subs (tid, uid) VALUES (?, ?)").bind(t.id, user.id).run();
+    else await D.prepare("DELETE FROM task_subs WHERE tid = ? AND uid = ?").bind(t.id, user.id).run();
+    return jsonCors(env, { ok: true, sub: !!body.on });
+  }
+  if (body.op === "del") {
+    const t = await mine();
+    if (!t || t.uid !== user.id && !admin) return jsonCors(env, { ok: false, error: "bad request" }, 400);
+    await D.batch([
+      D.prepare("DELETE FROM task_votes WHERE tid = ?").bind(t.id),
+      D.prepare("DELETE FROM task_subs WHERE tid = ?").bind(t.id),
+      D.prepare("DELETE FROM task_sent WHERE tid = ?").bind(t.id),
+      D.prepare("DELETE FROM tasks WHERE id = ?").bind(t.id)
+    ]);
+    return jsonCors(env, { ok: true });
+  }
+  return jsonCors(env, { ok: false, error: "bad request" }, 400);
+}
+var TASK_SENDS_PER_TICK = 25;
+async function tasksTick(env, at) {
+  if (!env.BOT_TOKEN) return;
+  const tn = tashkentNow(at), today = ymd(tn);
+  const nowMin = tn.getUTCHours() * 60 + tn.getUTCMinutes();
+  if (nowMin < 6 * 60 || nowMin > 22 * 60) return;
+  const D = await db(env);
+  if ((await D.prepare("SELECT v FROM admin_state WHERE k = 'tasks_gc'").first())?.v !== today) {
+    const old = ymd(addDays(tn, -TASK_KEEP_DAYS));
+    await D.batch([
+      D.prepare("DELETE FROM task_votes WHERE tid IN (SELECT id FROM tasks WHERE due < ?)").bind(old),
+      D.prepare("DELETE FROM task_subs WHERE tid IN (SELECT id FROM tasks WHERE due < ?)").bind(old),
+      D.prepare("DELETE FROM task_sent WHERE tid IN (SELECT id FROM tasks WHERE due < ?)").bind(old),
+      D.prepare("DELETE FROM tasks WHERE due < ?").bind(old),
+      D.prepare("INSERT OR REPLACE INTO admin_state (k, v) VALUES ('tasks_gc', ?)").bind(today)
+    ]);
+  }
+  const tomorrow = ymd(addDays(tn, 1));
+  const jobs = [];
+  jobs.push(...((await D.prepare("SELECT * FROM tasks WHERE st = 1 AND s0 = 0 AND due >= ? ORDER BY id LIMIT 10").bind(today).all()).results || []).map((t) => [t, 0]));
+  if (nowMin >= 18 * 60) jobs.push(...((await D.prepare("SELECT * FROM tasks WHERE due = ? AND st != 2 ORDER BY id LIMIT 10").bind(tomorrow).all()).results || []).map((t) => [t, 1]));
+  if (nowMin >= 7 * 60 && nowMin <= 12 * 60) jobs.push(...((await D.prepare("SELECT * FROM tasks WHERE due = ? AND st != 2 ORDER BY id LIMIT 10").bind(today).all()).results || []).map((t) => [t, 2]));
+  let budget = TASK_SENDS_PER_TICK;
+  const sent = [];
+  for (const [t, k] of jobs) {
+    if (budget <= 0) break;
+    const who = (await D.prepare(`SELECT c.chat_id, c.lang, c.group_id FROM chats c WHERE c.kind = 'private'
+      AND c.chat_id NOT IN (SELECT chat_id FROM task_sent WHERE tid = ? AND k = ?)
+      AND ((? = 0 AND c.group_id = ? AND c.role != 'teacher' AND c.remind_at >= 0 AND c.chat_id != ?)
+        OR (? > 0 AND ((? = 1 AND c.group_id = ? AND c.role != 'teacher' AND c.remind_at >= 0) OR EXISTS (SELECT 1 FROM task_subs s WHERE s.tid = ? AND s.uid = c.chat_id))))
+      ORDER BY c.chat_id LIMIT ?`).bind(t.id, k, k, t.gid, t.uid, k, t.st, t.gid, t.id, budget + 1).all()).results || [];
+    const batch = who.slice(0, budget);
+    for (const c of batch) {
+      const x = taskTx(c.lang);
+      const head = k === 0 ? x.fresh : k === 1 ? x.tomorrow : x.today;
+      const [yy, mm, dd] = t.due.split("-");
+      const text = `${head} \xB7 <b>${esc(t.subj)}</b>
+${esc(t.body)}
+
+\u23F0 ${x.due}: ${dd}.${mm}.${yy}
+\u{1F464} ${x.by}: ${esc(t.uname || "")}` + (t.st === 1 ? `
+${x.approved}` : "");
+      await send(env, c.chat_id, text, { reply_markup: { inline_keyboard: [[{ text: x.open, web_app: { url: `${appUrl(env, t.gid, c.lang, "student")}&tab=tasks` } }]] } }).catch(() => {
+      });
+      sent.push(D.prepare("INSERT OR IGNORE INTO task_sent (tid, k, chat_id) VALUES (?, ?, ?)").bind(t.id, k, c.chat_id));
+    }
+    budget -= batch.length;
+    if (k === 0 && who.length <= batch.length) sent.push(D.prepare("UPDATE tasks SET s0 = 1 WHERE id = ?").bind(t.id));
+  }
+  if (sent.length) await D.batch(sent);
+}
 var adminWebhookSecret = async (env) => (await sha256hex("tga:" + env.ADMIN_KEY)).slice(0, 48);
 var adminBotUser = null;
 async function adminBotName(env) {
@@ -2455,6 +2718,10 @@ async function onAdminWebhook(request, env) {
   }
   if (cmd === "stats") {
     await sendStats(env, chatId, null, true);
+    return new Response("ok");
+  }
+  if (cmd === "vunban") {
+    await taskUnban(env, chatId, command.arg);
     return new Response("ok");
   }
   if (cmd === "elon") {
@@ -2812,7 +3079,9 @@ var COUNTED_COMMANDS = /* @__PURE__ */ new Set([
   "stats",
   "reply",
   "friends",
-  "dostlar"
+  "dostlar",
+  "vazifa",
+  "tasks"
 ]);
 var USAGE_NAMES = {
   smart: "\u{1F4C5} Jadval (aqlli tugma)",
@@ -2825,6 +3094,8 @@ var USAGE_NAMES = {
   app: "\u{1F4F1} /app",
   group: "\u{1F465} Guruh tanlash",
   teacher: "\u{1F468}\u200D\u{1F3EB} O'qituvchi bo'limi",
+  vazifa: "\u{1F4DD} Vazifalar",
+  tasks: "\u{1F4DD} Vazifalar",
   friends: "\u{1F465} Do'stlar",
   dostlar: "\u{1F465} Do'stlar",
   where: "\u{1F50E} Ustoz qayerda?",
@@ -2862,7 +3133,7 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
   const yday0 = today0 - 864e5, week0 = today0 - 6 * 864e5, month0 = today0 - 29 * 864e5;
   const day = ymd(tn), dayW = ymd(tashkentNow(week0));
   const days7 = Array.from({ length: 7 }, (_, i) => ymd(tashkentNow(week0 + i * 864e5)));
-  const [a, top, use1, use7, fb, perDay, first, fr, bc, snaps] = await D.batch([
+  const [a, top, use1, use7, fb, perDay, first, fr, bc, snaps, tk, tb] = await D.batch([
     D.prepare(`SELECT COUNT(*) total, SUM(kind = 'private') priv, SUM(kind != 'private') grp,
       SUM(kind = 'private' AND role = 'teacher') teachers, SUM(kind = 'private' AND group_id IS NOT NULL) picked, SUM(kind != 'private' AND group_id IS NOT NULL) gpicked,
       SUM(created_at >= ?) new0, SUM(created_at >= ? AND created_at < ?) new1, SUM(created_at >= ?) new7, SUM(created_at >= ?) new30,
@@ -2879,7 +3150,9 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     D.prepare("SELECT MIN(day) d FROM usage"),
     D.prepare("SELECT COUNT(*) pairs, COUNT(DISTINCT a) people FROM friends"),
     D.prepare("SELECT id, total, sent, failed, status, created_at FROM broadcasts ORDER BY id DESC LIMIT 1"),
-    D.prepare("SELECT k, v FROM admin_state WHERE k >= ? AND k < ?").bind(`day:${days7[0]}`, `day:${day}`)
+    D.prepare("SELECT k, v FROM admin_state WHERE k >= ? AND k < ?").bind(`day:${days7[0]}`, `day:${day}`),
+    D.prepare("SELECT COUNT(*) n, COALESCE(SUM(st = 1), 0) ok, COALESCE(SUM(st = 2), 0) hid, COALESCE(SUM(at >= ?), 0) today FROM tasks WHERE due >= ?").bind(today0, day),
+    D.prepare("SELECT b.uid, b.gid, (SELECT group_name FROM chats WHERE group_id = b.gid LIMIT 1) gname FROM task_ban b ORDER BY b.at DESC LIMIT 5")
   ]);
   const r = a.results[0] || {};
   const ghErr = JSON.parse((await D.prepare("SELECT v FROM admin_state WHERE k = 'gh_err'").first().catch(() => null))?.v || "null");
@@ -2889,8 +3162,19 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
   const dm2 = (s) => `${s.slice(8, 10)}.${s.slice(5, 7)}`;
   const named = (k) => Object.hasOwn(USAGE_NAMES, k) ? USAGE_NAMES[k] : "/" + esc(k);
   const feat = (rows) => {
-    const list = rows.filter((x) => !x.k.startsWith("cb:") && x.k !== "stats" && x.k !== "reply" && x.k !== "other" && x.k !== "app").slice(0, 7);
+    const list = rows.filter((x) => !x.k.startsWith("cb:") && x.k !== "stats" && x.k !== "reply" && x.k !== "other" && x.k !== "app" && !isSrc(x.k)).slice(0, 7);
     return list.length ? list.map((x, i) => `${i + 1}. ${named(x.k)} \u2014 <b>${x.n}</b>`).join("\n") : "\u2014";
+  };
+  const isSrc = (k) => k.startsWith("src:") || k.startsWith("srn:");
+  const srcLines = (rows) => {
+    const m = /* @__PURE__ */ new Map();
+    for (const x of rows) if (isSrc(x.k)) {
+      const s = m.get(x.k.slice(4)) || { all: 0, nw: 0 };
+      if (x.k[2] === "c") s.all += x.n;
+      else s.nw += x.n;
+      m.set(x.k.slice(4), s);
+    }
+    return [...m].sort((p, q) => q[1].all - p[1].all).slice(0, 8).map(([name, s]) => `   ${esc(name)} \u2014 ${s.all} marta bosildi, <b>${s.nw}</b> yangi`);
   };
   const sum = (rows, f = () => true) => rows.filter(f).reduce((t, x) => t + x.n, 0);
   const taps = (rows) => sum(rows, (x) => x.k.startsWith("cb:"));
@@ -2928,19 +3212,23 @@ async function sendStats(env, chatId, editId, viaAdminBot = false) {
     `\u{1F195} <b>Yangi:</b> bugun ${n(r.new0)} \xB7 kecha ${n(r.new1)} \xB7 7 kunda ${n(r.new7)} \xB7 30 kunda ${n(r.new30)}`,
     `   \u{1F4C8} ${days7.map((d) => `${dm2(d)}: ${newBy[d] || 0}`).join(" \xB7 ")}`,
     "",
-    `\u2B50 <b>Bugun</b> \u2014 ${sum(use1.results, (x) => x.k !== "app")} ta harakat bot ichida` + (taps(use1.results) ? ` (shundan tugma bosish: ${taps(use1.results)})` : ""),
+    `\u2B50 <b>Bugun</b> \u2014 ${sum(use1.results, (x) => x.k !== "app" && !isSrc(x.k))} ta harakat bot ichida` + (taps(use1.results) ? ` (shundan tugma bosish: ${taps(use1.results)})` : ""),
     feat(use1.results),
     `\u{1F4F1} Mini App ochildi: <b>${sum(use1.results, (x) => x.k === "app")}</b> marta`,
     "",
-    `\u2B50 <b>7 kun</b> \u2014 ${sum(use7.results, (x) => x.k !== "app")} ta harakat bot ichida`,
+    `\u2B50 <b>7 kun</b> \u2014 ${sum(use7.results, (x) => x.k !== "app" && !isSrc(x.k))} ta harakat bot ichida`,
     feat(use7.results),
     `\u{1F4F1} Mini App ochildi: <b>${sum(use7.results, (x) => x.k === "app")}</b> marta`,
     "",
+    srcLines(use7.results).length ? "\u{1F517} <b>Havolalar</b> (7 kun, ?start=nom)\n" + srcLines(use7.results).join("\n") : null,
+    srcLines(use7.results).length ? "" : null,
     "\u{1F514} <b>Yoqilgan xabarlar</b> (jadvali tanlangan chatlar)",
     `   O'zgarish xabari: ${n(r.alerts)} \xB7 Kechki eslatma: ${n(r.remind)} \xB7 Haftalik: ${n(r.weekly)}`,
     `   Darsdan 11 daqiqa oldin: ${n(r.lr)} \xB7 Kun yakuni: ${n(r.de)}`,
     "",
     `\u{1F465} <b>Do'stlar:</b> ${Math.round(n(fr0.pairs) / 2)} juftlik \xB7 ${n(fr0.people)} kishida kamida bitta do'st`,
+    n(tk.results[0]?.n) || tb.results.length ? `\u{1F4DD} <b>Vazifalar:</b> ${n(tk.results[0]?.n)} ta faol (tasdiqlangan ${n(tk.results[0]?.ok)} \xB7 yashirin ${n(tk.results[0]?.hid)}) \xB7 bugun yozilgan ${n(tk.results[0]?.today)}` : null,
+    tb.results.length ? `   \u{1F6AB} Taqiqlangan (/vunban ID): ` + tb.results.map((x) => `<code>${x.uid}</code> ${esc(x.gname || x.gid)}`).join(" \xB7 ") : null,
     b ? `\u{1F4E3} <b>Oxirgi e'lon</b> #${b.id} (${when(new Date(b.created_at + 5 * 36e5))}): ${b.sent}/${b.total} yetkazildi` + (b.failed ? `, ${b.failed} ta yetmadi` : "") + (b.status !== "done" ? ` \xB7 ${esc(b.status)}` : "") : null,
     "",
     "\u{1F3C6} <b>Eng ko'p a'zoli guruhlar</b>",
@@ -3028,6 +3316,17 @@ async function onMessage(env, msg) {
   if (chat.type === "group" || chat.type === "supergroup") return onGroupChat(env, msg, command);
 }
 var isAdminChat = (env, chatId) => !!env.ADMIN_CHAT_ID && String(chatId) === String(env.ADMIN_CHAT_ID);
+async function taskUnban(env, chatId, arg) {
+  const uid = Number(String(arg || "").trim());
+  if (!Number.isSafeInteger(uid) || uid <= 0) return send(env, chatId, "\u2139\uFE0F /vunban <Telegram ID> \u2014 vazifa yozish taqiqini olib tashlaydi. ID ni \xABTaqiqlanganlar\xBB ro'yxatidan oling (/stats).");
+  const D = await db(env);
+  const [r] = await D.batch([
+    D.prepare("DELETE FROM task_ban WHERE uid = ?").bind(uid),
+    D.prepare("DELETE FROM task_votes WHERE v = -1 AND tid IN (SELECT id FROM tasks WHERE uid = ?)").bind(uid),
+    D.prepare("UPDATE tasks SET down = 0, st = CASE WHEN up >= 2 THEN 1 ELSE 0 END WHERE uid = ?").bind(uid)
+  ]);
+  return send(env, chatId, r.meta?.changes ? `\u2705 ${uid} yana vazifa yoza oladi.` : `\u2139\uFE0F ${uid} taqiqlanganlar ro'yxatida yo'q edi.`);
+}
 async function onAdminReply(env, msg, command) {
   let target;
   let text;
@@ -3035,6 +3334,10 @@ async function onAdminReply(env, msg, command) {
     const name = await adminBotName(env);
     await send(env, msg.chat.id, `\u{1F6E0} Admin ishlari endi alohida botda: ${name ? "@" + name : "admin bot"}`);
     await adminMenu(env);
+    return true;
+  }
+  if (command?.cmd === "vunban") {
+    await taskUnban(env, msg.chat.id, command.arg);
     return true;
   }
   if (command?.cmd === "elon" || command?.cmd === "announce") {
@@ -3254,6 +3557,11 @@ async function privateMain(env, msg, command, flags) {
       if (isNew) await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
       return friendInvite(env, msg.chat.id, row, mf[1], msg.from);
     }
+    const ms = /^[a-z][a-z0-9]{1,15}$/.exec(String(command.arg || "").toLowerCase());
+    if (ms) {
+      const d = ymd(tashkentNow(Date.now()));
+      for (const k of isNew ? [`src:${ms[0]}`, `srn:${ms[0]}`] : [`src:${ms[0]}`]) usageBuf.set(`${d}|${k}`, (usageBuf.get(`${d}|${k}`) || 0) + 1);
+    }
     if (siteUrl(env)) await syncMenu(env, msg.chat.id);
     flags.kbSent = true;
     await send(env, msg.chat.id, L.welcome, { reply_markup: mainKeyboard(env, lang, row.group_id, row.role) });
@@ -3279,6 +3587,10 @@ async function privateMain(env, msg, command, flags) {
   if (action === "lang" || action === "language") return askLanguage(env, msg.chat.id, "settings");
   if (action === "time" || action === "remind") return setRemindTime(env, msg.chat.id, row, command?.arg);
   if (action === "settings") return showSettings(env, msg.chat.id, row, null);
+  if (action === "vazifa" || action === "tasks" || action === "vazifalar") {
+    if (!row.group_id || isTeacher(row)) return send(env, msg.chat.id, taskTx(lang).needGroup);
+    return send(env, msg.chat.id, taskTx(lang).intro, { reply_markup: { inline_keyboard: [[{ text: taskTx(lang).open, web_app: { url: `${appUrl(env, row.group_id, lang, row.role)}&tab=tasks` } }]] } });
+  }
   if (action === "app") {
     return send(env, msg.chat.id, "\u{1F4F1}", { reply_markup: { inline_keyboard: [[{ text: L.btnApp, web_app: { url: appUrl(env, row.group_id, lang, row.role) } }]] } });
   }
