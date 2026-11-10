@@ -1006,6 +1006,23 @@ function nextLessons(group, index, today) {
   }
   return out;
 }
+function lessonDates(group, index, today, { days = 28, max = 6 } = {}) {
+  const out = {};
+  for (let i = 1; i <= days; i++) {
+    const date = addDays(today, i);
+    const d = weekday(date);
+    if (d === 6) continue;
+    const seen = /* @__PURE__ */ new Set();
+    for (const l of lessonsForDay(group, d, weekParity(index?.weekA, date))) {
+      const k = subjKey2(parseSubject(l.s).name);
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      out[k] ||= [];
+      if (out[k].length < max) out[k].push(ymd(date));
+    }
+  }
+  return out;
+}
 var subjectKey = (name) => subjKey2(parseSubject(name).name);
 function taskState(up, down, members) {
   if (down >= hideAt(members)) return 2;
@@ -2454,8 +2471,8 @@ async function onTasksApi(request, env) {
   if (body.op === "list") {
     await loadSubjects(env);
     const [group, index, members, banned] = await Promise.all([getGroup(env, gid), getIndex(env), taskMembers(D, gid), taskBanned(D, gid, user.id)]);
-    const nl = group && index ? nextLessons(group, index, tn) : {};
-    const subjects = subjectsOf(group).map((name) => ({ n: name, next: nl[subjectKey(name)] || null }));
+    const nl = group && index ? lessonDates(group, index, tn) : {};
+    const subjects = subjectsOf(group).map((name) => ({ n: name, next: (nl[subjectKey(name)] || [])[0] || null, dates: nl[subjectKey(name)] || [] }));
     const rows = (await D.prepare(`SELECT t.id, t.subj, t.body, t.due, t.uid, t.uname, t.at, t.st, t.up, t.down, v.v my, (s.uid IS NOT NULL) sub
       FROM tasks t LEFT JOIN task_votes v ON v.tid = t.id AND v.uid = ? LEFT JOIN task_subs s ON s.tid = t.id AND s.uid = ?
       WHERE t.gid = ? AND t.due >= ? AND (t.st != 2 OR t.uid = ? OR ? = 1) ORDER BY t.due, t.id LIMIT 120`).bind(user.id, user.id, gid, ymd(addDays(tn, -1)), user.id, admin ? 1 : 0).all()).results || [];
@@ -3545,6 +3562,7 @@ async function privateMain(env, msg, command, flags) {
       flags.kbSent = true;
       return chooseGroup(env, msg.chat, uid, m[1], null, lang);
     }
+    if (command.arg === "vazifa") return privateMain(env, msg, { ...command, cmd: "vazifa", arg: "" }, flags);
     const mt = /^t_([a-z0-9]+)$/.exec(command.arg);
     if (mt) {
       flags.kbSent = true;

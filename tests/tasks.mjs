@@ -69,6 +69,7 @@ check('unsigned / forged initData → 401', bad.status === 401);
 r = await api(101, { op: 'list' });
 check('list: own group, its subjects with the next lesson day, the thresholds', r.ok && r.gid === G && r.members === 6 && r.subjects.length === subs.length && r.subjects.every((s) => /^\d{4}-\d\d-\d\d$/.test(s.next || '2026-01-01')) && r.need.up === 3 && r.need.down === 3 && r.left === 5, { ...r, subjects: r.subjects.length });
 
+check('list: every subject carries its coming lesson days (up to 6, ascending, the first = "next")', r.subjects.every((x) => Array.isArray(x.dates) && x.dates.length <= 6 && x.dates.every((d, i, a) => i === 0 || a[i - 1] < d) && x.dates[0] === x.next), r.subjects.slice(0, 3));
 r = await api(101, { op: 'add', subj: 'Yo\'q fan', text: 'Matn bor', due: 'next' });
 check('a subject the group does not have → refused', r.ok === false && r.error === 'subject', r);
 check('too short text → refused', (await api(101, { op: 'add', subj: S0, text: 'a', due: 'next' })).error === 'text');

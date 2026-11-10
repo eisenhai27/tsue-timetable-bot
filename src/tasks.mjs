@@ -57,6 +57,24 @@ export function nextLessons(group, index, today) {
   }
   return out;
 }
+/** For every subject: its next lesson days after `today` (up to `max`, within `days` days) — the dates offered when a task is written. */
+export function lessonDates(group, index, today, { days = 28, max = 6 } = {}) {
+  const out = {};
+  for (let i = 1; i <= days; i++) {
+    const date = addDays(today, i);
+    const d = weekday(date);
+    if (d === 6) continue;
+    const seen = new Set();
+    for (const l of lessonsForDay(group, d, weekParity(index?.weekA, date))) {
+      const k = subjKey(parseSubject(l.s).name);
+      if (!k || seen.has(k)) continue;
+      seen.add(k);
+      (out[k] ||= []);
+      if (out[k].length < max) out[k].push(ymd(date));
+    }
+  }
+  return out;
+}
 export const subjectKey = (name) => subjKey(parseSubject(name).name);
 
 /**

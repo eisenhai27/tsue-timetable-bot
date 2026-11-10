@@ -141,7 +141,7 @@ html.dark .cd.sel{background:var(--blue)}
 .meta .ln span{color:var(--text)}
 .meta button.ln span{color:var(--link)}
 .lesson.now{box-shadow:0 0 0 2px var(--blue),var(--shadow)}
-.lesson.past{opacity:.5}
+.lesson.past{opacity:1}.lesson.past .time,.lesson.past .body>div:not(.tkin),.lesson.past .body .subj{opacity:.5}.lesson.past .tkpen{opacity:.9}
 .state{display:inline-flex;align-items:center;gap:4px;font-size:11.5px;font-weight:800;padding:3px 8px;border-radius:8px;margin-bottom:6px;background:var(--bolt);color:#3B2A00}
 .state.next{background:var(--soft);color:var(--link)}
 .gap{font-size:12px;color:var(--hint);text-align:center;font-weight:600}
@@ -386,6 +386,36 @@ html.dark .tkb.on{background:var(--blue);border-color:var(--blue)}
 .tkdel{margin-left:auto;color:var(--hint)}
 .tkwarn{margin-top:14px;background:#fdecea;color:#8a1c12;font-weight:700}
 html.dark .tkwarn{background:#3a1b18;color:#ffb4a9}
+/* ---- tasks on the lessons */
+.lesson.hastk .body{padding-right:34px}
+.tkpen{position:absolute;top:9px;right:9px;width:34px;height:34px;border-radius:50%;border:0;display:grid;place-items:center;background:var(--soft);color:var(--navy);transition:transform .12s,background .2s}
+.tkpen svg{width:17px;height:17px}
+.tkpen:active{transform:scale(.9)}
+html.dark .tkpen{color:#fff}
+.tkwrapT .htitle .t1{white-space:normal;line-height:1.2;font-size:19px}
+.tkin{display:flex;gap:8px;align-items:flex-start;margin-top:10px;padding:8px 10px;border-radius:12px;background:var(--soft);border-left:3px solid var(--bolt)}
+.tki{flex:none;font-size:14px;line-height:1.5}
+.tkls{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.tkl{display:flex;gap:6px;align-items:baseline;justify-content:space-between;border:0;background:none;padding:0;text-align:left;font:700 13.5px/1.4 inherit;font-family:inherit;color:var(--text)}
+.tkl .tkx{flex:1;min-width:0;overflow-wrap:anywhere}
+.tkl .tkc{flex:none;font-size:12px}
+.tkl.more{color:var(--blue);font-weight:800;font-size:12.5px}
+.dchips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 6px;margin:0 -2px;scrollbar-width:none}
+.dchips::-webkit-scrollbar{display:none}
+.dchip{flex:none;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:78px;padding:9px 12px;border-radius:14px;border:1.5px solid var(--line);background:var(--bg);color:var(--text);font-family:inherit}
+.dchip b{font-size:14px;font-weight:800}
+.dchip small{font-size:11px;font-weight:700;color:var(--hint);min-height:13px}
+.dchip.on{background:var(--navy);border-color:var(--navy);color:#fff}
+.dchip.on small{color:#cfe0ff}
+html.dark .dchip.on{background:var(--blue);border-color:var(--blue)}
+.tkcnt{text-align:right;margin-top:-4px}
+.tkhint{margin-top:14px;padding:11px 14px;border-radius:14px;background:var(--soft);font-weight:700;font-size:13.5px;color:var(--navy);text-align:center}
+html.dark .tkhint{color:#fff}
+.tkdue.hot{color:#b45309;background:#fef3c7;border-radius:8px;padding:1px 7px}
+html.dark .tkdue.hot{background:#3b2f10;color:#fcd34d}
+.toast{position:fixed;left:50%;bottom:86px;transform:translate(-50%,16px);opacity:0;z-index:50;max-width:calc(100% - 32px);padding:12px 18px;border-radius:999px;background:var(--navy);color:#fff;font-weight:800;font-size:14px;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:opacity .3s,transform .3s;pointer-events:none;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+@media (prefers-reduced-motion:reduce){.toast{transition:none}}
 .tag.tkchip{background:var(--soft);color:var(--navy);border-radius:6px;padding:1px 7px;border:0;font:inherit;font-size:11px;font-weight:800;cursor:pointer}
 html.dark .tag.tkchip{color:#fff}
 .mk .tkchip{background:var(--soft);color:var(--navy);border-radius:6px;padding:0 6px;border:0;font:inherit;font-weight:800;cursor:pointer}
@@ -843,6 +873,7 @@ function setNav() {
 document.querySelectorAll('.nav button').forEach(b => b.addEventListener('click', () => {
   haptic();
   closeSheet();
+  if (b.dataset.tab === 'tasks') { TS.compose = null; TS.fsubj = ''; }
   if (b.dataset.tab !== S.tab) { S.stack = []; S.tab = b.dataset.tab; }
   else if (S.tab === 'where') { S.wt = null; S.wDate = null; S.stack = []; }
   S.picking = null;
@@ -944,14 +975,13 @@ function roomLabel(r) {
 const splitList = (s) => String(s || '').split(', ').map(x => x.trim()).filter(Boolean);
 const chipBtn = (code, label, cls = '') => `<button class="chip ${cls}" data-open="${esc(code)}">${esc(label)}</button>`;
 
-function lessonHtml(l, t, cls, state, v, isNew, par) {
+function lessonHtml(l, t, cls, state, v, isNew, par, x = { pen: '', lines: '' }) {
   const st = splitType(l.s);
   const tags = [];
   if (st.type) tags.push(`<span class="tag">${esc(st.type)}</span>`);
   if (l.w && !par) tags.push(`<span class="tag wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>`);
   if (l.g) tags.push(`<span class="tag wk">${esc(l.g)}</span>`);
   if (isNew) tags.push(`<span class="tag new">${esc(L.new)}</span>`);
-  if (v.type === 'g' && isMine(v)) { const c = tkChip(st.orig || st.name); if (c) tags.push(c); }
   const meta = [];
   if (v.type !== 'r') {
     if (l.r) for (const r of splitList(l.r)) meta.push(`<button class="ln rm" data-open="r:${esc(r)}">📍 <span>${esc(roomLabel(r))}</span></button>`);
@@ -962,13 +992,13 @@ function lessonHtml(l, t, cls, state, v, isNew, par) {
     const gs = splitList(l.gr);
     meta.push(`<div class="ln grp">👥 <div class="chips">${gs.map(g => chipBtn('g:' + g, g)).join('')}</div></div>`);
   }
-  return `<div class="lesson t-${st.cls} ${cls}" role="button" tabindex="0">
+  return `<div class="lesson t-${st.cls} ${cls}${x.pen ? ' hastk' : ''}" role="button" tabindex="0">${x.pen}
     <div class="time"><div class="a">${esc(t.a)}</div><div class="b">${esc(t.b)}</div><div class="n">${esc(l.p)} ${esc(L.pairShort)}</div></div>
     <div class="body">${state ? `<div>${state}</div>` : ''}${tags.length ? `<div class="tags">${tags.join('')}</div>` : ''}<div class="subj">${nameHtml(st)}</div>
-    <div class="meta">${meta.join('')}</div></div></div>`;
+    <div class="meta">${meta.join('')}</div>${x.lines}</div></div>`;
 }
 /** compact row of the week view */
-function miniHtml(l, v, par, k, isNew) {
+function miniHtml(l, v, par, k, isNew, n = 0) {
   const st = splitType(l.s), t = timeOf(l);
   const bits = [];
   if (v.type !== 'r' && l.r) bits.push('📍 ' + esc(splitList(l.r).map(roomLabel).join(' / ')));
@@ -979,7 +1009,7 @@ function miniHtml(l, v, par, k, isNew) {
   if (l.w && !par) tags.push(`<span class="wk">${l.w === 'A' ? esc(L.weekA) : esc(L.weekB)}</span>`);
   if (l.g) tags.push(`<span class="wk">${esc(l.g)}</span>`);
   if (isNew) tags.push(`<span class="new">${esc(L.new)}</span>`);
-  if (v.type === 'g' && isMine(v)) { const c = tkChip(st.orig || st.name); if (c) tags.push(c.replace('class="tag tkchip"', 'class="tkchip"')); }
+  if (n) tags.push(`<span class="tkchip">📝 ${n}</span>`);
   return `<button class="ml t-${st.cls}" data-k="${k}"><span class="mt"><b>${esc(t.a)}</b><small>${esc(t.b)}</small></span>
     <span class="mb">${tags.length ? `<span class="mk">${tags.join('')}</span>` : ''}<span class="ms">${nameHtml(st)}</span>
     <span class="mm">${bits.join(' · ')}</span></span></button>`;
@@ -1091,7 +1121,7 @@ const renderTimetable = safe(async function () {
       const dt = addD(mon, d), ls = lessonsOf(d), isT = sameDay(dt, now);
       parts.push(`<div class="dayh ${isT ? 'today' : ''}"><b>${esc(L.days[d])}</b><span>${esc(fmtDate(dt))}</span>${ls.length ? `<em>${esc(L.lessonsN(ls.length))}</em>` : ''}</div>`);
       if (!ls.length) parts.push(`<div class="noday">${esc(L.noDay)}</div>`);
-      for (const l of ls) { flat.push(l); parts.push(miniHtml(l, v, par, flat.length - 1, newKeys.has(key(l)) && S.weekOffset === 0)); }
+      for (const l of ls) { flat.push(l); parts.push(miniHtml(l, v, par, flat.length - 1, newKeys.has(key(l)) && S.weekOffset === 0, tkWeekN(l, v, dt))); }
     }
     body = parts.join('');
   } else {
@@ -1113,7 +1143,7 @@ const renderTimetable = safe(async function () {
         if (prevEnd != null) { const g = mins(t.a) - prevEnd; if (g >= 30) gap = `<div class="gap">☕ ${esc(L.breakMin(g))}</div>`; }
         prevEnd = mins(t.b);
         flat.push(l);
-        return gap + lessonHtml(l, t, cls, state, v, newKeys.has(key(l)) && S.weekOffset === 0, par);
+        return gap + lessonHtml(l, t, cls, state, v, newKeys.has(key(l)) && S.weekOffset === 0, par, tkExtra(l, v, tkIso(date), mins(t.a), nm, tkIso(now)));
       }).join('');
     }
   }
@@ -1231,7 +1261,7 @@ const renderTimetable = safe(async function () {
   }, { passive: true });
 
   // tap on a room / teacher / group chip → that timetable; tap on the card → details
-  app.querySelectorAll('[data-tk]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); haptic(); S.stack.push(snap()); S.tab = 'tasks'; TS.fsubj = b.dataset.tk; TS.filter = 'all'; render(); window.scrollTo(0, 0); });
+  tkBindCards();
   tkQuiet();
   app.querySelectorAll('[data-open]').forEach(b => b.onclick = (ev) => { ev.stopPropagation(); const e = entityOf(b.dataset.open); if (e) openEntity(e); });
   const onCard = (el, i) => { el.onclick = () => showLesson(flat[i], v, par); el.onkeydown = (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); showLesson(flat[i], v, par); } }; };
@@ -1286,24 +1316,31 @@ function showLesson(l, v, par) {
   $('#sheet').querySelectorAll('[data-open]').forEach(b => b.onclick = () => { const e = entityOf(b.dataset.open); closeSheet(); if (e) openEntity(e); });
 }
 // ---------------------------------------------------------------- tasks ("Vazifalar")
-// Classmates post tasks for a subject; 👍 from enough of them confirms it, 🚩 hides it. Who you are and which group you are in is
-// decided by the server (Telegram's signed initData), so this tab only works when the app was opened by a button that carries it
-// (the 📅 menu button next to the text field, or the bot's /vazifa). The timetable also shows a small 📝 count on a lesson.
+// Tasks live ON the lessons: a lesson card shows the tasks that are due at that lesson, and the ✏️ on a card (only for a lesson that has
+// already begun) opens a page where the task is written and the day it is due is picked among the subject's coming lessons.
+// Classmates then confirm it with 👍 or flag it with 🚩. Who you are is decided by the server (Telegram's signed initData), so this only
+// works when the app was opened by a button that carries it (the 📅 menu button, or the bot's /vazifa); the last list is kept on the
+// phone, so the lessons show their tasks the moment the app opens, before the fresh list arrives.
 const TKT = {
-  uz: { title: 'Vazifalar', sub: (g, n) => `${g} · ${n} kishi`, needTg: "Vazifalar faqat Telegram ichida, botning menyu tugmasi (📅 Jadval) yoki /vazifa orqali ochilganda ishlaydi.", noGroup: "Vazifalar uchun avval botda guruhingizni tanlang: /group", add: '➕ Vazifa yozish', close: '✕ Yopish', subject: 'Fan', textPh: 'Masalan: 5-mashq, 12-betdan', next: (d) => `Keyingi dars · ${d}`, noNext: 'Keyingi dars topilmadi', pickDate: '📅 Sana tanlash', post: '📨 Yuborish', left: (n) => `Bugun yana ${n} ta yoza olasiz`, banned: "🚫 Guruhingizdagi ko'pchilik vazifalaringizga shikoyat qildi — shu guruhda vazifa yoza olmaysiz.",
-    secOver: 'Kecha', secToday: 'Bugun', secTom: 'Ertaga', secWeek: 'Shu hafta', secLater: 'Keyinroq', empty: "Hozircha vazifa yo'q. Birinchi bo'lib yozing!", okTag: '✅ guruh tasdiqladi', newTag: (u, n) => `${u}/${n} 👍 — tasdiqlanmagan`, hidTag: '🚫 yashirilgan (shikoyatlar)', by: 'Yozdi', all: 'Hammasi', mine: '🔔 Meniki', remindOn: '🔔 Eslatma yoqildi', remindOff: '🔕 Eslatma o\'chirildi', del: '🗑', sure: "O'chirasizmi?", posted: '✅ Yuborildi', how: "👍 — to'g'ri. Yetarlicha 👍 yig'sa vazifa tasdiqlanadi va guruhga eslatma boradi. 🚩 — noto'g'ri yoki begona. 🔔 — faqat o'zingizga eslatma.", filterSubj: (s) => `Fan: ${s}`, clear: 'Hammasi',
+  uz: { title: 'Vazifalar', sub: (g, n) => `${g} · ${n} kishi`, needTg: "Vazifalarni ko'rish va yozish uchun ilovani botning 📅 Jadval menyu tugmasi orqali oching.", openBot: '📝 Botda ochish', noGroup: "Vazifalar uchun avval botda guruhingizni tanlang: /group", penTip: "Vazifa qo'shish", forLesson: (d) => `${d} darsi uchun`, composeFor: 'Vazifa matni', textPh: "Masalan: 5-mashq, 12-betdan", dueQ: 'Qaysi darsga topshirish kerak?', nextTag: 'keyingi dars', otherDate: '📅 Boshqa sana', noDates: "Keyingi darslar topilmadi — sanani o'zingiz tanlang", post: '📨 Guruhga yuborish', posting: 'Yuborilmoqda…', thanks: "🎉 Qo'shildi! Guruhdoshlaringiz ko'radi", note: "Guruhdoshlar 👍 bossa vazifa tasdiqlanadi va hammaga eslatma boradi.", left: (n) => `Bugun yana ${n} ta yozishingiz mumkin`, limit: 'Bugungi limit tugadi (5 ta)', banned: "🚫 Guruhingizdagi ko'pchilik vazifalaringizga shikoyat qildi — shu guruhda vazifa yoza olmaysiz.",
+    secOver: 'Kecha', secToday: 'Bugun', secTom: 'Ertaga', secWeek: 'Shu hafta', secLater: 'Keyinroq', empty: "Hozircha vazifa yo'q", emptyHint: "Dars kartochkasidagi ✏️ tugmasi bilan birinchi vazifani yozing", hint: "✏️ Vazifa qo'shish — jadvaldagi dars kartochkasida", okTag: '✅ guruh tasdiqladi', newTag: (u, n) => `${u}/${n} 👍 — tasdiqlanmagan`, hidTag: '🚫 yashirilgan (shikoyatlar)', all: 'Hammasi', mine: '🔔 Meniki', del: '🗑', sure: "O'chirasizmi?", more: (n) => `+${n} yana`, how: "👍 — to'g'ri. Yetarlicha 👍 yig'sa vazifa tasdiqlanadi va guruhga eslatma boradi. 🚩 — noto'g'ri yoki begona. 🔔 — faqat o'zingizga eslatma.", filterSubj: (s) => s, 
     err: { subject: "Bunday fan guruhda yo'q", text: 'Matn juda qisqa', due: "Muddat noto'g'ri", dup: 'Bunday vazifa allaqachon bor', limit: 'Bugungi limit tugadi (5 ta)', banned: 'Siz bu guruhda vazifa yoza olmaysiz', wait: 'Sekinroq, bir soniya…', nogroup: 'Guruh tanlanmagan', other: "Xatolik. Qayta urinib ko'ring" } },
-  ru: { title: 'Задания', sub: (g, n) => `${g} · ${n} чел.`, needTg: 'Задания работают только внутри Telegram — откройте приложение кнопкой меню бота (📅 Jadval) или командой /vazifa.', noGroup: 'Для заданий сначала выберите группу в боте: /group', add: '➕ Написать задание', close: '✕ Закрыть', subject: 'Предмет', textPh: 'Например: упр. 5, с. 12', next: (d) => `Следующая пара · ${d}`, noNext: 'Следующая пара не найдена', pickDate: '📅 Выбрать дату', post: '📨 Отправить', left: (n) => `Сегодня можно написать ещё ${n}`, banned: '🚫 Большинство вашей группы пожаловалось на ваши задания — писать задания в этой группе вы больше не можете.',
-    secOver: 'Вчера', secToday: 'Сегодня', secTom: 'Завтра', secWeek: 'На этой неделе', secLater: 'Позже', empty: 'Заданий пока нет. Напишите первым!', okTag: '✅ подтверждено группой', newTag: (u, n) => `${u}/${n} 👍 — не подтверждено`, hidTag: '🚫 скрыто (жалобы)', by: 'Написал(а)', all: 'Все', mine: '🔔 Мои', remindOn: '🔔 Напоминание включено', remindOff: '🔕 Напоминание выключено', del: '🗑', sure: 'Удалить?', posted: '✅ Отправлено', how: '👍 — верно. Когда наберётся достаточно 👍, задание подтверждается и группе приходит напоминание. 🚩 — неверно или посторонее. 🔔 — напоминание только вам.', filterSubj: (s) => `Предмет: ${s}`, clear: 'Все',
+  ru: { title: 'Задания', sub: (g, n) => `${g} · ${n} чел.`, needTg: 'Чтобы видеть и писать задания, откройте приложение кнопкой меню бота 📅 Jadval.', openBot: '📝 Открыть в боте', noGroup: 'Для заданий сначала выберите группу в боте: /group', penTip: 'Добавить задание', forLesson: (d) => `К паре ${d}`, composeFor: 'Текст задания', textPh: 'Например: упр. 5, с. 12', dueQ: 'К какой паре сдать?', nextTag: 'следующая пара', otherDate: '📅 Другая дата', noDates: 'Следующие пары не найдены — выберите дату сами', post: '📨 Отправить группе', posting: 'Отправляем…', thanks: '🎉 Добавлено! Одногруппники увидят', note: 'Когда одногруппники нажмут 👍, задание подтвердится и всем придёт напоминание.', left: (n) => `Сегодня можно написать ещё ${n}`, limit: 'Лимит на сегодня исчерпан (5)', banned: '🚫 Большинство вашей группы пожаловалось на ваши задания — писать задания в этой группе вы больше не можете.',
+    secOver: 'Вчера', secToday: 'Сегодня', secTom: 'Завтра', secWeek: 'На этой неделе', secLater: 'Позже', empty: 'Заданий пока нет', emptyHint: 'Напишите первое кнопкой ✏️ на карточке пары', hint: '✏️ Добавить задание — на карточке пары в расписании', okTag: '✅ подтверждено группой', newTag: (u, n) => `${u}/${n} 👍 — не подтверждено`, hidTag: '🚫 скрыто (жалобы)', all: 'Все', mine: '🔔 Мои', del: '🗑', sure: 'Удалить?', more: (n) => `ещё ${n}`, how: '👍 — верно. Когда наберётся достаточно 👍, задание подтверждается и группе приходит напоминание. 🚩 — неверно или постороннее. 🔔 — напоминание только вам.', filterSubj: (s) => s,
     err: { subject: 'Такого предмета в группе нет', text: 'Слишком короткий текст', due: 'Неверный срок', dup: 'Такое задание уже есть', limit: 'Лимит на сегодня исчерпан (5)', banned: 'Вы не можете писать задания в этой группе', wait: 'Чуть помедленнее…', nogroup: 'Группа не выбрана', other: 'Ошибка. Попробуйте ещё раз' } },
-  en: { title: 'Tasks', sub: (g, n) => `${g} · ${n} people`, needTg: "Tasks only work inside Telegram — open the app with the bot's menu button (📅 Jadval) or the /vazifa command.", noGroup: 'Choose your group in the bot first: /group', add: '➕ Post a task', close: '✕ Close', subject: 'Subject', textPh: 'For example: exercise 5, page 12', next: (d) => `Next lesson · ${d}`, noNext: 'No next lesson found', pickDate: '📅 Pick a date', post: '📨 Post', left: (n) => `You can post ${n} more today`, banned: '🚫 Most of your group flagged your tasks — you can no longer post tasks in this group.',
-    secOver: 'Yesterday', secToday: 'Today', secTom: 'Tomorrow', secWeek: 'This week', secLater: 'Later', empty: 'No tasks yet. Be the first!', okTag: '✅ confirmed by the group', newTag: (u, n) => `${u}/${n} 👍 — not confirmed`, hidTag: '🚫 hidden (flags)', by: 'Posted by', all: 'All', mine: '🔔 Mine', remindOn: '🔔 Reminder on', remindOff: '🔕 Reminder off', del: '🗑', sure: 'Delete?', posted: '✅ Posted', how: '👍 — correct. With enough 👍 a task is confirmed and the group gets a reminder. 🚩 — wrong or off-topic. 🔔 — a reminder just for you.', filterSubj: (s) => `Subject: ${s}`, clear: 'All',
+  en: { title: 'Tasks', sub: (g, n) => `${g} · ${n} people`, needTg: "To see and write tasks, open the app with the bot's 📅 Jadval menu button.", openBot: '📝 Open in the bot', noGroup: 'Choose your group in the bot first: /group', penTip: 'Add a task', forLesson: (d) => `For the lesson on ${d}`, composeFor: 'The task', textPh: 'For example: exercise 5, page 12', dueQ: 'Which lesson is it due at?', nextTag: 'next lesson', otherDate: '📅 Another date', noDates: 'No coming lessons found — pick a date', post: '📨 Send to the group', posting: 'Sending…', thanks: '🎉 Added! Your classmates will see it', note: 'When classmates press 👍 the task is confirmed and everyone gets a reminder.', left: (n) => `You can post ${n} more today`, limit: "Today's limit is used up (5)", banned: '🚫 Most of your group flagged your tasks — you can no longer post tasks in this group.',
+    secOver: 'Yesterday', secToday: 'Today', secTom: 'Tomorrow', secWeek: 'This week', secLater: 'Later', empty: 'No tasks yet', emptyHint: 'Write the first one with ✏️ on a lesson card', hint: '✏️ Add a task — on a lesson card in the timetable', okTag: '✅ confirmed by the group', newTag: (u, n) => `${u}/${n} 👍 — not confirmed`, hidTag: '🚫 hidden (flags)', all: 'All', mine: '🔔 Mine', del: '🗑', sure: 'Delete?', more: (n) => `+${n} more`, how: '👍 — correct. With enough 👍 a task is confirmed and the group gets a reminder. 🚩 — wrong or off-topic. 🔔 — a reminder just for you.', filterSubj: (s) => s,
     err: { subject: 'The group has no such subject', text: 'Text is too short', due: 'Wrong due date', dup: 'This task already exists', limit: "Today's limit is used up (5)", banned: 'You cannot post tasks in this group', wait: 'Slow down a second…', nogroup: 'No group chosen', other: 'Something went wrong. Try again' } },
 };
-const TS = { data: null, at: 0, form: false, subj: '', text: '', due: 'next', date: '', msg: '', busy: false, filter: 'all', fsubj: '', sure: 0 };
+const TS = { data: null, at: 0, compose: null, text: '', due: '', date: '', msg: '', busy: false, filter: 'all', fsubj: '', sure: 0 };
+try { const c = JSON.parse(localStorage.getItem('tt_tasks')); if (c && c.ok && Array.isArray(c.tasks)) TS.data = c; } catch {} // last list: shown at once, refreshed right after
 const tkT = () => TKT[lang] || TKT.uz;
 const tkOK = () => !!(inTg && tg.initData);
 const tkKey = (s) => String(s || '').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+const tkToday = () => new Date(Date.now() + 5 * 3600e3).toISOString().slice(0, 10);
+const tkIso = (d) => d.toISOString().slice(0, 10);
+/** the list we have, if it is for the group being looked at (never another group's, never a failed answer) */
+const tkData = () => (TS.data && TS.data.ok && S.mine && S.mine.type === 'g' && TS.data.gid === S.mine.id ? TS.data : null);
 async function tkCall(body) {
   const r = await fetch(`${API_URL}/api/tasks`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ initData: tg.initData, ...body }) });
   const j = await r.json().catch(() => ({}));
@@ -1311,77 +1348,135 @@ async function tkCall(body) {
 }
 async function tkLoad() {
   const j = await tkCall({ op: 'list' });
-  if (j.status === 401 || (j.status >= 500)) throw new Error('tasks ' + j.status);
+  if (j.status === 401 || j.status >= 500) throw new Error('tasks ' + j.status);
   TS.data = j; TS.at = Date.now();
+  try { if (j.ok) localStorage.setItem('tt_tasks', JSON.stringify(j)); else localStorage.removeItem('tt_tasks'); } catch {}
   return j;
 }
 const tkDays = (due, today) => Math.round((Date.parse(due + 'T00:00:00Z') - Date.parse(today + 'T00:00:00Z')) / 864e5);
 const tkDate = (iso) => { const d = new Date(iso + 'T00:00:00Z'); return `${L.dShort[(d.getUTCDay() + 6) % 7]} ${String(d.getUTCDate()).padStart(2, '0')}.${String(d.getUTCMonth() + 1).padStart(2, '0')}`; };
 const tkLink = (s) => esc(s).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-/** subject key → number of live tasks (for the 📝 chip on a lesson card); empty until the list has been loaded */
-function tkCounts() {
-  const d = TS.data, out = {};
-  if (!d || !d.ok) return out;
-  for (const t of d.tasks) if (t.st !== 2 && t.due >= d.today) out[tkKey(t.subj)] = (out[tkKey(t.subj)] || 0) + 1;
-  return out;
-}
-const tkSig = () => JSON.stringify(tkCounts());
-/** after the timetable is on the screen: quietly fetch the tasks (once a minute at most) so the lessons can show their 📝 count */
+/** the tasks due at a lesson: this subject, this day (a task someone flagged away is not shown) */
+const tkOn = (subjectUz, iso) => { const d = tkData(); return d ? d.tasks.filter(t => t.st !== 2 && t.due === iso && tkKey(t.subj) === tkKey(subjectUz)) : []; };
+const tkSig = () => { const d = tkData(); return d ? JSON.stringify(d.tasks.map(t => [t.id, t.st, t.due, t.body])) : ''; };
+/** after the timetable is on the screen: fetch the list (a minute's rest at most) so the lessons show the latest tasks */
 function tkQuiet() {
   if (!tkOK() || !S.mine || S.mine.type !== 'g' || !isMine(S.view)) return;
-  if (TS.data && Date.now() - TS.at < 60000) return;
+  if (TS.at && Date.now() - TS.at < 60000) return;
+  TS.at = Date.now(); // one request at a time
   const before = tkSig();
-  setTimeout(() => {
-    tkLoad().then(() => { if (tkSig() !== before && S.tab === 'tt' && S.view) { S.soft = true; renderTimetable(); } }).catch(() => { TS.at = Date.now(); });
-  }, 700);
+  tkLoad().then(() => { if (tkSig() !== before && S.tab === 'tt' && S.view) { S.soft = true; renderTimetable(); } }).catch(() => { TS.at = 0; });
 }
-function tkChip(subjectName) {
-  const n = tkCounts()[tkKey(subjectName)];
-  return n ? `<button class="tag tkchip" data-tk="${esc(subjectName)}">📝 ${n}</button>` : '';
+const tkWeekN = (l, v, dt) => { if (!(v.type === 'g' && isMine(v))) return 0; const st = splitType(l.s); return tkOn(st.orig || st.name, tkIso(dt)).length; };
+const PEN = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20l1-4L16.5 4.5a2.1 2.1 0 0 1 3 3L8 19l-4 1z"/><path d="M14.5 6.5l3 3"/></svg>';
+const tkShort = (s) => { const t = String(s).replace(/\s+/g, ' ').trim(); return t.length > 70 ? t.slice(0, 68) + '…' : t; };
+/**
+ * What a lesson card gets: the tasks due at it, and a ✏️ — only for a lesson that has begun (today after its start, or one of the last 7 days),
+ * so nothing can be set for "tomorrow's" lesson. `startMin` = the lesson's start in minutes, `nowMin` = now (Tashkent) in minutes.
+ */
+function tkExtra(l, v, iso, startMin, nowMin, todayIso) {
+  if (!(v.type === 'g' && isMine(v)) || !inTg) return { pen: '', lines: '', n: 0 };
+  const st = splitType(l.s), subj = st.orig || st.name; // the group's own (Uzbek) subject name
+  const list = tkOn(subj, iso);
+  const begun = iso < todayIso ? tkDays(iso, todayIso) >= -7 : iso === todayIso && nowMin >= startMin;
+  const pen = begun ? `<button class="tkpen" data-tkw="${esc(subj)}" data-tkd="${iso}" aria-label="${esc(tkT().penTip)}" title="${esc(tkT().penTip)}">${PEN}</button>` : '';
+  const shown = list.slice(0, 2).map(t => `<button class="tkl${t.st === 1 ? ' ok' : ''}" data-tkf="${esc(subj)}"><span class="tkx">${esc(tkShort(t.body))}</span>${t.st === 1 ? '<span class="tkc">✅</span>' : ''}</button>`).join('');
+  const more = list.length > 2 ? `<button class="tkl more" data-tkf="${esc(subj)}">${esc(tkT().more(list.length - 2))}</button>` : '';
+  return { pen, lines: list.length ? `<div class="tkin"><span class="tki">📝</span><div class="tkls">${shown}${more}</div></div>` : '', n: list.length };
+}
+function toast(msg) {
+  const el = document.createElement('div');
+  el.className = 'toast'; el.textContent = msg; el.setAttribute('role', 'status');
+  document.body.appendChild(el);
+  requestAnimationFrame(() => el.classList.add('on'));
+  setTimeout(() => { el.classList.remove('on'); setTimeout(() => el.remove(), 400); }, 2600);
+}
+const tkHero = (title, sub, mark = '📝') => `<div class="hero${mark === '✏️' ? ' tkwrapT' : ''}"><div class="rings"><i></i><i></i></div><div class="hrow"><span class="mark">${mark}</span><div class="htitle"><div class="t1">${esc(title)}</div><div class="t2">${esc(sub || '')}</div></div>${themeBtn()}</div></div>`;
+function tkNote(txt, withBot) {
+  const T = tkT();
+  const bot = withBot ? `<div class="actions" style="margin-top:12px"><button class="act" id="tkBot">${esc(T.openBot)}</button></div>` : '';
+  app.innerHTML = `<div class="wrap bc">${tkHero(T.title, '')}<div class="bccard"><p style="margin:0;font-weight:700">${esc(txt)}</p>${bot}</div>${footHtml('')}</div>`;
+  const b = $('#tkBot'); if (b) b.onclick = () => { const url = 'https://t.me/tdiujadval_bot?start=vazifa'; if (inTg && tg.openTelegramLink) tg.openTelegramLink(url); else window.open(url, '_blank'); };
 }
 
 const renderTasks = safe(async function () {
   const my = ++seq;
   const T = tkT();
-  const hero = (sub) => `<div class="hero"><div class="rings"><i></i><i></i></div><div class="hrow"><span class="mark">📝</span><div class="htitle"><div class="t1">${esc(T.title)}</div><div class="t2">${esc(sub || '')}</div></div>${themeBtn()}</div></div>`;
-  const note = (txt) => { app.innerHTML = `<div class="wrap bc">${hero('')}<div class="bccard"><p style="margin:0;font-weight:700">${esc(txt)}</p></div>${footHtml('')}</div>`; };
-  if (!tkOK()) return note(T.needTg);
-  if (!TS.data) app.innerHTML = `<div class="wrap bc">${hero('…')}<div class="bccard muted">…</div></div>`;
-  try { await tkLoad(); } catch { if (my === seq) { showError(); } return; }
+  if (!tkOK()) return tkNote(T.needTg, true);
+  if (!tkData()) app.innerHTML = `<div class="wrap bc">${tkHero(T.title, '…')}<div class="bccard muted">…</div></div>`;
+  const stale = !TS.at || Date.now() - TS.at > 20000;
+  if (stale || !tkData()) { try { await tkLoad(); } catch { if (my === seq) showError(); return; } }
   if (my !== seq) return;
-  if (!TS.data.ok) return note(TS.data.error === 'nogroup' ? T.noGroup : T.err.other);
-  drawTasks(hero);
+  if (!TS.data.ok) return tkNote(TS.data.error === 'nogroup' ? T.noGroup : T.err.other);
+  if (TS.compose) drawCompose(); else drawTasks();
 });
 
-function drawTasks(heroFn) {
+/** the page behind a card's ✏️: write the task, pick which coming lesson of the subject it is due at */
+function drawCompose() {
+  const T = tkT(), d = TS.data, c = TS.compose;
+  const sub = d.subjects.find(s => s.n === c.subj) || { n: c.subj, dates: [] };
+  const today = tkToday();
+  const dates = (sub.dates || []).filter(x => x > today);
+  if (!dates.includes(TS.due) && TS.due !== 'other') TS.due = dates[0] || 'other';
+  const nm = trName(c.subj);
+  const maxDay = new Date(Date.parse(today + 'T00:00:00Z') + 90 * 864e5).toISOString().slice(0, 10);
+  const chips = dates.map((x, i) => `<button class="dchip${TS.due === x ? ' on' : ''}" data-due="${x}"><b>${esc(tkDate(x))}</b><small>${i === 0 ? esc(T.nextTag) : ''}</small></button>`).join('')
+    + `<button class="dchip${TS.due === 'other' ? ' on' : ''}" data-due="other"><b>${esc(T.otherDate)}</b></button>`;
+  const blocked = d.banned ? `<div class="bccard tkwarn">${esc(T.banned)}</div>` : d.left <= 0 ? `<div class="bccard tkwarn">${esc(T.limit)}</div>` : '';
+  app.innerHTML = `<div class="wrap bc">${tkHero(nm, T.forLesson(tkDate(c.date)), '✏️')}
+    ${blocked || `<div class="bccard">
+      <label class="bclab" for="tkText">${esc(T.composeFor)}</label>
+      <textarea id="tkText" rows="4" maxlength="300" placeholder="${esc(T.textPh)}">${esc(TS.text)}</textarea>
+      <div class="muted small tkcnt"><span id="tkCnt">${TS.text.length}</span>/300</div>
+      <label class="bclab">${esc(T.dueQ)}</label>
+      ${dates.length ? '' : `<div class="muted small">${esc(T.noDates)}</div>`}
+      <div class="dchips">${chips}</div>
+      ${TS.due === 'other' ? `<input type="date" id="tkDate" min="${new Date(Date.parse(today + 'T00:00:00Z') + 864e5).toISOString().slice(0, 10)}" max="${maxDay}" value="${esc(TS.date)}">` : ''}
+      <button class="act bcgo" id="tkPost"${TS.busy ? ' disabled' : ''}>${esc(TS.busy ? T.posting : T.post)}</button>
+      <div class="muted small" id="tkMsg" aria-live="polite">${esc(TS.msg || T.left(d.left))}</div></div>
+    <div class="muted small" style="margin:12px 6px 0">${esc(T.note)}</div>`}
+    ${footHtml('')}</div>`;
+  const tx = $('#tkText');
+  if (tx) { tx.oninput = () => { TS.text = tx.value; $('#tkCnt').textContent = tx.value.length; }; if (!TS.text) tx.focus({ preventScroll: true }); }
+  const dt = $('#tkDate'); if (dt) dt.onchange = () => { TS.date = dt.value; };
+  app.querySelectorAll('[data-due]').forEach(b => b.onclick = () => { haptic(); TS.text = ($('#tkText') || {}).value ?? TS.text; TS.due = b.dataset.due; drawCompose(); });
+  const post = $('#tkPost');
+  if (post) post.onclick = async () => {
+    if (TS.busy) return;
+    TS.text = $('#tkText').value;
+    const due = TS.due === 'other' ? (($('#tkDate') || {}).value || '') : TS.due;
+    const setMsg = (m) => { TS.msg = m; const e = $('#tkMsg'); if (e) e.textContent = m; };
+    if (TS.text.trim().length < 3) return setMsg(T.err.text);
+    if (!due) return setMsg(T.err.due);
+    TS.busy = true; post.disabled = true; post.textContent = T.posting; haptic('medium');
+    try {
+      const j = await tkCall({ op: 'add', subj: c.subj, text: TS.text, due });
+      TS.busy = false;
+      if (j.ok) {
+        TS.text = ''; TS.msg = ''; TS.compose = null; TS.due = '';
+        await tkLoad().catch(() => {});
+        try { if (tg.HapticFeedback) tg.HapticFeedback.notificationOccurred('success'); } catch {}
+        goBack(); toast(T.thanks); return;
+      }
+      post.disabled = false; post.textContent = T.post;
+      if (j.error === 'banned' || j.error === 'limit') { await tkLoad().catch(() => {}); return drawCompose(); }
+      setMsg(T.err[j.error] || T.err.other);
+    } catch { TS.busy = false; post.disabled = false; post.textContent = T.post; setMsg(T.err.other); }
+  };
+}
+
+function drawTasks() {
   const T = tkT(), d = TS.data;
-  const hero = heroFn || ((sub) => `<div class="hero"><div class="rings"><i></i><i></i></div><div class="hrow"><span class="mark">📝</span><div class="htitle"><div class="t1">${esc(T.title)}</div><div class="t2">${esc(sub || '')}</div></div>${themeBtn()}</div></div>`);
-  const subjects = d.subjects;
-  if (!subjects.some(s => s.n === TS.subj)) TS.subj = (subjects.find(s => tkKey(s.n) === tkKey(TS.fsubj)) || subjects[0] || {}).n || '';
-  const cur = subjects.find(s => s.n === TS.subj) || {};
-  if (TS.due === 'next' && !cur.next) TS.due = 'date';
-  const maxDay = new Date(Date.parse(d.today + 'T00:00:00Z') + 90 * 864e5).toISOString().slice(0, 10);
-  const form = TS.form && !d.banned && d.left > 0 ? `<div class="bccard">
-      <label class="bclab">${esc(T.subject)}</label>
-      <select id="tkSubj">${subjects.map(s => `<option value="${esc(s.n)}"${s.n === TS.subj ? ' selected' : ''}>${esc(s.n)}</option>`).join('')}</select>
-      <textarea id="tkText" rows="3" maxlength="300" placeholder="${esc(T.textPh)}">${esc(TS.text)}</textarea>
-      <div class="bcpills">
-        <button class="pill${TS.due === 'next' ? ' on' : ''}" data-due="next"${cur.next ? '' : ' disabled'}>${esc(cur.next ? T.next(tkDate(cur.next)) : T.noNext)}</button>
-        <button class="pill${TS.due === 'date' ? ' on' : ''}" data-due="date">${esc(T.pickDate)}</button></div>
-      ${TS.due === 'date' ? `<input type="date" id="tkDate" min="${d.today}" max="${maxDay}" value="${esc(TS.date)}">` : ''}
-      <button class="act bcgo" id="tkPost"${TS.busy ? ' disabled' : ''}>${esc(T.post)}</button>
-      <div class="muted small" id="tkMsg" aria-live="polite">${esc(TS.msg || T.left(d.left))}</div></div>` : '';
-  const gate = d.banned ? `<div class="bccard tkwarn">${esc(T.banned)}</div>` : '';
   let list = d.tasks;
   if (TS.filter === 'mine') list = list.filter(t => t.sub || t.mine);
   if (TS.fsubj) list = list.filter(t => tkKey(t.subj) === tkKey(TS.fsubj));
   const sec = (t) => { const k = tkDays(t.due, d.today); return k < 0 ? 0 : k === 0 ? 1 : k === 1 ? 2 : k <= 7 ? 3 : 4; };
   const names = [T.secOver, T.secToday, T.secTom, T.secWeek, T.secLater];
   const card = (t) => {
-    const hid = t.st === 2;
+    const hid = t.st === 2, k = tkDays(t.due, d.today);
     const tag = hid ? T.hidTag : t.st === 1 ? T.okTag : T.newTag(t.up, d.need.up);
     return `<div class="tkcard${hid ? ' tkhid' : ''}${t.st === 1 ? ' tkok' : ''}" data-id="${t.id}">
-      <div class="tkh"><b class="tksub">${esc(t.subj)}</b><span class="tkdue">${esc(tkDate(t.due))}</span></div>
+      <div class="tkh"><b class="tksub">${nameHtml(withOrig(t.subj, {}))}</b><span class="tkdue${k >= 0 && k <= 1 ? ' hot' : ''}">${esc(tkDate(t.due))}</span></div>
       <div class="tkbody">${tkLink(t.body)}</div>
       <div class="tkmeta">👤 ${esc(t.by || '—')} · ${esc(tag)}</div>
       <div class="tkact">
@@ -1391,12 +1486,11 @@ function drawTasks(heroFn) {
       </div></div>`;
   };
   let body = '';
-  if (!list.length) body = `<div class="empty"><div class="big">📝</div><p>${esc(T.empty)}</p></div>`;
+  if (!list.length) body = `<div class="empty"><div class="big">📝</div><p><b>${esc(T.empty)}</b><br><span class="muted">${esc(T.emptyHint)}</span></p></div>`;
   else for (let s = 0; s < 5; s++) { const g = list.filter(t => sec(t) === s); if (g.length) body += `<h4 class="tksec">${esc(names[s])}</h4>${g.map(card).join('')}`; }
-  app.innerHTML = `<div class="wrap bc">${hero(T.sub(d.gname || '', d.members))}
-    <div class="actions" style="margin-top:12px">${d.banned ? '' : `<button class="act" id="tkNew">${esc(TS.form ? T.close : T.add)}</button>`}</div>
-    ${gate}${form}
-    <div class="bcpills" style="margin-top:12px"><button class="pill${TS.filter === 'all' ? ' on' : ''}" data-fl="all">${esc(T.all)}</button><button class="pill${TS.filter === 'mine' ? ' on' : ''}" data-fl="mine">${esc(T.mine)}</button>${TS.fsubj ? `<button class="pill on" data-fs="">${esc(T.filterSubj(TS.fsubj))} ✕</button>` : ''}</div>
+  app.innerHTML = `<div class="wrap bc">${tkHero(T.title, T.sub(d.gname || '', d.members))}
+    ${d.banned ? `<div class="bccard tkwarn">${esc(T.banned)}</div>` : `<div class="tkhint">${esc(T.hint)}</div>`}
+    <div class="bcpills" style="margin-top:12px"><button class="pill${TS.filter === 'all' ? ' on' : ''}" data-fl="all">${esc(T.all)}</button><button class="pill${TS.filter === 'mine' ? ' on' : ''}" data-fl="mine">${esc(T.mine)}</button>${TS.fsubj ? `<button class="pill on" data-fs="">${esc(trName(TS.fsubj))} ✕</button>` : ''}</div>
     ${body}
     <div class="muted small" style="margin:16px 4px 0">${esc(T.how)}</div>
     ${footHtml('')}</div>`;
@@ -1404,39 +1498,17 @@ function drawTasks(heroFn) {
 }
 
 function tkBind() {
-  const T = tkT(), d = TS.data;
+  const d = TS.data;
   const redraw = () => drawTasks();
-  const nw = $('#tkNew'); if (nw) nw.onclick = () => { haptic(); TS.form = !TS.form; TS.msg = ''; redraw(); if (TS.form) { const x = $('#tkText'); if (x) x.focus(); } };
-  const sj = $('#tkSubj'); if (sj) sj.onchange = () => { TS.subj = sj.value; TS.text = ($('#tkText') || {}).value || ''; redraw(); };
-  const tx = $('#tkText'); if (tx) tx.oninput = () => { TS.text = tx.value; };
-  const dt = $('#tkDate'); if (dt) dt.onchange = () => { TS.date = dt.value; };
-  app.querySelectorAll('[data-due]').forEach(b => b.onclick = () => { haptic(); TS.text = ($('#tkText') || {}).value || TS.text; TS.due = b.dataset.due; redraw(); });
   app.querySelectorAll('[data-fl]').forEach(b => b.onclick = () => { haptic(); TS.filter = b.dataset.fl; redraw(); });
   app.querySelectorAll('[data-fs]').forEach(b => b.onclick = () => { haptic(); TS.fsubj = ''; redraw(); });
-  const post = $('#tkPost');
-  if (post) post.onclick = async () => {
-    if (TS.busy) return;
-    TS.text = $('#tkText').value; TS.subj = $('#tkSubj').value;
-    const due = TS.due === 'next' ? 'next' : (($('#tkDate') || {}).value || '');
-    const setMsg = (m) => { TS.msg = m; const e = $('#tkMsg'); if (e) e.textContent = m; };
-    if (TS.text.trim().length < 3) return setMsg(T.err.text);
-    if (!due) return setMsg(T.err.due);
-    TS.busy = true; post.disabled = true; haptic('medium');
-    try {
-      const j = await tkCall({ op: 'add', subj: TS.subj, text: TS.text, due });
-      if (j.ok) { TS.text = ''; TS.form = false; TS.msg = ''; await tkLoad(); TS.busy = false; drawTasks(); haptic('medium'); return; }
-      TS.busy = false; post.disabled = false;
-      if (j.error === 'banned') { await tkLoad(); return drawTasks(); }
-      setMsg(T.err[j.error] || T.err.other);
-    } catch { TS.busy = false; post.disabled = false; setMsg(T.err.other); }
-  };
   app.querySelectorAll('.tkcard').forEach(card => {
     const id = Number(card.dataset.id), t = d.tasks.find(x => x.id === id);
     if (!t) return;
     card.querySelectorAll('[data-v]').forEach(b => b.onclick = async () => {
       haptic(); const v = Number(b.dataset.v) === t.my ? 0 : Number(b.dataset.v);
       const j = await tkCall({ op: 'vote', id, v }).catch(() => null);
-      if (j && j.ok) { t.up = j.up; t.down = j.down; t.st = j.st; t.my = j.my; if (j.st === 2 && !t.mine) { /* hidden for others after refresh */ } drawTasks(); }
+      if (j && j.ok) { t.up = j.up; t.down = j.down; t.st = j.st; t.my = j.my; try { localStorage.setItem('tt_tasks', JSON.stringify(d)); } catch {} drawTasks(); }
     });
     card.querySelectorAll('[data-sub]').forEach(b => b.onclick = async () => {
       haptic(); const on = b.dataset.sub === '1';
@@ -1448,9 +1520,23 @@ function tkBind() {
       if (TS.sure !== id) { TS.sure = id; drawTasks(); return; }
       TS.sure = 0;
       const j = await tkCall({ op: 'del', id }).catch(() => null);
-      if (j && j.ok) { d.tasks = d.tasks.filter(x => x.id !== id); drawTasks(); } else drawTasks();
+      if (j && j.ok) { d.tasks = d.tasks.filter(x => x.id !== id); try { localStorage.setItem('tt_tasks', JSON.stringify(d)); } catch {} }
+      drawTasks();
     });
     card.querySelectorAll('a[href]').forEach(a => a.onclick = (ev) => { if (inTg && tg.openLink) { ev.preventDefault(); try { tg.openLink(a.href); } catch { window.open(a.href, '_blank'); } } });
+  });
+}
+/** the ✏️ and the task lines on the timetable cards */
+function tkBindCards() {
+  app.querySelectorAll('[data-tkw]').forEach(b => b.onclick = (ev) => {
+    ev.stopPropagation(); haptic();
+    S.stack.push(snap()); S.tab = 'tasks'; TS.compose = { subj: b.dataset.tkw, date: b.dataset.tkd }; TS.text = ''; TS.due = ''; TS.msg = ''; TS.busy = false;
+    render(); window.scrollTo(0, 0);
+  });
+  app.querySelectorAll('[data-tkf]').forEach(b => b.onclick = (ev) => {
+    ev.stopPropagation(); haptic();
+    S.stack.push(snap()); S.tab = 'tasks'; TS.compose = null; TS.fsubj = b.dataset.tkf; TS.filter = 'all';
+    render(); window.scrollTo(0, 0);
   });
 }
 

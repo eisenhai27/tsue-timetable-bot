@@ -25,7 +25,7 @@ import {
 } from '../src/shared.mjs';
 import { ft, fmtFriends, FRIENDS_MAX } from '../src/friends.mjs';
 import { prettyBody } from '../src/pretty.mjs';
-import { approveAt, banAt, cleanTaskText, hideAt, nextLessons, subjectKey, subjectsOf, taskState, taskTx, validDay, TASKS_PER_DAY, TASK_KEEP_DAYS, TASK_HORIZON } from '../src/tasks.mjs';
+import { approveAt, banAt, cleanTaskText, hideAt, lessonDates, nextLessons, subjectKey, subjectsOf, taskState, taskTx, validDay, TASKS_PER_DAY, TASK_KEEP_DAYS, TASK_HORIZON } from '../src/tasks.mjs';
 import { lw as lessonWords, nextJoke, jokeList, jokePool, jokeText, jokeHtml, isTeacherKey, paragraphs, lessonRunPlan, clock } from '../src/lessons.mjs';
 
 const PAGE = 36; // groups per page in the picker (3 columns × 12 rows); bigger courses are split by direction first
@@ -1256,8 +1256,8 @@ async function onTasksApi(request, env) {
   if (body.op === 'list') {
     await loadSubjects(env);
     const [group, index, members, banned] = await Promise.all([getGroup(env, gid), getIndex(env), taskMembers(D, gid), taskBanned(D, gid, user.id)]);
-    const nl = group && index ? nextLessons(group, index, tn) : {};
-    const subjects = subjectsOf(group).map((name) => ({ n: name, next: nl[subjectKey(name)] || null }));
+    const nl = group && index ? lessonDates(group, index, tn) : {};
+    const subjects = subjectsOf(group).map((name) => ({ n: name, next: (nl[subjectKey(name)] || [])[0] || null, dates: nl[subjectKey(name)] || [] }));
     const rows = (await D.prepare(`SELECT t.id, t.subj, t.body, t.due, t.uid, t.uname, t.at, t.st, t.up, t.down, v.v my, (s.uid IS NOT NULL) sub
       FROM tasks t LEFT JOIN task_votes v ON v.tid = t.id AND v.uid = ? LEFT JOIN task_subs s ON s.tid = t.id AND s.uid = ?
       WHERE t.gid = ? AND t.due >= ? AND (t.st != 2 OR t.uid = ? OR ? = 1) ORDER BY t.due, t.id LIMIT 120`)
@@ -2269,6 +2269,7 @@ async function privateMain(env, msg, command, flags) {
     // Deep link from a group chat post: /start g_<groupId>
     const m = /^g_([a-z0-9]+)$/.exec(command.arg);
     if (m) { flags.kbSent = true; return chooseGroup(env, msg.chat, uid, m[1], null, lang); }
+    if (command.arg === 'vazifa') return privateMain(env, msg, { ...command, cmd: 'vazifa', arg: '' }, flags); // the Mini App's "open it from the bot" link
     const mt = /^t_([a-z0-9]+)$/.exec(command.arg); // a teacher's shared link: /start t_<teacherId>
     if (mt) { flags.kbSent = true; return chooseTeacher(env, msg.chat, uid, mt[1], null, lang); }
     const mw = /^w_([a-z0-9]+)$/.exec(command.arg); // "where is this teacher" link: /start w_<teacherId>
