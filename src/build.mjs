@@ -38,7 +38,10 @@ export const isGroupName = (name) => GROUP_LIKE.test(String(name || ''));
 
 /** Pick the timetable version that is valid on `dateStr` (YYYY-MM-DD). */
 export function pickTimetable(viewer, dateStr) {
-  const list = (viewer?.r?.regular?.timetables || []).filter((t) => !t.hidden);
+    const all = viewer?.r?.regular?.timetables || [];
+  // EduPage hides a timetable once its period is over; if nothing else is published, the newest hidden one is still the live data.
+  const shown = all.filter((t) => !t.hidden);
+  const list = shown.length ? shown : all;
   if (!list.length) return null;
   const sorted = [...list].sort((a, b) => a.datefrom.localeCompare(b.datefrom));
   let chosen = sorted[0];
